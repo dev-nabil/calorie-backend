@@ -1,0 +1,5 @@
+{
+  "id": "not-food",
+  "expected": { "isFood": false, "kcal": 0, "items": [] },
+  "fakeOutput": { "isFood": false, "mealName": "", "items": [], "notes": "That looks like a keyboard.", "clarifyingQuestion": null }
+}

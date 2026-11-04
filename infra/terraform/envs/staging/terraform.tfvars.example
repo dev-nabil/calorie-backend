@@ -1,0 +1,20 @@
+# Copy to terraform.tfvars (gitignored). No secrets belong in this file.
+gcp_project_id        = "nouri-staging"
+gcp_region            = "europe-west2"
+image                 = "europe-west2-docker.pkg.dev/nouri-staging/nouri/backend:REPLACE"
+github_repository     = "REPLACE-org/nouri-backend"
+atlas_org_id          = "REPLACE"
+atlas_region          = "EUROPE_WEST_2"
+cloudflare_account_id = "REPLACE"
+cloudflare_zone_id    = "REPLACE"
+api_hostname          = "api.staging.example.com"
+admin_app_url         = "https://admin.staging.example.com"
+cors_origins          = ["https://admin.staging.example.com", "https://staging.example.com"]
+cdn_base_url          = "https://media.staging.example.com"
+plain_env = {
+  APPLE_BUNDLE_ID          = "app.nouri"
+  APPLE_APP_ATTEST_TEAM_ID = "REPLACE"
+  GOOGLE_CLIENT_IDS        = "REPLACE.apps.googleusercontent.com"
+  PLAY_INTEGRITY_PACKAGE   = "app.nouri"
+  EMAIL_FROM               = "Nouri <hello@example.com>"
+}

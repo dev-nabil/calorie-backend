@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.local/
+evals/meal-scan/reports/
+evals/meal-scan/images/*.jpg
+# Terraform
+infra/terraform/**/.terraform/
+infra/terraform/**/*.tfstate*
+infra/terraform/**/terraform.tfvars
+infra/terraform/**/backend.hcl

@@ -1,0 +1,2665 @@
+{
+  "$schema": "./questions.schema.json",
+  "kind": "onboarding_questions",
+  "version": 1,
+  "locale": "en-GB",
+  "source": {
+    "prototype": "../Nouri App Prototype/Nouri Setup.dc.html (QS, BASIC, SECTIONS, STAGES, applicable())",
+    "questionnaire": "Nutrition App Onboarding Questionnaire",
+    "plan": "../nouri-docs/PLAN.md v0.2 section 10, OQ-15"
+  },
+  "placeholders": {
+    "name": "Value of q05 (preferred_name), trimmed. When q05 is empty use miloLineNoName if present, otherwise drop the \"{name}, \" prefix."
+  },
+  "conditionGrammar": {
+    "description": "Declarative conditions evaluated identically by the TypeScript and Dart engines. A condition is exactly one of the forms below.",
+    "forms": {
+      "all": "{\"all\":[Condition, ...]} — true when every child is true (empty list is true)",
+      "any": "{\"any\":[Condition, ...]} — true when at least one child is true (empty list is false)",
+      "not": "{\"not\":Condition}",
+      "eq": "{\"q\":\"q15\",\"eq\":\"yes\"} — single-choice value equals the option ID",
+      "in": "{\"q\":\"q15\",\"in\":[\"yes\",\"varies\"]} — single-choice value is one of the option IDs",
+      "includes": "{\"q\":\"q04\",\"includes\":\"fasting\"} — multi/days value (array) contains the ID",
+      "eqSet": "{\"q\":\"q30\",\"eqSet\":[\"manual\"]} — multi value contains exactly these IDs, order ignored",
+      "answered": "{\"q\":\"q08\",\"answered\":true} — status is answered and value is non-empty (non-blank string, non-empty array, or object). {\"answered\":false} is the negation",
+      "age": "{\"age\":{\"gte\":18}} — age in completed years derived from q06 (keys: gte, gt, lte, lt). Unknown age (no q06, mode none, invalid date) makes every comparison false",
+      "route": "{\"route\":\"detailed\"} or {\"route\":{\"in\":[\"basic\",\"detailed\"]}} — the active route"
+    },
+    "ageDerivation": "mode \"age\": the stated age. mode \"dob\": completed years on the current local date of the device. mode \"none\" or missing: unknown.",
+    "missingValue": "A question with no saved value (skipped, deferred, not applicable or never asked) makes eq, in, includes, eqSet false and answered false. A blank value is never read as \"no\"."
+  },
+  "engine": {
+    "applicability": "A question is applicable when it is in the active route list and every branching rule whose \"show\" is that question evaluates true. Questions without a rule are always applicable.",
+    "nextQuestion": "The first applicable question, in route order, whose status is not set (answered, skipped). Deferred questions are asked again on resume.",
+    "staleValues": "After every saved change, re-evaluate all rules (BR-11). A question that is no longer applicable gets status not_applicable, its value leaves the active profile (history is kept), and the onHide.effects apply.",
+    "emptyCommit": "Continuing a multi, days or text question with no value saves status skipped.",
+    "exclusive": "Selecting an exclusive option clears every other selection; selecting any other option clears exclusive ones. Validate on client and server.",
+    "maxSelections": "When max is set, a further selection is refused until one is removed (Milo line setup.maxReached).",
+    "finishLater": "Opens Review with the answers so far. Unasked questions on the basic and conversation routes are stored as deferred."
+  },
+  "valueFormats": {
+    "single": "\"optionId\" (string)",
+    "multi": "[\"optionId\", ...] (array of unique strings, respects max and exclusive)",
+    "days": "[\"mon\", ...] weekday IDs from days[], or [\"changes\"] / [\"none\"] (exclusive options)",
+    "text": "\"Alex\" (string, trimmed, 1–50 Unicode characters)",
+    "age": "{\"mode\":\"dob\",\"dob\":\"YYYY-MM-DD\"} | {\"mode\":\"age\",\"age\":28} | {\"mode\":\"none\"}",
+    "height": "{\"cm\":172,\"unit\":\"cm\"|\"ft_in\"} — stored in cm, unit is the display unit",
+    "weight": "{\"kg\":78.0,\"unit\":\"kg\"|\"lb\",\"isEstimate\":false} — stored in kg; target_weight has no isEstimate (always false)",
+    "detail": "Free text for an option with freeText (max 50) and the q33 custom length go in the answer detail, not the value: {\"text\":\"...\"} or {\"number\":21}. The value stays the option ID so branching never parses text."
+  },
+  "stages": [
+    {
+      "id": 1,
+      "key": "purpose",
+      "label": "Purpose",
+      "questionIds": [
+        "q01",
+        "q02",
+        "q03",
+        "q04"
+      ]
+    },
+    {
+      "id": 2,
+      "key": "profile",
+      "label": "Profile",
+      "questionIds": [
+        "q05",
+        "q06",
+        "q07",
+        "q08",
+        "q09",
+        "q10",
+        "target_weight"
+      ]
+    },
+    {
+      "id": 3,
+      "key": "daily_life",
+      "label": "Daily life",
+      "questionIds": [
+        "q11",
+        "q12",
+        "q13",
+        "q14",
+        "q15",
+        "q16"
+      ]
+    },
+    {
+      "id": 4,
+      "key": "starting_point",
+      "label": "Starting point",
+      "questionIds": [
+        "q17",
+        "q18",
+        "q19",
+        "q20",
+        "q21",
+        "q22",
+        "q23"
+      ]
+    },
+    {
+      "id": 5,
+      "key": "practical_routine",
+      "label": "Practical routine",
+      "questionIds": [
+        "q24",
+        "q25",
+        "q26",
+        "q27",
+        "q28",
+        "q29"
+      ]
+    },
+    {
+      "id": 6,
+      "key": "app_experience",
+      "label": "App experience",
+      "questionIds": [
+        "q30",
+        "q31",
+        "q32",
+        "q33",
+        "q34"
+      ]
+    },
+    {
+      "id": 7,
+      "key": "review",
+      "label": "Review",
+      "questionIds": []
+    }
+  ],
+  "routes": {
+    "basic": {
+      "label": "Set up the basics",
+      "sub": "About 2 minutes. Goal, profile and how you log.",
+      "icon": "lightning",
+      "questionIds": [
+        "q01",
+        "q05",
+        "q06",
+        "q07",
+        "q08",
+        "q09",
+        "q10",
+        "q11",
+        "q30"
+      ],
+      "then": "review",
+      "notes": "q07–q10 only when applicable. q31 is deferred on this route even if manual is chosen. Every question not on this list is stored as deferred."
+    },
+    "detailed": {
+      "label": "Personalise in more detail",
+      "sub": "Around 5 minutes. Routine, habits and support.",
+      "icon": "sliders-horizontal",
+      "questionIds": [
+        "q01",
+        "q02",
+        "q03",
+        "q04",
+        "q05",
+        "q06",
+        "q07",
+        "q08",
+        "q09",
+        "q10",
+        "target_weight",
+        "q11",
+        "q12",
+        "q13",
+        "q14",
+        "q15",
+        "q16",
+        "q17",
+        "q18",
+        "q19",
+        "q20",
+        "q21",
+        "q22",
+        "q23",
+        "q24",
+        "q25",
+        "q26",
+        "q27",
+        "q28",
+        "q29",
+        "q30",
+        "q31",
+        "q32",
+        "q33",
+        "q34"
+      ],
+      "then": "review",
+      "notes": "All questions in order with the branching rules. Used by Finish setting up to resume at the next deferred question."
+    },
+    "conversation": {
+      "label": "Meet Milo",
+      "sub": "Talk or type. About 2 minutes.",
+      "icon": "microphone",
+      "ref": "content/onboarding/conversation.v1.json",
+      "questionIds": [
+        "q05",
+        "q01",
+        "q06",
+        "q08",
+        "q09",
+        "q07",
+        "target_weight",
+        "q10",
+        "q11",
+        "q12",
+        "q22",
+        "q30"
+      ],
+      "then": "review",
+      "notes": "Order and grouping are defined by the turn groups in conversation.v1.json. Applicability still follows the branching rules. Everything not asked is stored as deferred."
+    }
+  },
+  "branching": [
+    {
+      "id": "BR-Q07",
+      "show": "q07",
+      "when": {
+        "age": {
+          "gte": 18
+        }
+      },
+      "onHide": {
+        "clear": [
+          "q07"
+        ],
+        "effects": [
+          "habits_only_mode",
+          "disable_targets",
+          "never_reuse_old_target"
+        ]
+      },
+      "source": "PLAN §10 row 1; prototype applicable() q07"
+    },
+    {
+      "id": "BR-Q08",
+      "show": "q08",
+      "when": {
+        "all": [
+          {
+            "age": {
+              "gte": 18
+            }
+          },
+          {
+            "any": [
+              {
+                "q": "q07",
+                "eq": "female"
+              },
+              {
+                "q": "q07",
+                "eq": "male"
+              }
+            ]
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q08"
+        ],
+        "effects": [
+          "calculation_incomplete"
+        ]
+      },
+      "source": "PLAN §10 row 2; prototype applicable() q08"
+    },
+    {
+      "id": "BR-Q09",
+      "show": "q09",
+      "when": {
+        "all": [
+          {
+            "age": {
+              "gte": 18
+            }
+          },
+          {
+            "any": [
+              {
+                "q": "q07",
+                "eq": "female"
+              },
+              {
+                "q": "q07",
+                "eq": "male"
+              }
+            ]
+          },
+          {
+            "q": "q08",
+            "answered": true
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q09"
+        ],
+        "effects": [
+          "calculation_incomplete"
+        ]
+      },
+      "source": "PLAN §10 row 2; prototype applicable() q09"
+    },
+    {
+      "id": "BR-Q10",
+      "show": "q10",
+      "when": {
+        "all": [
+          {
+            "age": {
+              "gte": 18
+            }
+          },
+          {
+            "any": [
+              {
+                "q": "q07",
+                "eq": "female"
+              },
+              {
+                "q": "q07",
+                "eq": "male"
+              }
+            ]
+          },
+          {
+            "q": "q08",
+            "answered": true
+          },
+          {
+            "q": "q09",
+            "answered": true
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q10"
+        ],
+        "effects": [
+          "calculation_incomplete"
+        ]
+      },
+      "source": "PLAN §10 row 2; prototype applicable() q10"
+    },
+    {
+      "id": "BR-TW",
+      "show": "target_weight",
+      "when": {
+        "all": [
+          {
+            "age": {
+              "gte": 18
+            }
+          },
+          {
+            "any": [
+              {
+                "q": "q07",
+                "eq": "female"
+              },
+              {
+                "q": "q07",
+                "eq": "male"
+              }
+            ]
+          },
+          {
+            "q": "q08",
+            "answered": true
+          },
+          {
+            "q": "q09",
+            "answered": true
+          },
+          {
+            "any": [
+              {
+                "q": "q01",
+                "eq": "lose"
+              },
+              {
+                "q": "q01",
+                "eq": "gain"
+              }
+            ]
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "target_weight"
+        ],
+        "effects": []
+      },
+      "source": "PLAN §10 row 7, OQ-15 (\"full mode\" read as: adult with sex input, height and weight given)"
+    },
+    {
+      "id": "BR-Q16",
+      "show": "q16",
+      "when": {
+        "any": [
+          {
+            "q": "q15",
+            "eq": "yes"
+          },
+          {
+            "q": "q15",
+            "eq": "varies"
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q16"
+        ],
+        "effects": []
+      },
+      "source": "PLAN §10 row 3; prototype applicable() q16"
+    },
+    {
+      "id": "BR-Q19",
+      "show": "q19",
+      "when": {
+        "q": "q04",
+        "includes": "fasting"
+      },
+      "onHide": {
+        "clear": [
+          "q19"
+        ],
+        "effects": [
+          "disable_fasting_suggestions"
+        ]
+      },
+      "source": "PLAN §10 row 4; prototype applicable() q19"
+    },
+    {
+      "id": "BR-Q27",
+      "show": "q27",
+      "when": {
+        "any": [
+          {
+            "q": "q04",
+            "includes": "movement"
+          },
+          {
+            "q": "q21",
+            "includes": "movement"
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q27"
+        ],
+        "effects": [
+          "hide_movement_setup"
+        ]
+      },
+      "source": "PLAN §10 row 5; prototype applicable() q27"
+    },
+    {
+      "id": "BR-Q31",
+      "show": "q31",
+      "when": {
+        "all": [
+          {
+            "route": "detailed"
+          },
+          {
+            "q": "q30",
+            "eqSet": [
+              "manual"
+            ]
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q31"
+        ],
+        "effects": []
+      },
+      "source": "PLAN §10 row 6; prototype applicable() q31 (detailed route only)"
+    }
+  ],
+  "reviewSections": [
+    {
+      "id": "main_goal",
+      "label": "Main goal",
+      "questionIds": [
+        "q01",
+        "q02",
+        "q03"
+      ]
+    },
+    {
+      "id": "tools",
+      "label": "Tools",
+      "questionIds": [
+        "q04",
+        "q30",
+        "q31"
+      ]
+    },
+    {
+      "id": "profile",
+      "label": "Profile",
+      "questionIds": [
+        "q05",
+        "q06",
+        "q07",
+        "q08",
+        "q09",
+        "q10",
+        "target_weight"
+      ]
+    },
+    {
+      "id": "food",
+      "label": "Food",
+      "questionIds": [
+        "q11",
+        "q12",
+        "q26"
+      ]
+    },
+    {
+      "id": "routine",
+      "label": "Routine",
+      "questionIds": [
+        "q13",
+        "q14",
+        "q15",
+        "q16",
+        "q25",
+        "q32"
+      ]
+    },
+    {
+      "id": "support_progress",
+      "label": "Support and progress",
+      "questionIds": [
+        "q17",
+        "q18",
+        "q19",
+        "q20",
+        "q21",
+        "q22",
+        "q23",
+        "q24",
+        "q27",
+        "q28",
+        "q29",
+        "q33"
+      ]
+    },
+    {
+      "id": "discovery",
+      "label": "Discovery",
+      "questionIds": [
+        "q34"
+      ]
+    }
+  ],
+  "review": {
+    "title": "Here is how we will set up your experience",
+    "note": "Skipped answers show as Not provided and can be added any time. Nothing is calculated until you confirm.",
+    "notProvided": "Not provided",
+    "primaryAction": "Save and continue",
+    "editAll": "Edit my answers",
+    "answerRest": "Answer the rest",
+    "rowRule": "Show a row when the question is applicable on the current route or has a saved value. Tapping a row edits that question and returns to Review."
+  },
+  "questions": [
+    {
+      "id": "q01",
+      "fieldKey": "primary_goal",
+      "order": 1,
+      "stage": 1,
+      "version": 1,
+      "type": "single",
+      "required": true,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Main goal",
+      "text": "What would you most like to work on right now?",
+      "note": null,
+      "miloLine": "No wrong answer here. \"Help me decide\" is a fine choice.",
+      "miloLineNoName": null,
+      "hint": "Required",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "habits",
+          "label": "Build healthier eating habits",
+          "icon": "plant",
+          "freeText": false
+        },
+        {
+          "id": "maintain",
+          "label": "Maintain my weight",
+          "icon": "scales",
+          "freeText": false
+        },
+        {
+          "id": "lose",
+          "label": "Work toward weight loss",
+          "icon": "trend-down",
+          "freeText": false
+        },
+        {
+          "id": "gain",
+          "label": "Work toward weight gain",
+          "icon": "trend-up",
+          "freeText": false
+        },
+        {
+          "id": "patterns",
+          "label": "Understand my eating patterns",
+          "icon": "magnifying-glass",
+          "freeText": false
+        },
+        {
+          "id": "decide",
+          "label": "Help me decide",
+          "icon": "compass",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q02",
+      "fieldKey": "supporting_goals",
+      "order": 2,
+      "stage": 1,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "Other benefits",
+      "text": "What else would make this experience useful to you?",
+      "note": null,
+      "miloLine": "Pick as many as you like. I will keep your main goal first.",
+      "miloLineNoName": null,
+      "hint": "Choose any that apply",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "choices",
+          "label": "Improve my everyday food choices",
+          "icon": "fork-knife",
+          "freeText": false
+        },
+        {
+          "id": "energy",
+          "label": "Feel more energetic and improve my mood",
+          "icon": "lightning",
+          "freeText": false
+        },
+        {
+          "id": "routine",
+          "label": "Build a steady routine",
+          "icon": "calendar-check",
+          "freeText": false
+        },
+        {
+          "id": "body",
+          "label": "Feel more comfortable in my body",
+          "icon": "heart",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "Something else",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "none",
+          "label": "Nothing else for now",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q03",
+      "fieldKey": "personal_motivation",
+      "order": 3,
+      "stage": 1,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Personal reason",
+      "text": "What change would feel most meaningful in your daily life?",
+      "note": null,
+      "miloLine": "This stays private. I only bring it up in quiet check-ins.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "healthier",
+          "label": "Feeling healthier and having more energy",
+          "icon": "sun",
+          "freeText": false
+        },
+        {
+          "id": "proud",
+          "label": "Feeling proud of my progress",
+          "icon": "medal",
+          "freeText": false
+        },
+        {
+          "id": "clothes",
+          "label": "Feeling comfortable in clothes I enjoy",
+          "icon": "t-shirt",
+          "freeText": false
+        },
+        {
+          "id": "measure",
+          "label": "Noticing changes in my measurements",
+          "icon": "ruler",
+          "freeText": false
+        },
+        {
+          "id": "personal",
+          "label": "A personal reason I want to describe",
+          "icon": "pencil-simple",
+          "freeText": true
+        },
+        {
+          "id": "skip",
+          "label": "I would rather skip this",
+          "icon": "arrow-right",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q04",
+      "fieldKey": "requested_features",
+      "order": 4,
+      "stage": 1,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "explore"
+      ],
+      "reviewLabel": "Support from the app",
+      "text": "Which tools would you like to have close at hand?",
+      "note": null,
+      "miloLine": "I will put these within easy reach on your home screen.",
+      "miloLineNoName": null,
+      "hint": "Choose any that apply",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "logging",
+          "label": "Food and calorie logging",
+          "icon": "fork-knife",
+          "freeText": false
+        },
+        {
+          "id": "movement",
+          "label": "Movement and activity records",
+          "icon": "person-simple-run",
+          "freeText": false
+        },
+        {
+          "id": "ideas",
+          "label": "Ideas for balanced meals",
+          "icon": "bowl-food",
+          "freeText": false
+        },
+        {
+          "id": "summaries",
+          "label": "Progress summaries",
+          "icon": "chart-line-up",
+          "freeText": false
+        },
+        {
+          "id": "fasting",
+          "label": "Information about eating windows and fasting",
+          "icon": "timer",
+          "freeText": false
+        },
+        {
+          "id": "explore",
+          "label": "I am still exploring",
+          "icon": "compass",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q05",
+      "fieldKey": "preferred_name",
+      "order": 5,
+      "stage": 2,
+      "version": 1,
+      "type": "text",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Name",
+      "text": "What name would you like us to use?",
+      "note": null,
+      "miloLine": "A nickname is perfect. I just want to know what to call you.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [],
+      "days": [],
+      "limits": {
+        "maxLength": 50,
+        "trim": true,
+        "unicode": true
+      }
+    },
+    {
+      "id": "q06",
+      "fieldKey": "birth_date_or_age",
+      "order": 6,
+      "stage": 2,
+      "version": 1,
+      "type": "age",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Age",
+      "text": "When were you born?",
+      "note": "We use your age to decide which features are appropriate. You can enter your age without sharing your birthday.",
+      "miloLine": "{name}, your birthday stays yours. A plain age works too.",
+      "miloLineNoName": "Your birthday stays yours. A plain age works too.",
+      "hint": "Optional",
+      "skipLabel": "Prefer not to provide this",
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [],
+      "days": [],
+      "limits": {
+        "min": 10,
+        "max": 110,
+        "unit": "years",
+        "adultFrom": 18,
+        "dobNotInFuture": true,
+        "modes": [
+          "dob",
+          "age",
+          "none"
+        ],
+        "start": 28
+      }
+    },
+    {
+      "id": "q07",
+      "fieldKey": "calculation_sex",
+      "order": 7,
+      "stage": 2,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Calculation preference",
+      "text": "Which sex input should we use if you choose a calorie estimate?",
+      "note": "Some calorie equations use this input. You can continue with habit tracking without it.",
+      "miloLine": "Only used if you choose a calorie estimate. Nothing is assumed.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "female",
+          "label": "Female",
+          "icon": "user",
+          "freeText": false
+        },
+        {
+          "id": "male",
+          "label": "Male",
+          "icon": "user",
+          "freeText": false
+        },
+        {
+          "id": "unsure",
+          "label": "I am unsure which applies",
+          "icon": "question",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "Do not use a sex-based estimate",
+          "icon": "x",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q08",
+      "fieldKey": "height_cm",
+      "order": 8,
+      "stage": 2,
+      "version": 1,
+      "type": "height",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Height",
+      "text": "What height should we use for your profile?",
+      "note": null,
+      "miloLine": "Tap the buttons to adjust. Switch units any time.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [],
+      "days": [],
+      "limits": {
+        "min": 90,
+        "max": 250,
+        "unit": "cm",
+        "displayUnits": [
+          "cm",
+          "ft_in"
+        ],
+        "step": {
+          "cm": 1,
+          "ft_in": 2.54
+        },
+        "bigStepMultiplier": 5,
+        "start": 170
+      }
+    },
+    {
+      "id": "q09",
+      "fieldKey": "current_weight_kg",
+      "order": 9,
+      "stage": 2,
+      "version": 1,
+      "type": "weight",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Current weight",
+      "text": "What is your most recent weight?",
+      "note": "An approximate value is okay. You can update it later.",
+      "miloLine": "A rough number is fine. I will not treat it as exact.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [],
+      "days": [],
+      "limits": {
+        "min": 25,
+        "max": 300,
+        "unit": "kg",
+        "displayUnits": [
+          "kg",
+          "lb"
+        ],
+        "step": {
+          "kg": 1,
+          "lb": 0.45359
+        },
+        "bigStepMultiplier": 5,
+        "estimateFlag": true,
+        "start": 70
+      }
+    },
+    {
+      "id": "q10",
+      "fieldKey": "activity_level",
+      "order": 10,
+      "stage": 2,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Everyday movement",
+      "text": "How much movement is part of a usual week for you?",
+      "note": null,
+      "miloLine": "Pick whichever sounds closest to a normal week.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "seated",
+          "label": "Mostly seated, with little movement",
+          "icon": "house",
+          "freeText": false
+        },
+        {
+          "id": "light",
+          "label": "Some walking or light activity",
+          "icon": "person-simple-walk",
+          "freeText": false
+        },
+        {
+          "id": "active",
+          "label": "Frequent walking, active work or regular exercise",
+          "icon": "sneaker",
+          "freeText": false
+        },
+        {
+          "id": "intense",
+          "label": "Physically demanding work or frequent intensive training",
+          "icon": "barbell",
+          "freeText": false
+        },
+        {
+          "id": "unsure",
+          "label": "Not sure",
+          "icon": "question",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "target_weight",
+      "fieldKey": "target_weight_kg",
+      "order": 11,
+      "stage": 2,
+      "version": 1,
+      "type": "weight",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Target weight",
+      "text": "Is there a weight you would like to work toward?",
+      "note": "Optional. It appears on your goal card and never changes your daily targets.",
+      "miloLine": "Not sure yet is fine. We will focus on steady habits, not a deadline.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": "Not sure yet",
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [],
+      "days": [],
+      "limits": {
+        "min": 25,
+        "max": 300,
+        "unit": "kg",
+        "displayUnits": [
+          "kg",
+          "lb"
+        ],
+        "step": {
+          "kg": 1,
+          "lb": 0.45359
+        },
+        "bigStepMultiplier": 5,
+        "estimateFlag": false,
+        "start": null
+      }
+    },
+    {
+      "id": "q11",
+      "fieldKey": "diet_pattern",
+      "order": 12,
+      "stage": 3,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Eating preferences",
+      "text": "Which eating pattern is closest to yours?",
+      "note": null,
+      "miloLine": "This only filters ideas. It is not a medical label.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "chips",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "none",
+          "label": "No specific pattern",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "pesc",
+          "label": "Fish but no meat or poultry",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "veg",
+          "label": "Vegetarian",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "vegan",
+          "label": "Vegan",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "Another pattern",
+          "icon": null,
+          "freeText": true
+        },
+        {
+          "id": "deciding",
+          "label": "Still deciding",
+          "icon": null,
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q12",
+      "fieldKey": "meal_source",
+      "order": 13,
+      "stage": 3,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Where meals come from",
+      "text": "Where do most of your meals come from?",
+      "note": null,
+      "miloLine": "So I can suggest the right shortcuts.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "home",
+          "label": "Prepared at home",
+          "icon": "house",
+          "freeText": false
+        },
+        {
+          "id": "out",
+          "label": "Restaurants, takeaways or delivery",
+          "icon": "motorcycle",
+          "freeText": false
+        },
+        {
+          "id": "mix",
+          "label": "A fairly even mix",
+          "icon": "shuffle",
+          "freeText": false
+        },
+        {
+          "id": "varies",
+          "label": "It changes from week to week",
+          "icon": "arrows-clockwise",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q13",
+      "fieldKey": "schedule_pattern",
+      "order": 14,
+      "stage": 3,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Weekly schedule",
+      "text": "Which description fits your work or study schedule best?",
+      "note": null,
+      "miloLine": "No reminders get scheduled until you choose a time.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "fixed",
+          "label": "Mostly fixed daytime hours",
+          "icon": "sun",
+          "freeText": false
+        },
+        {
+          "id": "flex",
+          "label": "Hours I can choose",
+          "icon": "sliders-horizontal",
+          "freeText": false
+        },
+        {
+          "id": "shifts",
+          "label": "Changing or rotating shifts",
+          "icon": "arrows-clockwise",
+          "freeText": false
+        },
+        {
+          "id": "seasonal",
+          "label": "Seasonal work",
+          "icon": "calendar",
+          "freeText": false
+        },
+        {
+          "id": "study",
+          "label": "Studying",
+          "icon": "student",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "Not currently working or studying",
+          "icon": "house",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "Another schedule",
+          "icon": "dots-three",
+          "freeText": true
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q14",
+      "fieldKey": "children_living_arrangement",
+      "order": 15,
+      "stage": 3,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Family routines",
+      "text": "Do you have children, and do they live with you?",
+      "note": null,
+      "miloLine": "Only for household planning. Skip freely.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "with",
+          "label": "Yes, they live with me",
+          "icon": "users-three",
+          "freeText": false
+        },
+        {
+          "id": "elsewhere",
+          "label": "Yes, they live elsewhere",
+          "icon": "arrows-left-right",
+          "freeText": false
+        },
+        {
+          "id": "some",
+          "label": "They live with me some of the time",
+          "icon": "shuffle",
+          "freeText": false
+        },
+        {
+          "id": "no",
+          "label": "I do not have children",
+          "icon": "x",
+          "freeText": false
+        },
+        {
+          "id": "pns",
+          "label": "Prefer not to answer",
+          "icon": "lock-simple",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q15",
+      "fieldKey": "higher_intake_pattern",
+      "order": 16,
+      "stage": 3,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Different eating days",
+      "text": "Do you tend to eat more on weekends or other days off?",
+      "note": null,
+      "miloLine": "No good or bad days. I just want to plan around real life.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "yes",
+          "label": "Usually yes",
+          "icon": "check",
+          "freeText": false
+        },
+        {
+          "id": "no",
+          "label": "Usually no",
+          "icon": "x",
+          "freeText": false
+        },
+        {
+          "id": "varies",
+          "label": "It varies",
+          "icon": "shuffle",
+          "freeText": false
+        },
+        {
+          "id": "skip",
+          "label": "I would rather skip this",
+          "icon": "arrow-right",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q16",
+      "fieldKey": "flexible_days",
+      "order": 17,
+      "stage": 3,
+      "version": 1,
+      "type": "days",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "changes",
+        "none"
+      ],
+      "reviewLabel": "Flexible days",
+      "text": "Which days would you like your plan to allow more flexibility?",
+      "note": null,
+      "miloLine": "Tap the days. Any combination works.",
+      "miloLineNoName": null,
+      "hint": "Select weekdays",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "changes",
+          "label": "My days change",
+          "icon": "shuffle",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "No preference",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [
+        {
+          "id": "mon",
+          "short": "M",
+          "label": "Monday"
+        },
+        {
+          "id": "tue",
+          "short": "T",
+          "label": "Tuesday"
+        },
+        {
+          "id": "wed",
+          "short": "W",
+          "label": "Wednesday"
+        },
+        {
+          "id": "thu",
+          "short": "T",
+          "label": "Thursday"
+        },
+        {
+          "id": "fri",
+          "short": "F",
+          "label": "Friday"
+        },
+        {
+          "id": "sat",
+          "short": "S",
+          "label": "Saturday"
+        },
+        {
+          "id": "sun",
+          "short": "S",
+          "label": "Sunday"
+        }
+      ],
+      "limits": null
+    },
+    {
+      "id": "q17",
+      "fieldKey": "nutrition_familiarity",
+      "order": 18,
+      "stage": 4,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Nutrition familiarity",
+      "text": "How familiar are you with everyday nutrition basics?",
+      "note": null,
+      "miloLine": "This is not a test. It only sets how much detail I give.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "learning",
+          "label": "I am learning the basics",
+          "icon": "book-open",
+          "freeText": false
+        },
+        {
+          "id": "some",
+          "label": "I know some of the essentials",
+          "icon": "lightbulb",
+          "freeText": false
+        },
+        {
+          "id": "detailed",
+          "label": "I am comfortable with detailed nutrition information",
+          "icon": "graduation-cap",
+          "freeText": false
+        },
+        {
+          "id": "unsure",
+          "label": "Not sure",
+          "icon": "question",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q18",
+      "fieldKey": "tracking_experience",
+      "order": 19,
+      "stage": 4,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Previous tracking",
+      "text": "Have you used a food or calorie diary before?",
+      "note": null,
+      "miloLine": "If you have, I will skip the tutorial.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "reg",
+          "label": "Yes, regularly",
+          "icon": "check",
+          "freeText": false
+        },
+        {
+          "id": "brief",
+          "label": "Yes, briefly",
+          "icon": "clock",
+          "freeText": false
+        },
+        {
+          "id": "new",
+          "label": "No, this is new to me",
+          "icon": "sparkle",
+          "freeText": false
+        },
+        {
+          "id": "forget",
+          "label": "I do not remember",
+          "icon": "question",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q19",
+      "fieldKey": "fasting_experience",
+      "order": 20,
+      "stage": 4,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Eating windows",
+      "text": "What has your experience with intermittent fasting been?",
+      "note": null,
+      "miloLine": "Just your experience. I will not start any plan or timer.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "useful",
+          "label": "I have tried it and found it useful",
+          "icon": "check",
+          "freeText": false
+        },
+        {
+          "id": "disliked",
+          "label": "I have tried it and did not enjoy it",
+          "icon": "x",
+          "freeText": false
+        },
+        {
+          "id": "curious",
+          "label": "I have not tried it but am curious",
+          "icon": "eye",
+          "freeText": false
+        },
+        {
+          "id": "no",
+          "label": "I am not interested",
+          "icon": "pause-circle",
+          "freeText": false
+        },
+        {
+          "id": "explain",
+          "label": "I would like an explanation first",
+          "icon": "info",
+          "freeText": false,
+          "opensInfo": "setup.info.fasting"
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q20",
+      "fieldKey": "starting_mood",
+      "order": 21,
+      "stage": 4,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "How starting feels",
+      "text": "How are you feeling about making changes right now?",
+      "note": null,
+      "miloLine": "Any answer is okay. It helps me pick the right tone.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "ready",
+          "label": "Ready to get started",
+          "icon": "rocket",
+          "freeText": false
+        },
+        {
+          "id": "confident",
+          "label": "Confident about taking the next step",
+          "icon": "star",
+          "freeText": false
+        },
+        {
+          "id": "anxious",
+          "label": "A little anxious",
+          "icon": "waves",
+          "freeText": false
+        },
+        {
+          "id": "discouraged",
+          "label": "Discouraged by past attempts",
+          "icon": "arrow-counter-clockwise",
+          "freeText": false
+        },
+        {
+          "id": "low",
+          "label": "Low on motivation",
+          "icon": "moon",
+          "freeText": false
+        },
+        {
+          "id": "unsure",
+          "label": "Unsure",
+          "icon": "question",
+          "freeText": false
+        },
+        {
+          "id": "pns",
+          "label": "Prefer not to say",
+          "icon": "lock-simple",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q21",
+      "fieldKey": "habit_priorities",
+      "order": 22,
+      "stage": 4,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": 3,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "Habits to focus on",
+      "text": "Which parts of your routine would you like to work on first?",
+      "note": null,
+      "miloLine": "Up to three. These are focus areas, not daily rules.",
+      "miloLineNoName": null,
+      "hint": "Choose up to 3",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "portion",
+          "label": "Portion awareness",
+          "icon": "scales",
+          "freeText": false
+        },
+        {
+          "id": "snack",
+          "label": "Snacking routines",
+          "icon": "basket",
+          "freeText": false
+        },
+        {
+          "id": "balance",
+          "label": "Balance across meals",
+          "icon": "bowl-food",
+          "freeText": false
+        },
+        {
+          "id": "water",
+          "label": "Drinking water regularly",
+          "icon": "drop",
+          "freeText": false
+        },
+        {
+          "id": "movement",
+          "label": "Movement and exercise",
+          "icon": "person-simple-run",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "Another habit",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "none",
+          "label": "No particular focus yet",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q22",
+      "fieldKey": "routine_barriers",
+      "order": 23,
+      "stage": 4,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "What gets in the way",
+      "text": "What tends to make these changes difficult?",
+      "note": null,
+      "miloLine": "So I can support you without adding pressure.",
+      "miloLineNoName": null,
+      "hint": "Choose any that apply",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "routine",
+          "label": "Keeping a routine going",
+          "icon": "calendar-check",
+          "freeText": false
+        },
+        {
+          "id": "habits",
+          "label": "Food habits that are hard to change",
+          "icon": "fork-knife",
+          "freeText": false
+        },
+        {
+          "id": "support",
+          "label": "Limited support",
+          "icon": "users-three",
+          "freeText": false
+        },
+        {
+          "id": "busy",
+          "label": "A busy or unpredictable day",
+          "icon": "alarm",
+          "freeText": false
+        },
+        {
+          "id": "ideas",
+          "label": "Running out of meal ideas",
+          "icon": "lightbulb",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "Another challenge",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "none",
+          "label": "Nothing in particular",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q23",
+      "fieldKey": "eating_cues",
+      "order": 24,
+      "stage": 4,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "rare",
+        "pns"
+      ],
+      "reviewLabel": "Eating cues",
+      "text": "When you eat without feeling hungry, what tends to influence you?",
+      "note": null,
+      "miloLine": "Everyone does this sometimes. No judgement from me.",
+      "miloLineNoName": null,
+      "hint": "Choose any that apply",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "near",
+          "label": "Food is nearby or easy to reach",
+          "icon": "basket",
+          "freeText": false
+        },
+        {
+          "id": "bored",
+          "label": "I am bored",
+          "icon": "hourglass",
+          "freeText": false
+        },
+        {
+          "id": "others",
+          "label": "Other people are eating",
+          "icon": "users-three",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "Something else",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "rare",
+          "label": "This rarely happens",
+          "icon": "check",
+          "freeText": false
+        },
+        {
+          "id": "pns",
+          "label": "Prefer not to answer",
+          "icon": "lock-simple",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q24",
+      "fieldKey": "consistency_support",
+      "order": 25,
+      "stage": 5,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Support for consistency",
+      "text": "What would help you keep your routine manageable?",
+      "note": null,
+      "miloLine": "Choose what sounds helpful. Nothing gets shared with anyone.",
+      "miloLineNoName": null,
+      "hint": "Choose any that apply",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "planlog",
+          "label": "Plan and log food before meals",
+          "icon": "note-pencil",
+          "freeText": false
+        },
+        {
+          "id": "checkin",
+          "label": "Check in with someone I trust",
+          "icon": "chats",
+          "freeText": false
+        },
+        {
+          "id": "prep",
+          "label": "Prepare meals and collect recipes ahead of time",
+          "icon": "cooking-pot",
+          "freeText": false
+        },
+        {
+          "id": "streak",
+          "label": "Use a logging streak",
+          "icon": "fire",
+          "freeText": false
+        },
+        {
+          "id": "review",
+          "label": "Review my calorie intake",
+          "icon": "chart-line-up",
+          "freeText": false
+        },
+        {
+          "id": "help",
+          "label": "Help me find an approach",
+          "icon": "compass",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q25",
+      "fieldKey": "logging_timing",
+      "order": 26,
+      "stage": 5,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "When to log meals",
+      "text": "When would recording meals fit most naturally into your day?",
+      "note": null,
+      "miloLine": "Timing only. It does not turn on notifications.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "before",
+          "label": "Before each meal",
+          "icon": "fork-knife",
+          "freeText": false
+        },
+        {
+          "id": "after",
+          "label": "Soon after eating",
+          "icon": "check",
+          "freeText": false
+        },
+        {
+          "id": "morning",
+          "label": "Plan the day's meals in the morning",
+          "icon": "sun-horizon",
+          "freeText": false
+        },
+        {
+          "id": "evening",
+          "label": "Review the day in the evening",
+          "icon": "moon",
+          "freeText": false
+        },
+        {
+          "id": "later",
+          "label": "I will decide later",
+          "icon": "hourglass",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q26",
+      "fieldKey": "food_habit_actions",
+      "order": 27,
+      "stage": 5,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": 2,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "A small food habit",
+      "text": "Which food-related actions would you like to try?",
+      "note": null,
+      "miloLine": "Up to two small things. You can edit them later.",
+      "miloLineNoName": null,
+      "hint": "Choose up to 2",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "pause",
+          "label": "Pause and make more intentional food choices",
+          "icon": "pause",
+          "freeText": false
+        },
+        {
+          "id": "fruit",
+          "label": "Include fruit and vegetables more often",
+          "icon": "carrot",
+          "freeText": false
+        },
+        {
+          "id": "water",
+          "label": "Drink water more regularly",
+          "icon": "drop",
+          "freeText": false
+        },
+        {
+          "id": "learn",
+          "label": "Learn more about nutrition",
+          "icon": "book-open",
+          "freeText": false
+        },
+        {
+          "id": "notice",
+          "label": "Notice hunger and portion sizes",
+          "icon": "eye",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "None for now",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q27",
+      "fieldKey": "movement_actions",
+      "order": 28,
+      "stage": 5,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": 2,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "Movement that fits",
+      "text": "Which ways of moving more would fit your life?",
+      "note": null,
+      "miloLine": "Adapt these to what your body likes. Up to two.",
+      "miloLineNoName": null,
+      "hint": "Choose up to 2",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "sport",
+          "label": "Try an activity or sport",
+          "icon": "barbell",
+          "freeText": false
+        },
+        {
+          "id": "steps",
+          "label": "Work toward a step goal",
+          "icon": "sneaker",
+          "freeText": false
+        },
+        {
+          "id": "walk",
+          "label": "Walk for suitable short trips",
+          "icon": "person-simple-walk",
+          "freeText": false
+        },
+        {
+          "id": "workout",
+          "label": "Establish a workout routine",
+          "icon": "calendar-check",
+          "freeText": false
+        },
+        {
+          "id": "time",
+          "label": "Reserve time for movement",
+          "icon": "clock",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "None for now",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q28",
+      "fieldKey": "progress_preferences",
+      "order": 29,
+      "stage": 5,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "Signs of progress",
+      "text": "Which changes would you like to keep track of?",
+      "note": null,
+      "miloLine": "Weight is optional. There are plenty of other ways to see progress.",
+      "miloLineNoName": null,
+      "hint": "Choose any that apply",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "weight",
+          "label": "Weight over time",
+          "icon": "scales",
+          "freeText": false
+        },
+        {
+          "id": "measure",
+          "label": "Body measurements",
+          "icon": "ruler",
+          "freeText": false
+        },
+        {
+          "id": "health",
+          "label": "Health or activity records from another app",
+          "icon": "heart",
+          "freeText": false
+        },
+        {
+          "id": "energy",
+          "label": "How energetic I feel",
+          "icon": "lightning",
+          "freeText": false
+        },
+        {
+          "id": "clothes",
+          "label": "How my clothes fit",
+          "icon": "t-shirt",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "Another sign of progress",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "none",
+          "label": "No tracking preference yet",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q29",
+      "fieldKey": "restart_support",
+      "order": 30,
+      "stage": 5,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "unsure"
+      ],
+      "reviewLabel": "After a difficult week",
+      "text": "What would help you return to your routine after a setback?",
+      "note": null,
+      "miloLine": "A pause never triggers guilt or louder reminders.",
+      "miloLineNoName": null,
+      "hint": "Choose any that apply",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "trusted",
+          "label": "Encouragement from trusted people",
+          "icon": "hand-heart",
+          "freeText": false
+        },
+        {
+          "id": "talk",
+          "label": "Talking about my progress",
+          "icon": "chats",
+          "freeText": false
+        },
+        {
+          "id": "pause",
+          "label": "Taking a short pause",
+          "icon": "pause-circle",
+          "freeText": false
+        },
+        {
+          "id": "quiet",
+          "label": "A quiet restart on my own",
+          "icon": "moon",
+          "freeText": false
+        },
+        {
+          "id": "unsure",
+          "label": "I am not sure yet",
+          "icon": "question",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q30",
+      "fieldKey": "logging_methods",
+      "order": 31,
+      "stage": 6,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "switch",
+        "later"
+      ],
+      "reviewLabel": "Logging tools",
+      "text": "How would you prefer to add meals?",
+      "note": null,
+      "miloLine": "You can always switch. Photos and estimates are reviewable before saving.",
+      "miloLineNoName": null,
+      "hint": "Choose any that apply",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "photo",
+          "label": "Take a food photo",
+          "icon": "camera",
+          "freeText": false
+        },
+        {
+          "id": "manual",
+          "label": "Search for foods and enter amounts",
+          "icon": "magnifying-glass",
+          "freeText": false
+        },
+        {
+          "id": "voice",
+          "label": "Describe a meal by voice",
+          "icon": "microphone",
+          "freeText": false
+        },
+        {
+          "id": "type",
+          "label": "Type a meal description",
+          "icon": "keyboard",
+          "freeText": false
+        },
+        {
+          "id": "switch",
+          "label": "Switch between methods",
+          "icon": "swap",
+          "freeText": false
+        },
+        {
+          "id": "later",
+          "label": "Decide later",
+          "icon": "hourglass",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q31",
+      "fieldKey": "manual_entry_reasons",
+      "order": 32,
+      "stage": 6,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "Why manual entry",
+      "text": "What appeals to you about entering meals yourself?",
+      "note": null,
+      "miloLine": "Understood. I will not keep pushing photo logging.",
+      "miloLineNoName": null,
+      "hint": "Choose any that apply",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "accuracy",
+          "label": "I want to check the accuracy myself",
+          "icon": "checks",
+          "freeText": false
+        },
+        {
+          "id": "privacy",
+          "label": "I prefer not to share food photos for AI processing",
+          "icon": "shield-check",
+          "freeText": false
+        },
+        {
+          "id": "control",
+          "label": "I want direct control over each entry",
+          "icon": "sliders-horizontal",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "Another reason",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "none",
+          "label": "No particular reason",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q32",
+      "fieldKey": "daily_time_preference",
+      "order": 33,
+      "stage": 6,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Time available",
+      "text": "How much time would you like to spend on tracking on a typical day?",
+      "note": null,
+      "miloLine": "Small is fine. I will scale what I show you.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "5",
+          "label": "About 5 minutes",
+          "icon": "timer",
+          "freeText": false
+        },
+        {
+          "id": "10",
+          "label": "About 10 minutes",
+          "icon": "timer",
+          "freeText": false
+        },
+        {
+          "id": "15",
+          "label": "About 15 minutes",
+          "icon": "clock",
+          "freeText": false
+        },
+        {
+          "id": "30",
+          "label": "Up to 30 minutes",
+          "icon": "clock",
+          "freeText": false
+        },
+        {
+          "id": "varies",
+          "label": "It varies",
+          "icon": "shuffle",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q33",
+      "fieldKey": "logging_challenge",
+      "order": 34,
+      "stage": 6,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "Logging challenge",
+      "text": "Would you like to choose a personal logging challenge?",
+      "note": null,
+      "miloLine": "Totally optional. A missed day never erases your progress.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": [
+          "7",
+          "14",
+          "30",
+          "50"
+        ]
+      },
+      "options": [
+        {
+          "id": "7",
+          "label": "7 consecutive days",
+          "icon": "fire",
+          "freeText": false,
+          "shortLabel": "7 days"
+        },
+        {
+          "id": "14",
+          "label": "14 consecutive days",
+          "icon": "fire",
+          "freeText": false,
+          "shortLabel": "14 days"
+        },
+        {
+          "id": "30",
+          "label": "30 consecutive days",
+          "icon": "fire",
+          "freeText": false,
+          "shortLabel": "30 days"
+        },
+        {
+          "id": "50",
+          "label": "50 consecutive days",
+          "icon": "fire",
+          "freeText": false,
+          "shortLabel": "50 days"
+        },
+        {
+          "id": "custom",
+          "label": "Choose my own length",
+          "icon": "pencil-simple",
+          "freeText": false,
+          "input": {
+            "type": "number",
+            "min": 1,
+            "max": 365,
+            "start": 21,
+            "unit": "days",
+            "integer": true
+          }
+        },
+        {
+          "id": "flex",
+          "label": "Flexible check-ins without a streak",
+          "icon": "calendar-check",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "No challenge",
+          "icon": "x",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": {
+        "customDays": {
+          "min": 1,
+          "max": 365
+        }
+      }
+    },
+    {
+      "id": "q34",
+      "fieldKey": "discovery_source",
+      "order": 35,
+      "stage": 6,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "How you found the app",
+      "text": "Where did you first come across this app?",
+      "note": null,
+      "miloLine": "Last one. This is only for our own reporting.",
+      "miloLineNoName": null,
+      "hint": "Optional",
+      "skipLabel": null,
+      "display": {
+        "layout": "chips",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "instagram",
+          "label": "Instagram",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "facebook",
+          "label": "Facebook",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "tiktok",
+          "label": "TikTok",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "youtube",
+          "label": "YouTube",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "friend",
+          "label": "A friend or family member",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "creator",
+          "label": "A creator",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "ai",
+          "label": "An AI assistant",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "deals",
+          "label": "A deals or coupon site",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "search",
+          "label": "A search engine",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "store",
+          "label": "An app store",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "else",
+          "label": "Somewhere else",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "forgot",
+          "label": "I do not remember",
+          "icon": null,
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    }
+  ]
+}

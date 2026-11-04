@@ -1,0 +1,294 @@
+{
+  "kind": "conversation",
+  "version": 1,
+  "questionSetVersion": 1,
+  "locale": "bn",
+  "source": "PLAN §8.5 and §10 conversation subset (R-01); prototype Nouri App.dc.html SCRIPT and FINAL",
+  "rules": {
+    "walk": "Turns run in order. A turn is asked when at least one of its questions is applicable (branching rules in questions.v1.json) and has no status yet. Otherwise it is skipped silently.",
+    "skipWhen": "When a turn's skipWhen condition is true the whole turn is skipped, even if a question in it would otherwise be asked. Same grammar as questions.v1.json conditionGrammar.",
+    "partialAnswers": "If a reply answers only some questions in the group, Milo asks the rest one at a time with askOne lines before moving to the next turn. A question the user declines is saved as skipped and never asked again in this conversation.",
+    "provisional": "Questions listed in provisional are asked ahead of the question their branching rule depends on (q08 and q09 come before q07 in conversation). Hold their values on the device without saving. Commit them when the branching rules show them after the dependency is answered; otherwise drop them without storing (they are never saved for under-18 or unknown age). See OQ-21.",
+    "lineComposition": "Milo's spoken line = the model's short ack (max 1 sentence) + the canonical miloLine or askOne text from this file. Canonical lines are pre-rendered as audio under tts/{version}/conversation.turnN.mp3.",
+    "chips": "Chips are equal to voice and typed replies. A chip with sets saves those answers directly (inputMethod chip, confidence 1) without a model call. A chip with skips saves those questions as skipped.",
+    "confirmation": "Every turn that extracts more than one answer, and every answer with confidence below 0.7, shows the confirm step before anything is saved (PLAN §8.5.4).",
+    "sensitive": "q06, q07, q08 and q09 MUST come from an explicit statement in this conversation. Never infer them from a name, voice, photo or other answers. q07 is always its own turn with chips, even by voice.",
+    "deferred": "Skip to my plan, or reaching the end, opens Review. Every question in questions.v1.json not answered or skipped here is stored as deferred and drives the Finish setting up card.",
+    "degraded": "If extraction returns AI_UNAVAILABLE, show Milo line onboarding.degraded and open the manual form at the current turn's first unanswered question with the answers so far."
+  },
+  "confirm": {
+    "template": "আমি এটি লিখে নিয়েছি: {summary}। ঠিক আছে তো?",
+    "summaryItem": "{reviewLabel}: {valueLabel}",
+    "summaryJoiner": "; ",
+    "chips": [
+      { "id": "yes", "label": "হ্যাঁ" },
+      { "id": "change", "label": "বদলান" }
+    ],
+    "onChange": "কোনো সমস্যা নেই। কী বদলাব?",
+    "onYes": null
+  },
+  "skipToPlan": {
+    "label": "সরাসরি আমার পরিকল্পনায় যান",
+    "behaviour": "Ends the conversation and opens Review with the answers so far."
+  },
+  "turns": [
+    {
+      "turn": 1,
+      "id": "intro",
+      "stageLabel": "শুরু করা যাক",
+      "questionIds": [],
+      "miloLine": "আমি কয়েকটি সহজ প্রশ্ন করব, আপনি যেভাবে স্বাভাবিক লাগে সেভাবেই উত্তর দিতে পারেন। আপনার কথা থেকে আমরা এমন একটি পরিকল্পনা বানাব, যা আপনার রুটিনের সঙ্গে মেলে। শুরু করতে প্রস্তুত?",
+      "askOne": {},
+      "ackAfter": "চমৎকার, চলুন শুরু করি।",
+      "chips": [
+        { "label": "চলুন শুরু করি", "action": "begin" },
+        { "label": "ঠিক আছে", "action": "begin" }
+      ],
+      "skipWhen": null,
+      "provisional": [],
+      "notes": "No extraction. Any reply moves on; a question from the user is answered briefly first."
+    },
+    {
+      "turn": 2,
+      "id": "name_goal",
+      "stageLabel": "আপনাকে জানা",
+      "questionIds": ["q05", "q01"],
+      "miloLine": "আমি আপনাকে কী বলে ডাকব, আর এখন আপনি কোন বিষয়ে সবচেয়ে বেশি সাহায্য চান?",
+      "askOne": {
+        "q05": "আমি আপনাকে কী বলে ডাকব? ডাকনাম হলে সবচেয়ে ভালো।",
+        "q01": "এখন আপনি সবচেয়ে বেশি কী নিয়ে কাজ করতে চান? “সিদ্ধান্ত নিতে সাহায্য করুন” বললেও চলবে।"
+      },
+      "chips": [
+        { "label": "স্বাস্থ্যকর অভ্যাস", "sets": { "q01": "habits" } },
+        { "label": "ওজন ধরে রাখা", "sets": { "q01": "maintain" } },
+        { "label": "ওজন কমানো", "sets": { "q01": "lose" } },
+        { "label": "ওজন বাড়ানো", "sets": { "q01": "gain" } },
+        { "label": "আমার খাওয়া বোঝা", "sets": { "q01": "patterns" } },
+        { "label": "সিদ্ধান্ত নিতে সাহায্য করুন", "sets": { "q01": "decide" } }
+      ],
+      "skipWhen": null,
+      "provisional": [],
+      "notes": "q01 is required (BR-10): if declined, ask askOne.q01 once more, then save decide only if the user agrees."
+    },
+    {
+      "turn": 3,
+      "id": "about_you",
+      "stageLabel": "আপনাকে জানা",
+      "questionIds": ["q06", "q08", "q09"],
+      "miloLine": "আপনার সম্পর্কে একটু বলুন: বয়স, উচ্চতা আর এখনকার ওজন। যা শেয়ার করতে চান না, তা এড়িয়ে যেতে পারেন।",
+      "askOne": {
+        "q06": "আপনার বয়স কত? শুধু বয়স বললেই চলবে, চাইলে এড়িয়েও যেতে পারেন।",
+        "q08": "আমি কত উচ্চতা ধরব?",
+        "q09": "আর আপনার সবচেয়ে সাম্প্রতিক ওজন? মোটামুটি সংখ্যা দিলেই চলবে।"
+      },
+      "chips": [
+        { "label": "বলতে চাই না", "sets": { "q06": { "mode": "none" } }, "skips": ["q08", "q09"] }
+      ],
+      "skipWhen": null,
+      "provisional": ["q08", "q09"],
+      "notes": "Ask for age first if the user gives only height or weight. If the stated age is under 18 or age is declined, drop q08 and q09 without saving and skip turns 4–6. 'About' or 'roughly' on weight sets isEstimate true."
+    },
+    {
+      "turn": 4,
+      "id": "sex_input",
+      "stageLabel": "আপনাকে জানা",
+      "questionIds": ["q07"],
+      "miloLine": "কিছু ক্যালরি সমীকরণে জৈবিক লিঙ্গের তথ্য লাগে। আপনার আনুমানিক হিসাবের জন্য কোনটি ব্যবহার করব, যদি করার থাকে?",
+      "askOne": {},
+      "chips": [
+        { "label": "নারী", "sets": { "q07": "female" } },
+        { "label": "পুরুষ", "sets": { "q07": "male" } },
+        { "label": "নিশ্চিত নই", "sets": { "q07": "unsure" } },
+        { "label": "ব্যবহার করবেন না", "sets": { "q07": "none" } }
+      ],
+      "skipWhen": { "not": { "age": { "gte": 18 } } },
+      "provisional": [],
+      "notes": "Always its own explicit question, even by voice (PLAN §8.5.6). After this turn commit or drop the provisional q08 and q09 from turn 3."
+    },
+    {
+      "turn": 5,
+      "id": "target_weight",
+      "stageLabel": "আপনাকে জানা",
+      "questionIds": ["target_weight"],
+      "miloLine": "এমন কোনো ওজন কি আছে, যার দিকে আপনি এগোতে চান? এখনো নিশ্চিত না হলেও সমস্যা নেই।",
+      "askOne": {},
+      "chips": [
+        { "label": "এখনো নিশ্চিত নই", "skips": ["target_weight"] }
+      ],
+      "skipWhen": { "not": { "age": { "gte": 18 } } },
+      "provisional": [],
+      "notes": "Only when rule BR-TW shows target_weight (q01 lose or gain, with sex input, height and weight). Display only; never a deadline. Ack must not praise a specific number."
+    },
+    {
+      "turn": 6,
+      "id": "activity",
+      "stageLabel": "রুটিন সাজানো",
+      "questionIds": ["q10"],
+      "miloLine": "আপনার সাধারণ একটি দিন কতটা সক্রিয় থাকে?",
+      "askOne": {},
+      "chips": [
+        { "label": "বেশিরভাগ বসে থাকি", "sets": { "q10": "seated" } },
+        { "label": "হালকা সক্রিয়", "sets": { "q10": "light" } },
+        { "label": "সক্রিয়", "sets": { "q10": "active" } },
+        { "label": "খুব সক্রিয়", "sets": { "q10": "intense" } },
+        { "label": "নিশ্চিত নই", "sets": { "q10": "unsure" } }
+      ],
+      "skipWhen": { "not": { "age": { "gte": 18 } } },
+      "provisional": [],
+      "notes": "Prototype had three chips; four activity chips plus Not sure keep a one-to-one mapping to q10 options."
+    },
+    {
+      "turn": 7,
+      "id": "food",
+      "stageLabel": "রুটিন সাজানো",
+      "questionIds": ["q11", "q12"],
+      "miloLine": "আপনি কি খাওয়ার কোনো নির্দিষ্ট ধরন মেনে চলেন, যেমন নিরামিষ বা ভেগান? আর আপনার বেশিরভাগ খাবার কোথা থেকে আসে?",
+      "askOne": {
+        "q11": "আপনি কি খাওয়ার কোনো নির্দিষ্ট ধরন মেনে চলেন, যেমন নিরামিষ বা ভেগান?",
+        "q12": "আপনার বেশিরভাগ খাবার কোথা থেকে আসে?"
+      },
+      "chips": [
+        { "label": "নির্দিষ্ট কোনো ধরন নেই", "sets": { "q11": "none" } },
+        { "label": "নিরামিষভোজী", "sets": { "q11": "veg" } },
+        { "label": "ভেগান", "sets": { "q11": "vegan" } },
+        { "label": "বেশিরভাগ বাসায় রান্না", "sets": { "q12": "home" } },
+        { "label": "প্রায়ই বাইরে খাই", "sets": { "q12": "out" } },
+        { "label": "দুটোই কিছু কিছু", "sets": { "q12": "mix" } }
+      ],
+      "skipWhen": null,
+      "provisional": [],
+      "notes": "A diet label is not an allergy or medical statement. Foods the user dislikes (for example 'not big on spicy food') are not an answer to q11; acknowledge them only."
+    },
+    {
+      "turn": 8,
+      "id": "barriers",
+      "stageLabel": "রুটিন সাজানো",
+      "questionIds": ["q22"],
+      "miloLine": "আপনার দিনে স্বাস্থ্যকর খাওয়া সাধারণত কী কারণে কঠিন হয়?",
+      "askOne": {},
+      "chips": [
+        { "label": "ব্যস্ত দিন", "sets": { "q22": ["busy"] } },
+        { "label": "রুটিন ধরে রাখা", "sets": { "q22": ["routine"] } },
+        { "label": "বদলানো কঠিন অভ্যাস", "sets": { "q22": ["habits"] } },
+        { "label": "আইডিয়া ফুরিয়ে যাওয়া", "sets": { "q22": ["ideas"] } },
+        { "label": "সহায়তা কম পাওয়া", "sets": { "q22": ["support"] } },
+        { "label": "বিশেষ কিছু নয়", "sets": { "q22": ["none"] } }
+      ],
+      "skipWhen": null,
+      "provisional": [],
+      "notes": "Multi: a reply may map to several options (respect exclusive none). Never diagnose; support, not pressure."
+    },
+    {
+      "turn": 9,
+      "id": "logging",
+      "stageLabel": "রুটিন সাজানো",
+      "questionIds": ["q30"],
+      "miloLine": "শেষ প্রশ্ন। খাবার কীভাবে যোগ করতে চান: ছবি তুলে, মুখে বলে, লিখে, নাকি নিজে হাতে দিয়ে?",
+      "askOne": {},
+      "chips": [
+        { "label": "ছবি তোলা", "sets": { "q30": ["photo"] } },
+        { "label": "মুখে বলা", "sets": { "q30": ["voice"] } },
+        { "label": "লিখে দেওয়া", "sets": { "q30": ["type"] } },
+        { "label": "নিজে হাতে দেওয়া", "sets": { "q30": ["manual"] } },
+        { "label": "মিশিয়ে", "sets": { "q30": ["switch"] } },
+        { "label": "পরে ঠিক করব", "sets": { "q30": ["later"] } }
+      ],
+      "skipWhen": null,
+      "provisional": [],
+      "notes": "switch and later are exclusive. q31 is never asked in conversation; it stays deferred."
+    }
+  ],
+  "final": {
+    "text": "আমার যা দরকার ছিল, পেয়ে গেছি, {name}। এবার আপনার পরিকল্পনাটি সাজিয়ে নিই।",
+    "textNoName": "আমার যা দরকার ছিল, পেয়ে গেছি। এবার আপনার পরিকল্পনাটি সাজিয়ে নিই।",
+    "habitsOnly": "আমার যা দরকার ছিল, পেয়ে গেছি, {name}। এবার আপনার শুরুর রুটিনটি সাজিয়ে নিই।",
+    "habitsOnlyNoName": "আমার যা দরকার ছিল, পেয়ে গেছি। এবার আপনার শুরুর রুটিনটি সাজিয়ে নিই।",
+    "miloState": "celebrating",
+    "notes": "Prototype FINAL began with a reply-specific sentence; in production that sentence is the model's ack for the last turn."
+  },
+  "fallbackAcks": ["বুঝেছি।", "ধন্যবাদ, লিখে নিলাম।", "এতে সুবিধা হলো।", "জেনে ভালো লাগল।", "এজন্য ধন্যবাদ।"],
+  "chipLabels": {
+    "q01": { "habits": "স্বাস্থ্যকর অভ্যাস", "maintain": "ওজন ধরে রাখা", "lose": "ওজন কমানো", "gain": "ওজন বাড়ানো", "patterns": "আমার খাওয়া বোঝা", "decide": "সিদ্ধান্ত নিতে সাহায্য করুন" },
+    "q07": { "female": "নারী", "male": "পুরুষ", "unsure": "নিশ্চিত নই", "none": "ব্যবহার করবেন না" },
+    "q10": { "seated": "বেশিরভাগ বসে থাকি", "light": "হালকা সক্রিয়", "active": "সক্রিয়", "intense": "খুব সক্রিয়", "unsure": "নিশ্চিত নই" },
+    "q11": { "none": "নির্দিষ্ট কোনো ধরন নেই", "pesc": "মাছ খাই, মাংস নয়", "veg": "নিরামিষভোজী", "vegan": "ভেগান", "other": "অন্য কোনো ধরন", "deciding": "এখনো ঠিক করছি" },
+    "q12": { "home": "বেশিরভাগ বাসায় রান্না", "out": "প্রায়ই বাইরে খাই", "mix": "দুটোই কিছু কিছু", "varies": "বদলায়" },
+    "q22": { "routine": "রুটিন ধরে রাখা", "habits": "বদলানো কঠিন অভ্যাস", "support": "সহায়তা কম পাওয়া", "busy": "ব্যস্ত দিন", "ideas": "আইডিয়া ফুরিয়ে যাওয়া", "other": "অন্য কিছু", "none": "বিশেষ কিছু নয়" },
+    "q30": { "photo": "ছবি তোলা", "manual": "নিজে হাতে দেওয়া", "voice": "মুখে বলা", "type": "লিখে দেওয়া", "switch": "মিশিয়ে", "later": "পরে ঠিক করব" }
+  },
+  "synonyms": {
+    "q01": {
+      "habits": ["স্বাস্থ্যকর অভ্যাস", "সুস্থ অভ্যাস গড়তে চাই", "স্বাস্থ্যকর খেতে চাই", "ভালোভাবে খেতে চাই", "স্বাস্থ্যকর খাওয়া", "ভালো অভ্যাস", "সুষম খাবার খেতে চাই", "খাওয়ার অভ্যাস ঠিক করতে চাই", "নিয়ম করে খেতে চাই"],
+      "maintain": ["ওজন ধরে রাখা", "ওজন ধরে রাখতে চাই", "ওজন ঠিক রাখতে চাই", "ওজন একই রাখতে চাই", "যেমন আছি তেমনই থাকতে চাই", "ওজন স্থির রাখতে চাই", "মেইনটেইন করতে চাই", "যেমন আছে তেমন রাখতে চাই"],
+      "lose": ["ওজন কমাতে চাই", "ওজন কমানো", "একটু ওজন কমাতে চাই", "কয়েক কেজি কমাতে চাই", "ওজন কমাব", "ওজন নামাতে চাই", "শরীরের ওজন কমাতে চাই", "মেদ কমাতে চাই", "স্লিম হতে চাই", "ওজন কম করতে চাই"],
+      "gain": ["ওজন বাড়াতে চাই", "ওজন বাড়ানো", "ওজন বাড়াব", "শরীর বানাতে চাই", "মাসল বানাতে চাই", "পেশি বাড়াতে চাই", "মাংসপেশি গড়তে চাই", "বডি বিল্ড করতে চাই", "কয়েক কেজি বাড়াতে চাই", "ওজন বেশি করতে চাই"],
+      "patterns": ["আমার খাওয়া বোঝা", "আমি কী খাই তা বুঝতে চাই", "খাওয়ার ধরন বুঝতে চাই", "খাওয়ার অভ্যাস বুঝতে চাই", "কী খাচ্ছি দেখতে চাই", "কী খাই তার হিসাব রাখতে চাই", "নিজের খাওয়া বুঝতে চাই", "খাবারের হিসাব রাখতে চাই", "খাওয়ার ধারা জানতে চাই"],
+      "decide": ["জানি না", "ঠিক করিনি", "বুঝতে পারছি না", "এখনো ঠিক করিনি", "আপনিই ঠিক করুন", "আপনি ঠিক করে দিন", "সিদ্ধান্ত নিতে সাহায্য করুন", "নিশ্চিত না", "কোনো ধারণা নেই", "এখনো সিদ্ধান্ত নিইনি"]
+    },
+    "q07": {
+      "female": ["নারী", "মেয়ে", "মহিলা", "মহিলাদের হিসাব", "নারীদের সমীকরণ", "ফিমেল", "ফিমেইল", "নারীরটা"],
+      "male": ["পুরুষ", "ছেলে", "পুরুষদের হিসাব", "পুরুষদের সমীকরণ", "মেল", "মেইল", "পুরুষেরটা"],
+      "unsure": ["নিশ্চিত না", "নিশ্চিত নই", "জানি না", "কোনটা প্রযোজ্য জানি না", "কোনটা ঠিক বুঝতে পারছি না", "বুঝতে পারছি না"],
+      "none": ["কোনোটাই না", "ব্যবহার করবেন না", "বলতে চাই না", "না বললে হয় না", "আনুমানিক হিসাব বাদ দিন", "লিঙ্গভিত্তিক হিসাব লাগবে না", "লিঙ্গ বাদ দিন"]
+    },
+    "q10": {
+      "seated": ["বেশিরভাগ বসে থাকি", "ডেস্কের কাজ", "সারাদিন বসে থাকি", "চলাফেরা কম", "একদম নড়াচড়া নেই", "বাসা থেকে কাজ করি আর বসে থাকি", "অফিসে বসে কাজ করি", "বসে বসে কাজ"],
+      "light": ["হালকা সক্রিয়", "একটু হাঁটাহাঁটি করি", "হেঁটে কাজে যাই", "কিছুটা সক্রিয়", "বিকেলে হাঁটতে যাই", "হালকা কাজকর্ম", "মাঝেমধ্যে জিমে যাই", "ছুটির দিনে মাঝে মাঝে জিমে যাই"],
+      "active": ["সক্রিয়", "বেশ সক্রিয়", "নিয়মিত ব্যায়াম করি", "প্রায় সারাক্ষণ দাঁড়িয়ে থাকি", "সপ্তাহে কয়েকবার জিমে যাই", "অনেক হাঁটি", "সক্রিয় কাজ", "রোজ হাঁটি"],
+      "intense": ["খুব সক্রিয়", "অনেক সক্রিয়", "শারীরিক পরিশ্রমের কাজ", "গায়ে খাটা কাজ", "কায়িক পরিশ্রম", "রোজ প্রশিক্ষণ করি", "কঠোর প্রশিক্ষণ", "শ্রমিক", "ক্রীড়াবিদ", "খেলোয়াড়"],
+      "unsure": ["নিশ্চিত না", "নিশ্চিত নই", "নির্ভর করে", "বলা কঠিন", "কোনো ধারণা নেই"]
+    },
+    "q11": {
+      "none": ["কোনো বাছবিচার নেই", "সবই খাই", "সব ধরনের খাবার খাই", "কোনো নিয়ম মানি না", "যা পাই তা-ই খাই", "নির্দিষ্ট কোনো ধরন নেই", "কিছুই বাদ দিই না"],
+      "pesc": ["মাছ খাই কিন্তু মাংস খাই না", "শুধু মাছ খাই", "মাছ আছে মাংস নেই", "মাছ খাই, মাংস না", "পেসকেটারিয়ান"],
+      "veg": ["নিরামিষ", "নিরামিষভোজী", "মাংস খাই না", "মাছ-মাংস খাই না", "ভেজিটেরিয়ান", "ভেজ", "মাংসমুক্ত"],
+      "vegan": ["ভেগান", "সম্পূর্ণ উদ্ভিজ্জ", "পশুজাত কিছু খাই না", "দুধ-ডিমও খাই না", "প্লান্ট-বেসড", "গাছপালা থেকে পাওয়া খাবার"],
+      "other": ["হালাল", "কোশার", "কিটো", "লো কার্ব", "গ্লুটেন-ফ্রি", "দুগ্ধজাত খাই না", "ফ্লেক্সিটেরিয়ান", "প্যালিও"],
+      "deciding": ["এখনো ঠিক করছি", "বুঝতে পারছি না কী করব", "নিরামিষ হওয়ার কথা ভাবছি", "এখনো নিশ্চিত না"]
+    },
+    "q12": {
+      "home": ["বাসায় রান্না", "বাসায় রান্না করে খাই", "ঘরের রান্না", "ঘরে রান্না", "আমি রান্না করি", "বাসার খাবার", "পরিবারের কেউ রান্না করেন", "আগে থেকে রান্না করে রাখি"],
+      "out": ["বাইরে খাই", "রেস্তোরাঁয় খাই", "হোটেলে খাই", "অনলাইনে অর্ডার করি", "ডেলিভারি", "ক্যান্টিনে খাই", "মেসের খাবার", "বাইরের খাবার", "দোকান থেকে কিনে খাই"],
+      "mix": ["দুটোই", "অর্ধেক অর্ধেক", "কিছু বাসায় কিছু বাইরে", "মিশিয়ে", "সমান সমান"],
+      "varies": ["বদলায়", "সপ্তাহ অনুযায়ী ঠিক নেই", "একেক সময় একেক রকম", "ঠিক নেই"]
+    },
+    "q22": {
+      "routine": ["নিয়ম মানা কঠিন", "ধারাবাহিকতা রাখা", "রুটিন ধরে রাখা", "রুটিন মানা হয় না", "নিয়মিত থাকা কঠিন", "চালিয়ে যাওয়া কঠিন"],
+      "habits": ["রাতে নাশতা খাওয়া", "মিষ্টি খেতে ভালোবাসি", "বারবার নাশতা", "অভ্যাস বদলানো কঠিন", "মন খারাপ হলে খাই", "দেরিতে খাওয়া", "বেশি খেয়ে ফেলা"],
+      "support": ["সহায়তা নেই", "একা", "একাই চেষ্টা করছি", "পরিবার আলাদা খায়", "কেউ সাহায্য করে না"],
+      "busy": ["ব্যস্ত", "ব্যস্ত বিকেল", "সময় নেই", "দুপুরে খাওয়া হয় না", "লম্বা দিন", "কাজের চাপ", "অনিয়মিত দিন", "শিফট"],
+      "ideas": ["আইডিয়া ফুরিয়ে যায়", "একই খাবার", "খাবার একঘেয়ে লাগে", "কী রান্না করব বুঝি না"],
+      "other": ["বাইরে খাওয়া", "ভ্রমণ", "দাওয়াত", "অনুষ্ঠান", "টাকা", "খাবারের খরচ"],
+      "none": ["তেমন কিছু না", "বিশেষ কিছু না", "সমস্যা নেই", "ঠিকই আছে"]
+    },
+    "q30": {
+      "photo": ["ছবি", "ছবি তুলে", "ছবি তুলব", "ক্যামেরা", "স্ক্যান", "স্ক্যান করে"],
+      "manual": ["নিজে লিখব", "নিজে দেব", "পরিমাণ লিখব", "ওজন করে", "গ্রাম দিয়ে", "হাতে হাতে", "ম্যানুয়ালি", "খুঁজে বের করব"],
+      "voice": ["মুখে বলে", "কথা বলে", "বলব", "ভয়েসে", "ভয়েস", "বলে দেব"],
+      "type": ["টাইপ", "টাইপ করে", "লিখে", "লিখব", "লিখে বর্ণনা"],
+      "switch": ["মিশিয়ে", "সবগুলো", "সব রকম", "যখন যেটা সহজ", "বদলে বদলে"],
+      "later": ["পরে ঠিক করব", "এখনো জানি না", "পরে", "পরে বলব"]
+    }
+  },
+  "phrases": {
+    "begin": ["হ্যাঁ", "চলুন শুরু করি", "ঠিক আছে", "ওকে", "অবশ্যই", "প্রস্তুত", "শুরু করুন", "ভালো শোনাচ্ছে", "চলুন"],
+    "confirmYes": ["হ্যাঁ", "জি", "জি হ্যাঁ", "ঠিক আছে", "সঠিক", "একদম ঠিক", "ঠিকই আছে", "হুম"],
+    "confirmChange": ["না", "বদলান", "ভুল", "ঠিক হয়নি", "একটু দাঁড়ান", "পরিবর্তন"],
+    "decline": ["বলতে চাই না", "না বললে হয় না", "থাক", "এড়িয়ে যান", "পরের প্রশ্ন", "বলব না", "শেয়ার করতে চাই না", "স্কিপ"],
+    "targetWeightNotSure": ["নিশ্চিত না", "জানি না", "কোনো লক্ষ্য নেই", "এখনো ঠিক করিনি", "ভাবিনি"],
+    "estimate": ["প্রায়", "আনুমানিক", "মোটামুটি", "আন্দাজ", "কাছাকাছি", "হবে প্রায়", "শেষবার যখন মেপেছিলাম"]
+  },
+  "units": {
+    "height": {
+      "cm": ["সেমি", "সেন্টিমিটার", "সে.মি.", "cm"],
+      "m": ["মিটার", "মি."],
+      "ft_in": ["ফুট", "ফিট", "ইঞ্চি", "ইঞ্চ", "'", "\"", "ফুট কয়েক ইঞ্চি"]
+    },
+    "weight": {
+      "kg": ["কেজি", "কিলো", "কিলোগ্রাম", "কে.জি.", "kg"],
+      "lb": ["পাউন্ড", "পাউণ্ড", "lb"],
+      "st_lb": ["স্টোন"]
+    },
+    "conversion": "1 in = 2.54 cm; 1 m = 100 cm; 1 lb = 0.45359237 kg; 1 st = 14 lb. Store height as cm with unit cm or ft_in, weight as kg with unit kg or lb (stone answers display as lb until a stone display unit exists, OQ-24). Out-of-range values (height 90–250 cm, weight 25–300 kg, age 10–110) are confirmed with the user, never silently corrected."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "note": "Shape of a decoded standard-request verdict (tokenPayloadExternal), per developer.android.com/google/play/integrity/verdicts",
+  "verdict": {
+    "requestDetails": { "requestPackageName": "app.nouri.test", "requestHash": "REPLACED_IN_TEST", "timestampMillis": "REPLACED_IN_TEST" },
+    "appIntegrity": { "appRecognitionVerdict": "PLAY_RECOGNIZED", "packageName": "app.nouri.test", "certificateSha256Digest": ["6a6a1474b5cbbb2b1aa57e0bc3"], "versionCode": "42" },
+    "deviceIntegrity": { "deviceRecognitionVerdict": ["MEETS_DEVICE_INTEGRITY"] },
+    "accountDetails": { "appLicensingVerdict": "LICENSED" }
+  }
+}

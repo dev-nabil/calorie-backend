@@ -1,0 +1,2920 @@
+{
+  "$schema": "./questions.schema.json",
+  "kind": "onboarding_questions",
+  "version": 2,
+  "locale": "bn",
+  "source": {
+    "prototype": "../Nouri App Prototype/Nouri Setup.dc.html (QS, BASIC, SECTIONS, STAGES, applicable())",
+    "questionnaire": "Nutrition App Onboarding Questionnaire",
+    "plan": "../nouri-docs/PLAN.md v0.2 section 10, OQ-15",
+    "changes": "v2: adds q35 timeframe_weeks, q36 food_allergies, q37 meals_per_day; target_weight note reworded; q36 joins the basic route. No v1 ID, option or rule changed. See ../nouri-docs/decisions/0006-questionnaire-v2.md"
+  },
+  "placeholders": {
+    "name": "Value of q05 (preferred_name), trimmed. When q05 is empty use miloLineNoName if present, otherwise drop the \"{name}, \" prefix."
+  },
+  "conditionGrammar": {
+    "description": "Declarative conditions evaluated identically by the TypeScript and Dart engines. A condition is exactly one of the forms below.",
+    "forms": {
+      "all": "{\"all\":[Condition, ...]} — true when every child is true (empty list is true)",
+      "any": "{\"any\":[Condition, ...]} — true when at least one child is true (empty list is false)",
+      "not": "{\"not\":Condition}",
+      "eq": "{\"q\":\"q15\",\"eq\":\"yes\"} — single-choice value equals the option ID",
+      "in": "{\"q\":\"q15\",\"in\":[\"yes\",\"varies\"]} — single-choice value is one of the option IDs",
+      "includes": "{\"q\":\"q04\",\"includes\":\"fasting\"} — multi/days value (array) contains the ID",
+      "eqSet": "{\"q\":\"q30\",\"eqSet\":[\"manual\"]} — multi value contains exactly these IDs, order ignored",
+      "answered": "{\"q\":\"q08\",\"answered\":true} — status is answered and value is non-empty (non-blank string, non-empty array, or object). {\"answered\":false} is the negation",
+      "age": "{\"age\":{\"gte\":18}} — age in completed years derived from q06 (keys: gte, gt, lte, lt). Unknown age (no q06, mode none, invalid date) makes every comparison false",
+      "route": "{\"route\":\"detailed\"} or {\"route\":{\"in\":[\"basic\",\"detailed\"]}} — the active route"
+    },
+    "ageDerivation": "mode \"age\": the stated age. mode \"dob\": completed years on the current local date of the device. mode \"none\" or missing: unknown.",
+    "missingValue": "A question with no saved value (skipped, deferred, not applicable or never asked) makes eq, in, includes, eqSet false and answered false. A blank value is never read as \"no\"."
+  },
+  "engine": {
+    "applicability": "A question is applicable when it is in the active route list and every branching rule whose \"show\" is that question evaluates true. Questions without a rule are always applicable.",
+    "nextQuestion": "The first applicable question, in route order, whose status is not set (answered, skipped). Deferred questions are asked again on resume.",
+    "staleValues": "After every saved change, re-evaluate all rules (BR-11). A question that is no longer applicable gets status not_applicable, its value leaves the active profile (history is kept), and the onHide.effects apply.",
+    "emptyCommit": "Continuing a multi, days or text question with no value saves status skipped.",
+    "exclusive": "Selecting an exclusive option clears every other selection; selecting any other option clears exclusive ones. Validate on client and server.",
+    "maxSelections": "When max is set, a further selection is refused until one is removed (Milo line setup.maxReached).",
+    "finishLater": "Opens Review with the answers so far. Unasked questions on the basic and conversation routes are stored as deferred."
+  },
+  "valueFormats": {
+    "single": "\"optionId\" (string)",
+    "multi": "[\"optionId\", ...] (array of unique strings, respects max and exclusive)",
+    "days": "[\"mon\", ...] weekday IDs from days[], or [\"changes\"] / [\"none\"] (exclusive options)",
+    "text": "\"Alex\" (string, trimmed, 1–50 Unicode characters)",
+    "age": "{\"mode\":\"dob\",\"dob\":\"YYYY-MM-DD\"} | {\"mode\":\"age\",\"age\":28} | {\"mode\":\"none\"}",
+    "height": "{\"cm\":172,\"unit\":\"cm\"|\"ft_in\"} — stored in cm, unit is the display unit",
+    "weight": "{\"kg\":78.0,\"unit\":\"kg\"|\"lb\",\"isEstimate\":false} — stored in kg; target_weight has no isEstimate (always false)",
+    "detail": "Free text for an option with freeText (max 50) and the q33 custom length go in the answer detail, not the value: {\"text\":\"...\"} or {\"number\":21}. The value stays the option ID so branching never parses text."
+  },
+  "stages": [
+    {
+      "id": 1,
+      "key": "purpose",
+      "label": "উদ্দেশ্য",
+      "questionIds": [
+        "q01",
+        "q02",
+        "q03",
+        "q04"
+      ]
+    },
+    {
+      "id": 2,
+      "key": "profile",
+      "label": "প্রোফাইল",
+      "questionIds": [
+        "q05",
+        "q06",
+        "q07",
+        "q08",
+        "q09",
+        "q10",
+        "target_weight",
+        "q35"
+      ]
+    },
+    {
+      "id": 3,
+      "key": "daily_life",
+      "label": "দৈনন্দিন জীবন",
+      "questionIds": [
+        "q11",
+        "q36",
+        "q12",
+        "q13",
+        "q37",
+        "q14",
+        "q15",
+        "q16"
+      ]
+    },
+    {
+      "id": 4,
+      "key": "starting_point",
+      "label": "শুরুর অবস্থা",
+      "questionIds": [
+        "q17",
+        "q18",
+        "q19",
+        "q20",
+        "q21",
+        "q22",
+        "q23"
+      ]
+    },
+    {
+      "id": 5,
+      "key": "practical_routine",
+      "label": "ব্যবহারিক রুটিন",
+      "questionIds": [
+        "q24",
+        "q25",
+        "q26",
+        "q27",
+        "q28",
+        "q29"
+      ]
+    },
+    {
+      "id": 6,
+      "key": "app_experience",
+      "label": "অ্যাপের অভিজ্ঞতা",
+      "questionIds": [
+        "q30",
+        "q31",
+        "q32",
+        "q33",
+        "q34"
+      ]
+    },
+    {
+      "id": 7,
+      "key": "review",
+      "label": "পর্যালোচনা",
+      "questionIds": []
+    }
+  ],
+  "routes": {
+    "basic": {
+      "label": "মূল বিষয়গুলো ঠিক করুন",
+      "sub": "প্রায় 2 মিনিট। লক্ষ্য, প্রোফাইল আর খাবার যোগ করার উপায়।",
+      "icon": "lightning",
+      "questionIds": [
+        "q01",
+        "q05",
+        "q06",
+        "q07",
+        "q08",
+        "q09",
+        "q10",
+        "q11",
+        "q36",
+        "q30"
+      ],
+      "then": "review",
+      "notes": "q07–q10 only when applicable. q31 is deferred on this route even if manual is chosen. Every question not on this list is stored as deferred. q36 (allergies) is on the basic route because it is safety relevant."
+    },
+    "detailed": {
+      "label": "বিস্তারিতভাবে সাজিয়ে নিন",
+      "sub": "প্রায় 5 মিনিট। রুটিন, অভ্যাস আর সহায়তা।",
+      "icon": "sliders-horizontal",
+      "questionIds": [
+        "q01",
+        "q02",
+        "q03",
+        "q04",
+        "q05",
+        "q06",
+        "q07",
+        "q08",
+        "q09",
+        "q10",
+        "target_weight",
+        "q35",
+        "q11",
+        "q36",
+        "q12",
+        "q13",
+        "q37",
+        "q14",
+        "q15",
+        "q16",
+        "q17",
+        "q18",
+        "q19",
+        "q20",
+        "q21",
+        "q22",
+        "q23",
+        "q24",
+        "q25",
+        "q26",
+        "q27",
+        "q28",
+        "q29",
+        "q30",
+        "q31",
+        "q32",
+        "q33",
+        "q34"
+      ],
+      "then": "review",
+      "notes": "All questions in order with the branching rules. Used by Finish setting up to resume at the next deferred question."
+    },
+    "conversation": {
+      "label": "মিলোর সঙ্গে দেখা করুন",
+      "sub": "কথা বলুন বা লিখুন। প্রায় 2 মিনিট।",
+      "icon": "microphone",
+      "ref": "content/onboarding/conversation.v1.json",
+      "questionIds": [
+        "q05",
+        "q01",
+        "q06",
+        "q08",
+        "q09",
+        "q07",
+        "target_weight",
+        "q10",
+        "q11",
+        "q12",
+        "q22",
+        "q30"
+      ],
+      "then": "review",
+      "notes": "Order and grouping are defined by the turn groups in conversation.v1.json. Applicability still follows the branching rules. Everything not asked is stored as deferred."
+    }
+  },
+  "branching": [
+    {
+      "id": "BR-Q07",
+      "show": "q07",
+      "when": {
+        "age": {
+          "gte": 18
+        }
+      },
+      "onHide": {
+        "clear": [
+          "q07"
+        ],
+        "effects": [
+          "habits_only_mode",
+          "disable_targets",
+          "never_reuse_old_target"
+        ]
+      },
+      "source": "PLAN §10 row 1; prototype applicable() q07"
+    },
+    {
+      "id": "BR-Q08",
+      "show": "q08",
+      "when": {
+        "all": [
+          {
+            "age": {
+              "gte": 18
+            }
+          },
+          {
+            "any": [
+              {
+                "q": "q07",
+                "eq": "female"
+              },
+              {
+                "q": "q07",
+                "eq": "male"
+              }
+            ]
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q08"
+        ],
+        "effects": [
+          "calculation_incomplete"
+        ]
+      },
+      "source": "PLAN §10 row 2; prototype applicable() q08"
+    },
+    {
+      "id": "BR-Q09",
+      "show": "q09",
+      "when": {
+        "all": [
+          {
+            "age": {
+              "gte": 18
+            }
+          },
+          {
+            "any": [
+              {
+                "q": "q07",
+                "eq": "female"
+              },
+              {
+                "q": "q07",
+                "eq": "male"
+              }
+            ]
+          },
+          {
+            "q": "q08",
+            "answered": true
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q09"
+        ],
+        "effects": [
+          "calculation_incomplete"
+        ]
+      },
+      "source": "PLAN §10 row 2; prototype applicable() q09"
+    },
+    {
+      "id": "BR-Q10",
+      "show": "q10",
+      "when": {
+        "all": [
+          {
+            "age": {
+              "gte": 18
+            }
+          },
+          {
+            "any": [
+              {
+                "q": "q07",
+                "eq": "female"
+              },
+              {
+                "q": "q07",
+                "eq": "male"
+              }
+            ]
+          },
+          {
+            "q": "q08",
+            "answered": true
+          },
+          {
+            "q": "q09",
+            "answered": true
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q10"
+        ],
+        "effects": [
+          "calculation_incomplete"
+        ]
+      },
+      "source": "PLAN §10 row 2; prototype applicable() q10"
+    },
+    {
+      "id": "BR-TW",
+      "show": "target_weight",
+      "when": {
+        "all": [
+          {
+            "age": {
+              "gte": 18
+            }
+          },
+          {
+            "any": [
+              {
+                "q": "q07",
+                "eq": "female"
+              },
+              {
+                "q": "q07",
+                "eq": "male"
+              }
+            ]
+          },
+          {
+            "q": "q08",
+            "answered": true
+          },
+          {
+            "q": "q09",
+            "answered": true
+          },
+          {
+            "any": [
+              {
+                "q": "q01",
+                "eq": "lose"
+              },
+              {
+                "q": "q01",
+                "eq": "gain"
+              }
+            ]
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "target_weight"
+        ],
+        "effects": []
+      },
+      "source": "PLAN §10 row 7, OQ-15 (\"full mode\" read as: adult with sex input, height and weight given)"
+    },
+    {
+      "id": "BR-TF",
+      "show": "q35",
+      "when": {
+        "q": "target_weight",
+        "answered": true
+      },
+      "onHide": {
+        "clear": [
+          "q35"
+        ],
+        "effects": []
+      },
+      "source": "v2: a time estimate only makes sense once a target weight exists (lose/gain, full mode)"
+    },
+    {
+      "id": "BR-Q16",
+      "show": "q16",
+      "when": {
+        "any": [
+          {
+            "q": "q15",
+            "eq": "yes"
+          },
+          {
+            "q": "q15",
+            "eq": "varies"
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q16"
+        ],
+        "effects": []
+      },
+      "source": "PLAN §10 row 3; prototype applicable() q16"
+    },
+    {
+      "id": "BR-Q19",
+      "show": "q19",
+      "when": {
+        "q": "q04",
+        "includes": "fasting"
+      },
+      "onHide": {
+        "clear": [
+          "q19"
+        ],
+        "effects": [
+          "disable_fasting_suggestions"
+        ]
+      },
+      "source": "PLAN §10 row 4; prototype applicable() q19"
+    },
+    {
+      "id": "BR-Q27",
+      "show": "q27",
+      "when": {
+        "any": [
+          {
+            "q": "q04",
+            "includes": "movement"
+          },
+          {
+            "q": "q21",
+            "includes": "movement"
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q27"
+        ],
+        "effects": [
+          "hide_movement_setup"
+        ]
+      },
+      "source": "PLAN §10 row 5; prototype applicable() q27"
+    },
+    {
+      "id": "BR-Q31",
+      "show": "q31",
+      "when": {
+        "all": [
+          {
+            "route": "detailed"
+          },
+          {
+            "q": "q30",
+            "eqSet": [
+              "manual"
+            ]
+          }
+        ]
+      },
+      "onHide": {
+        "clear": [
+          "q31"
+        ],
+        "effects": []
+      },
+      "source": "PLAN §10 row 6; prototype applicable() q31 (detailed route only)"
+    }
+  ],
+  "reviewSections": [
+    {
+      "id": "main_goal",
+      "label": "মূল লক্ষ্য",
+      "questionIds": [
+        "q01",
+        "q02",
+        "q03"
+      ]
+    },
+    {
+      "id": "tools",
+      "label": "টুলস",
+      "questionIds": [
+        "q04",
+        "q30",
+        "q31"
+      ]
+    },
+    {
+      "id": "profile",
+      "label": "প্রোফাইল",
+      "questionIds": [
+        "q05",
+        "q06",
+        "q07",
+        "q08",
+        "q09",
+        "q10",
+        "target_weight",
+        "q35"
+      ]
+    },
+    {
+      "id": "food",
+      "label": "খাবার",
+      "questionIds": [
+        "q11",
+        "q36",
+        "q12",
+        "q26"
+      ]
+    },
+    {
+      "id": "routine",
+      "label": "রুটিন",
+      "questionIds": [
+        "q13",
+        "q37",
+        "q14",
+        "q15",
+        "q16",
+        "q25",
+        "q32"
+      ]
+    },
+    {
+      "id": "support_progress",
+      "label": "সহায়তা ও অগ্রগতি",
+      "questionIds": [
+        "q17",
+        "q18",
+        "q19",
+        "q20",
+        "q21",
+        "q22",
+        "q23",
+        "q24",
+        "q27",
+        "q28",
+        "q29",
+        "q33"
+      ]
+    },
+    {
+      "id": "discovery",
+      "label": "যেভাবে জেনেছেন",
+      "questionIds": [
+        "q34"
+      ]
+    }
+  ],
+  "review": {
+    "title": "আপনার অভিজ্ঞতা আমরা যেভাবে সাজাব, তা এখানে দেওয়া হলো",
+    "note": "এড়িয়ে যাওয়া উত্তর “দেওয়া হয়নি” হিসেবে দেখানো হবে, যা যেকোনো সময় যোগ করা যাবে। আপনি নিশ্চিত না করা পর্যন্ত কিছুই হিসাব করা হবে না।",
+    "notProvided": "দেওয়া হয়নি",
+    "primaryAction": "সংরক্ষণ করে চালিয়ে যান",
+    "editAll": "আমার উত্তর বদলান",
+    "answerRest": "বাকিগুলোর উত্তর দিন",
+    "rowRule": "Show a row when the question is applicable on the current route or has a saved value. Tapping a row edits that question and returns to Review."
+  },
+  "questions": [
+    {
+      "id": "q01",
+      "fieldKey": "primary_goal",
+      "order": 1,
+      "stage": 1,
+      "version": 1,
+      "type": "single",
+      "required": true,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "মূল লক্ষ্য",
+      "text": "এখন আপনি সবচেয়ে বেশি কী নিয়ে কাজ করতে চান?",
+      "note": null,
+      "miloLine": "এখানে কোনো ভুল উত্তর নেই। “সিদ্ধান্ত নিতে সাহায্য করুন” বেছে নিলেও কোনো সমস্যা নেই।",
+      "miloLineNoName": null,
+      "hint": "আবশ্যক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "habits",
+          "label": "স্বাস্থ্যকর খাওয়ার অভ্যাস গড়া",
+          "icon": "plant",
+          "freeText": false
+        },
+        {
+          "id": "maintain",
+          "label": "ওজন ধরে রাখা",
+          "icon": "scales",
+          "freeText": false
+        },
+        {
+          "id": "lose",
+          "label": "ওজন কমানোর দিকে এগোনো",
+          "icon": "trend-down",
+          "freeText": false
+        },
+        {
+          "id": "gain",
+          "label": "ওজন বাড়ানোর দিকে এগোনো",
+          "icon": "trend-up",
+          "freeText": false
+        },
+        {
+          "id": "patterns",
+          "label": "আমার খাওয়ার ধরন বোঝা",
+          "icon": "magnifying-glass",
+          "freeText": false
+        },
+        {
+          "id": "decide",
+          "label": "সিদ্ধান্ত নিতে সাহায্য করুন",
+          "icon": "compass",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q02",
+      "fieldKey": "supporting_goals",
+      "order": 2,
+      "stage": 1,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "অন্যান্য উপকার",
+      "text": "আর কী পেলে এই অভিজ্ঞতা আপনার কাজে লাগবে?",
+      "note": null,
+      "miloLine": "যতগুলো ইচ্ছা বেছে নিন। আপনার মূল লক্ষ্য আমি সবার আগে রাখব।",
+      "miloLineNoName": null,
+      "hint": "প্রযোজ্য সবগুলো বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "choices",
+          "label": "প্রতিদিনের খাবার বেছে নেওয়ায় উন্নতি আনা",
+          "icon": "fork-knife",
+          "freeText": false
+        },
+        {
+          "id": "energy",
+          "label": "আরও প্রাণবন্ত বোধ করা এবং মন ভালো রাখা",
+          "icon": "lightning",
+          "freeText": false
+        },
+        {
+          "id": "routine",
+          "label": "একটি স্থির রুটিন গড়ে তোলা",
+          "icon": "calendar-check",
+          "freeText": false
+        },
+        {
+          "id": "body",
+          "label": "নিজের শরীর নিয়ে স্বচ্ছন্দ বোধ করা",
+          "icon": "heart",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "অন্য কিছু",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "none",
+          "label": "এখন আর কিছু নয়",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q03",
+      "fieldKey": "personal_motivation",
+      "order": 3,
+      "stage": 1,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "ব্যক্তিগত কারণ",
+      "text": "আপনার দৈনন্দিন জীবনে কোন পরিবর্তনটি সবচেয়ে অর্থপূর্ণ মনে হবে?",
+      "note": null,
+      "miloLine": "এটি গোপন থাকবে। আমি শুধু শান্ত খোঁজখবরের সময় এটি তুলব।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "healthier",
+          "label": "আরও সুস্থ বোধ করা এবং বেশি শক্তি পাওয়া",
+          "icon": "sun",
+          "freeText": false
+        },
+        {
+          "id": "proud",
+          "label": "নিজের অগ্রগতিতে গর্ববোধ করা",
+          "icon": "medal",
+          "freeText": false
+        },
+        {
+          "id": "clothes",
+          "label": "পছন্দের পোশাকে স্বচ্ছন্দ বোধ করা",
+          "icon": "t-shirt",
+          "freeText": false
+        },
+        {
+          "id": "measure",
+          "label": "নিজের মাপে পরিবর্তন লক্ষ্য করা",
+          "icon": "ruler",
+          "freeText": false
+        },
+        {
+          "id": "personal",
+          "label": "একটি ব্যক্তিগত কারণ, যা আমি বলতে চাই",
+          "icon": "pencil-simple",
+          "freeText": true
+        },
+        {
+          "id": "skip",
+          "label": "এটি বাদ দিতে চাই",
+          "icon": "arrow-right",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q04",
+      "fieldKey": "requested_features",
+      "order": 4,
+      "stage": 1,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "explore"
+      ],
+      "reviewLabel": "অ্যাপ থেকে সহায়তা",
+      "text": "কোন টুলগুলো হাতের কাছে রাখতে চান?",
+      "note": null,
+      "miloLine": "এগুলো আমি আপনার হোম স্ক্রিনে সহজে হাতের নাগালে রাখব।",
+      "miloLineNoName": null,
+      "hint": "প্রযোজ্য সবগুলো বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "logging",
+          "label": "খাবার ও ক্যালরির হিসাব রাখা",
+          "icon": "fork-knife",
+          "freeText": false
+        },
+        {
+          "id": "movement",
+          "label": "চলাফেরা ও শারীরিক কাজকর্মের রেকর্ড",
+          "icon": "person-simple-run",
+          "freeText": false
+        },
+        {
+          "id": "ideas",
+          "label": "সুষম খাবারের আইডিয়া",
+          "icon": "bowl-food",
+          "freeText": false
+        },
+        {
+          "id": "summaries",
+          "label": "অগ্রগতির সারাংশ",
+          "icon": "chart-line-up",
+          "freeText": false
+        },
+        {
+          "id": "fasting",
+          "label": "খাওয়ার সময়ের পরিসর ও ইন্টারমিটেন্ট ফাস্টিং সম্পর্কে তথ্য",
+          "icon": "timer",
+          "freeText": false
+        },
+        {
+          "id": "explore",
+          "label": "এখনো খুঁজে দেখছি",
+          "icon": "compass",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q05",
+      "fieldKey": "preferred_name",
+      "order": 5,
+      "stage": 2,
+      "version": 1,
+      "type": "text",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "নাম",
+      "text": "আমরা আপনাকে কী নামে ডাকব?",
+      "note": null,
+      "miloLine": "ডাকনাম হলেও চলবে। আমি শুধু জানতে চাই আপনাকে কী বলে ডাকব।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [],
+      "days": [],
+      "limits": {
+        "maxLength": 50,
+        "trim": true,
+        "unicode": true
+      }
+    },
+    {
+      "id": "q06",
+      "fieldKey": "birth_date_or_age",
+      "order": 6,
+      "stage": 2,
+      "version": 1,
+      "type": "age",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "বয়স",
+      "text": "আপনি কবে জন্মেছেন?",
+      "note": "আপনার বয়স দেখে আমরা ঠিক করি কোন সুবিধাগুলো উপযুক্ত। জন্মদিন না জানিয়েও আপনি শুধু বয়স দিতে পারেন।",
+      "miloLine": "{name}, আপনার জন্মদিন আপনারই থাকবে। শুধু বয়স দিলেও চলবে।",
+      "miloLineNoName": "আপনার জন্মদিন আপনারই থাকবে। শুধু বয়স দিলেও চলবে।",
+      "hint": "ঐচ্ছিক",
+      "skipLabel": "এটি দিতে চাই না",
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [],
+      "days": [],
+      "limits": {
+        "min": 10,
+        "max": 110,
+        "unit": "years",
+        "adultFrom": 18,
+        "dobNotInFuture": true,
+        "modes": [
+          "dob",
+          "age",
+          "none"
+        ],
+        "start": 28
+      }
+    },
+    {
+      "id": "q07",
+      "fieldKey": "calculation_sex",
+      "order": 7,
+      "stage": 2,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "হিসাবের পছন্দ",
+      "text": "ক্যালরির আনুমানিক হিসাব বেছে নিলে আমরা কোন জৈবিক লিঙ্গের তথ্য ব্যবহার করব?",
+      "note": "কিছু ক্যালরি সমীকরণে এই তথ্য ব্যবহার হয়। এটি ছাড়াই আপনি অভ্যাসের হিসাব রেখে চালিয়ে যেতে পারেন।",
+      "miloLine": "শুধু ক্যালরির আনুমানিক হিসাব বেছে নিলেই এটি ব্যবহার হবে। কিছুই ধরে নেওয়া হয় না।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "female",
+          "label": "নারী",
+          "icon": "user",
+          "freeText": false
+        },
+        {
+          "id": "male",
+          "label": "পুরুষ",
+          "icon": "user",
+          "freeText": false
+        },
+        {
+          "id": "unsure",
+          "label": "কোনটি প্রযোজ্য, আমি নিশ্চিত নই",
+          "icon": "question",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "লিঙ্গভিত্তিক হিসাব ব্যবহার করবেন না",
+          "icon": "x",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q08",
+      "fieldKey": "height_cm",
+      "order": 8,
+      "stage": 2,
+      "version": 1,
+      "type": "height",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "উচ্চতা",
+      "text": "আপনার প্রোফাইলের জন্য আমরা কত উচ্চতা ধরব?",
+      "note": null,
+      "miloLine": "বোতামে ট্যাপ করে বদলান। যেকোনো সময় একক বদলাতে পারবেন।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [],
+      "days": [],
+      "limits": {
+        "min": 90,
+        "max": 250,
+        "unit": "cm",
+        "displayUnits": [
+          "cm",
+          "ft_in"
+        ],
+        "step": {
+          "cm": 1,
+          "ft_in": 2.54
+        },
+        "bigStepMultiplier": 5,
+        "start": 170
+      }
+    },
+    {
+      "id": "q09",
+      "fieldKey": "current_weight_kg",
+      "order": 9,
+      "stage": 2,
+      "version": 1,
+      "type": "weight",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "বর্তমান ওজন",
+      "text": "আপনার সবচেয়ে সাম্প্রতিক ওজন কত?",
+      "note": "মোটামুটি একটি সংখ্যা দিলেও চলবে। পরে বদলে নিতে পারবেন।",
+      "miloLine": "মোটামুটি সংখ্যা দিলেই চলবে। আমি এটিকে নিখুঁত ধরব না।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [],
+      "days": [],
+      "limits": {
+        "min": 25,
+        "max": 300,
+        "unit": "kg",
+        "displayUnits": [
+          "kg",
+          "lb"
+        ],
+        "step": {
+          "kg": 1,
+          "lb": 0.45359
+        },
+        "bigStepMultiplier": 5,
+        "estimateFlag": true,
+        "start": 70
+      }
+    },
+    {
+      "id": "q10",
+      "fieldKey": "activity_level",
+      "order": 10,
+      "stage": 2,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "দৈনন্দিন চলাফেরা",
+      "text": "আপনার সাধারণ সপ্তাহে কতটা চলাফেরা থাকে?",
+      "note": null,
+      "miloLine": "একটি সাধারণ সপ্তাহের সবচেয়ে কাছাকাছি যেটি মনে হয়, সেটি বেছে নিন।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "seated",
+          "label": "বেশিরভাগ সময় বসে থাকি, চলাফেরা কম",
+          "icon": "house",
+          "freeText": false
+        },
+        {
+          "id": "light",
+          "label": "কিছুটা হাঁটাহাঁটি বা হালকা কাজকর্ম",
+          "icon": "person-simple-walk",
+          "freeText": false
+        },
+        {
+          "id": "active",
+          "label": "প্রায়ই হাঁটা, সক্রিয় কাজ বা নিয়মিত ব্যায়াম",
+          "icon": "sneaker",
+          "freeText": false
+        },
+        {
+          "id": "intense",
+          "label": "শারীরিকভাবে পরিশ্রমের কাজ বা ঘন ঘন কঠোর প্রশিক্ষণ",
+          "icon": "barbell",
+          "freeText": false
+        },
+        {
+          "id": "unsure",
+          "label": "নিশ্চিত নই",
+          "icon": "question",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "target_weight",
+      "fieldKey": "target_weight_kg",
+      "order": 11,
+      "stage": 2,
+      "version": 1,
+      "type": "weight",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "লক্ষ্য ওজন",
+      "text": "এমন কোনো ওজন কি আছে, যার দিকে আপনি এগোতে চান?",
+      "note": "ঐচ্ছিক। এটি আপনার দৈনিক লক্ষ্য কখনো বদলায় না। ধীরস্থির অগ্রগতিতে কত সময় লাগতে পারে, তার আনুমানিক হিসাব করতে আমরা এটি ব্যবহার করি।",
+      "miloLine": "এখনো নিশ্চিত না হলেও সমস্যা নেই। আমরা সময়সীমার বদলে ধীরস্থির অভ্যাসে মন দেব।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": "এখনো নিশ্চিত নই",
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [],
+      "days": [],
+      "limits": {
+        "min": 25,
+        "max": 300,
+        "unit": "kg",
+        "displayUnits": [
+          "kg",
+          "lb"
+        ],
+        "step": {
+          "kg": 1,
+          "lb": 0.45359
+        },
+        "bigStepMultiplier": 5,
+        "estimateFlag": false,
+        "start": null
+      }
+    },
+    {
+      "version": 1,
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "miloLineNoName": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "days": [],
+      "id": "q35",
+      "fieldKey": "timeframe_weeks",
+      "stage": 2,
+      "type": "single",
+      "reviewLabel": "যে সময় দিতে চান",
+      "text": "এর জন্য আপনি কতটা সময় দিতে চান?",
+      "note": "এটি শুধু একটি মোটামুটি ইচ্ছা। আপনার সংখ্যা অনুযায়ী কোনটি বাস্তবসম্মত, তা আমরা দেখাব। এখানে কিছুই কোনো সময়সীমা নয়।",
+      "miloLine": "কোনো চাপ নেই। কোনটি বাস্তবসম্মত তা আমি দেখাব, আর আপনি যেকোনো সময় বদলাতে পারবেন।",
+      "hint": "ঐচ্ছিক",
+      "skipLabel": "এখনো নিশ্চিত নই",
+      "options": [
+        {
+          "id": "none",
+          "label": "নির্দিষ্ট সময় নেই, ধীরস্থির অগ্রগতিই যথেষ্ট",
+          "icon": "calendar",
+          "freeText": false
+        },
+        {
+          "id": "12w",
+          "label": "প্রায় 3 মাস",
+          "icon": "calendar-check",
+          "freeText": false,
+          "shortLabel": "3 মাস"
+        },
+        {
+          "id": "26w",
+          "label": "প্রায় 6 মাস",
+          "icon": "calendar-check",
+          "freeText": false,
+          "shortLabel": "6 মাস"
+        },
+        {
+          "id": "52w",
+          "label": "প্রায় এক বছর",
+          "icon": "calendar-check",
+          "freeText": false,
+          "shortLabel": "1 বছর"
+        },
+        {
+          "id": "custom",
+          "label": "নিজের মতো সময় বেছে নিন",
+          "icon": "pencil-simple",
+          "freeText": false,
+          "input": {
+            "type": "number",
+            "min": 4,
+            "max": 156,
+            "start": 16,
+            "unit": "weeks",
+            "integer": true
+          }
+        },
+        {
+          "id": "unsure",
+          "label": "কোনটি বাস্তবসম্মত তা দেখান",
+          "icon": "question",
+          "freeText": false
+        }
+      ],
+      "limits": null,
+      "order": 12
+    },
+    {
+      "id": "q11",
+      "fieldKey": "diet_pattern",
+      "order": 13,
+      "stage": 3,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "খাওয়ার পছন্দ",
+      "text": "কোন খাওয়ার ধরনটি আপনার সবচেয়ে কাছাকাছি?",
+      "note": null,
+      "miloLine": "এটি শুধু আইডিয়া বাছাই করতে কাজে লাগে। এটি কোনো চিকিৎসাগত পরিচয় নয়।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "chips",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "none",
+          "label": "নির্দিষ্ট কোনো ধরন নেই",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "pesc",
+          "label": "মাছ খাই, কিন্তু মাংস বা হাঁস-মুরগি খাই না",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "veg",
+          "label": "নিরামিষভোজী",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "vegan",
+          "label": "ভেগান",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "অন্য কোনো ধরন",
+          "icon": null,
+          "freeText": true
+        },
+        {
+          "id": "deciding",
+          "label": "এখনো ঠিক করছি",
+          "icon": null,
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "version": 1,
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "none"
+      ],
+      "miloLineNoName": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "days": [],
+      "id": "q36",
+      "fieldKey": "food_allergies",
+      "stage": 3,
+      "type": "multi",
+      "reviewLabel": "অ্যালার্জি ও অসহিষ্ণুতা",
+      "text": "আপনার কি কোনো খাবারে অ্যালার্জি বা অসহিষ্ণুতা আছে?",
+      "note": "যাতে আপনার পরিকল্পনা এমন কোনো খাবারের ওপর নির্ভর না করে, যা আপনি খেতে পারেন না। গুরুতর অ্যালার্জি থাকলে সবসময় আপনার চিকিৎসকের পরামর্শ মেনে চলুন।",
+      "miloLine": "আমার দেওয়া প্রতিটি আইডিয়া থেকে এগুলো বাদ রাখব।",
+      "hint": "প্রযোজ্য সবগুলো বেছে নিন",
+      "skipLabel": null,
+      "options": [
+        {
+          "id": "peanuts",
+          "label": "চিনাবাদাম",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "tree_nuts",
+          "label": "গাছের বাদাম (কাজু, আমন্ড, আখরোট ইত্যাদি)",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "milk",
+          "label": "দুধ বা দুগ্ধজাত খাবার",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "lactose",
+          "label": "ল্যাকটোজ অসহিষ্ণুতা",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "eggs",
+          "label": "ডিম",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "gluten",
+          "label": "গ্লুটেন বা গম",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "soy",
+          "label": "সয়া",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "fish",
+          "label": "মাছ",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "shellfish",
+          "label": "খোলসযুক্ত সামুদ্রিক খাবার (চিংড়ি, কাঁকড়া ইত্যাদি)",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "sesame",
+          "label": "তিল",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "অন্য কিছু",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "none",
+          "label": "আমার জানা মতে কিছু নেই",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "limits": null,
+      "order": 14
+    },
+    {
+      "id": "q12",
+      "fieldKey": "meal_source",
+      "order": 15,
+      "stage": 3,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "খাবার কোথা থেকে আসে",
+      "text": "আপনার বেশিরভাগ খাবার কোথা থেকে আসে?",
+      "note": null,
+      "miloLine": "যাতে আমি সঠিক সহজ উপায়গুলো সুপারিশ করতে পারি।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "home",
+          "label": "বাসায় রান্না করা",
+          "icon": "house",
+          "freeText": false
+        },
+        {
+          "id": "out",
+          "label": "রেস্তোরাঁ, টেকঅ্যাওয়ে বা ডেলিভারি",
+          "icon": "motorcycle",
+          "freeText": false
+        },
+        {
+          "id": "mix",
+          "label": "মোটামুটি সমান সমান",
+          "icon": "shuffle",
+          "freeText": false
+        },
+        {
+          "id": "varies",
+          "label": "সপ্তাহ ভেদে বদলায়",
+          "icon": "arrows-clockwise",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q13",
+      "fieldKey": "schedule_pattern",
+      "order": 16,
+      "stage": 3,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "সাপ্তাহিক সময়সূচি",
+      "text": "কোন বর্ণনাটি আপনার কাজ বা পড়াশোনার সময়সূচির সঙ্গে সবচেয়ে বেশি মেলে?",
+      "note": null,
+      "miloLine": "আপনি সময় বেছে না নেওয়া পর্যন্ত কোনো রিমাইন্ডার ঠিক করা হবে না।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "fixed",
+          "label": "বেশিরভাগ নির্দিষ্ট দিনের বেলার সময়",
+          "icon": "sun",
+          "freeText": false
+        },
+        {
+          "id": "flex",
+          "label": "নিজের সুবিধামতো সময়",
+          "icon": "sliders-horizontal",
+          "freeText": false
+        },
+        {
+          "id": "shifts",
+          "label": "বদলে যাওয়া বা পালাক্রমের শিফট",
+          "icon": "arrows-clockwise",
+          "freeText": false
+        },
+        {
+          "id": "seasonal",
+          "label": "মৌসুমি কাজ",
+          "icon": "calendar",
+          "freeText": false
+        },
+        {
+          "id": "study",
+          "label": "পড়াশোনা করছি",
+          "icon": "student",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "এখন কাজ বা পড়াশোনা কিছুই করছি না",
+          "icon": "house",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "অন্য কোনো সময়সূচি",
+          "icon": "dots-three",
+          "freeText": true
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "version": 1,
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "miloLineNoName": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "days": [],
+      "id": "q37",
+      "fieldKey": "meals_per_day",
+      "stage": 3,
+      "type": "single",
+      "reviewLabel": "সাধারণ দিনে খাবারের সংখ্যা",
+      "text": "সাধারণত আপনি দিনে কতবার খান?",
+      "note": null,
+      "miloLine": "যাতে খাবারের আইডিয়াগুলো আপনার দিনের আসল ছন্দের সঙ্গে মেলে।",
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "options": [
+        {
+          "id": "one_two",
+          "label": "এক বা দুই বেলা খাবার",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "three",
+          "label": "তিন বেলা খাবার",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "three_snacks",
+          "label": "তিন বেলা খাবার, সঙ্গে নাশতা",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "small_often",
+          "label": "অল্প অল্প করে কয়েকবার খাবার",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "varies",
+          "label": "দিন ভেদে বদলায়",
+          "icon": "shuffle",
+          "freeText": false
+        }
+      ],
+      "limits": null,
+      "order": 17
+    },
+    {
+      "id": "q14",
+      "fieldKey": "children_living_arrangement",
+      "order": 18,
+      "stage": 3,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "পারিবারিক রুটিন",
+      "text": "আপনার কি সন্তান আছে, আর তারা কি আপনার সঙ্গে থাকে?",
+      "note": null,
+      "miloLine": "শুধু সংসারের পরিকল্পনার জন্য। নির্দ্বিধায় এড়িয়ে যেতে পারেন।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "with",
+          "label": "হ্যাঁ, তারা আমার সঙ্গে থাকে",
+          "icon": "users-three",
+          "freeText": false
+        },
+        {
+          "id": "elsewhere",
+          "label": "হ্যাঁ, তারা অন্য কোথাও থাকে",
+          "icon": "arrows-left-right",
+          "freeText": false
+        },
+        {
+          "id": "some",
+          "label": "তারা মাঝে মাঝে আমার সঙ্গে থাকে",
+          "icon": "shuffle",
+          "freeText": false
+        },
+        {
+          "id": "no",
+          "label": "আমার কোনো সন্তান নেই",
+          "icon": "x",
+          "freeText": false
+        },
+        {
+          "id": "pns",
+          "label": "উত্তর দিতে চাই না",
+          "icon": "lock-simple",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q15",
+      "fieldKey": "higher_intake_pattern",
+      "order": 19,
+      "stage": 3,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "যেসব দিনে খাওয়া আলাদা হয়",
+      "text": "সাপ্তাহিক ছুটি বা অন্য ছুটির দিনে কি আপনি বেশি খেয়ে থাকেন?",
+      "note": null,
+      "miloLine": "কোনো দিনই ভালো বা মন্দ নয়। আমি শুধু আপনার বাস্তব জীবনের সঙ্গে মিলিয়ে পরিকল্পনা করতে চাই।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "yes",
+          "label": "সাধারণত হ্যাঁ",
+          "icon": "check",
+          "freeText": false
+        },
+        {
+          "id": "no",
+          "label": "সাধারণত না",
+          "icon": "x",
+          "freeText": false
+        },
+        {
+          "id": "varies",
+          "label": "একেক সময় একেক রকম",
+          "icon": "shuffle",
+          "freeText": false
+        },
+        {
+          "id": "skip",
+          "label": "এটি বাদ দিতে চাই",
+          "icon": "arrow-right",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q16",
+      "fieldKey": "flexible_days",
+      "order": 20,
+      "stage": 3,
+      "version": 1,
+      "type": "days",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "changes",
+        "none"
+      ],
+      "reviewLabel": "নমনীয় দিন",
+      "text": "কোন কোন দিন আপনার পরিকল্পনায় আরও নমনীয়তা রাখতে চান?",
+      "note": null,
+      "miloLine": "দিনগুলোতে ট্যাপ করুন। যেকোনো সংমিশ্রণ চলবে।",
+      "miloLineNoName": null,
+      "hint": "সপ্তাহের দিন বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "changes",
+          "label": "আমার দিনগুলো বদলায়",
+          "icon": "shuffle",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "কোনো পছন্দ নেই",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [
+        {
+          "id": "mon",
+          "short": "সো",
+          "label": "সোমবার"
+        },
+        {
+          "id": "tue",
+          "short": "ম",
+          "label": "মঙ্গলবার"
+        },
+        {
+          "id": "wed",
+          "short": "বু",
+          "label": "বুধবার"
+        },
+        {
+          "id": "thu",
+          "short": "বৃ",
+          "label": "বৃহস্পতিবার"
+        },
+        {
+          "id": "fri",
+          "short": "শু",
+          "label": "শুক্রবার"
+        },
+        {
+          "id": "sat",
+          "short": "শ",
+          "label": "শনিবার"
+        },
+        {
+          "id": "sun",
+          "short": "র",
+          "label": "রবিবার"
+        }
+      ],
+      "limits": null
+    },
+    {
+      "id": "q17",
+      "fieldKey": "nutrition_familiarity",
+      "order": 21,
+      "stage": 4,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "পুষ্টি সম্পর্কে ধারণা",
+      "text": "প্রতিদিনের পুষ্টির মূল বিষয়গুলো সম্পর্কে আপনি কতটা পরিচিত?",
+      "note": null,
+      "miloLine": "এটি কোনো পরীক্ষা নয়। এতে শুধু ঠিক হয় আমি কতটা বিস্তারিত বলব।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "learning",
+          "label": "আমি মূল বিষয়গুলো শিখছি",
+          "icon": "book-open",
+          "freeText": false
+        },
+        {
+          "id": "some",
+          "label": "কিছু জরুরি বিষয় আমার জানা আছে",
+          "icon": "lightbulb",
+          "freeText": false
+        },
+        {
+          "id": "detailed",
+          "label": "বিস্তারিত পুষ্টি-তথ্যে আমি স্বচ্ছন্দ",
+          "icon": "graduation-cap",
+          "freeText": false
+        },
+        {
+          "id": "unsure",
+          "label": "নিশ্চিত নই",
+          "icon": "question",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q18",
+      "fieldKey": "tracking_experience",
+      "order": 22,
+      "stage": 4,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "আগে হিসাব রাখা",
+      "text": "আপনি কি আগে কখনো খাবার বা ক্যালরির ডায়েরি ব্যবহার করেছেন?",
+      "note": null,
+      "miloLine": "করে থাকলে আমি টিউটোরিয়াল বাদ দেব।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "reg",
+          "label": "হ্যাঁ, নিয়মিত",
+          "icon": "check",
+          "freeText": false
+        },
+        {
+          "id": "brief",
+          "label": "হ্যাঁ, অল্প সময়",
+          "icon": "clock",
+          "freeText": false
+        },
+        {
+          "id": "new",
+          "label": "না, এটা আমার কাছে নতুন",
+          "icon": "sparkle",
+          "freeText": false
+        },
+        {
+          "id": "forget",
+          "label": "মনে নেই",
+          "icon": "question",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q19",
+      "fieldKey": "fasting_experience",
+      "order": 23,
+      "stage": 4,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "খাওয়ার সময়ের পরিসর",
+      "text": "ইন্টারমিটেন্ট ফাস্টিং নিয়ে আপনার অভিজ্ঞতা কেমন?",
+      "note": null,
+      "miloLine": "এটি শুধু আপনার অভিজ্ঞতা জানার জন্য। আমি কোনো পরিকল্পনা বা টাইমার চালু করব না।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "useful",
+          "label": "চেষ্টা করেছি এবং কাজের মনে হয়েছে",
+          "icon": "check",
+          "freeText": false
+        },
+        {
+          "id": "disliked",
+          "label": "চেষ্টা করেছি, কিন্তু ভালো লাগেনি",
+          "icon": "x",
+          "freeText": false
+        },
+        {
+          "id": "curious",
+          "label": "চেষ্টা করিনি, তবে জানতে আগ্রহী",
+          "icon": "eye",
+          "freeText": false
+        },
+        {
+          "id": "no",
+          "label": "আমার আগ্রহ নেই",
+          "icon": "pause-circle",
+          "freeText": false
+        },
+        {
+          "id": "explain",
+          "label": "আগে একটু ব্যাখ্যা শুনতে চাই",
+          "icon": "info",
+          "freeText": false,
+          "opensInfo": "setup.info.fasting"
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q20",
+      "fieldKey": "starting_mood",
+      "order": 24,
+      "stage": 4,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "শুরু করার অনুভূতি",
+      "text": "এখন পরিবর্তন আনার ব্যাপারে আপনার কেমন লাগছে?",
+      "note": null,
+      "miloLine": "যেকোনো উত্তরই ঠিক আছে। এতে আমি সঠিক সুরে কথা বলতে পারি।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "ready",
+          "label": "শুরু করতে প্রস্তুত",
+          "icon": "rocket",
+          "freeText": false
+        },
+        {
+          "id": "confident",
+          "label": "পরের ধাপে যেতে আত্মবিশ্বাসী",
+          "icon": "star",
+          "freeText": false
+        },
+        {
+          "id": "anxious",
+          "label": "একটু দুশ্চিন্তা হচ্ছে",
+          "icon": "waves",
+          "freeText": false
+        },
+        {
+          "id": "discouraged",
+          "label": "আগের চেষ্টাগুলোর কারণে মনোবল কমে গেছে",
+          "icon": "arrow-counter-clockwise",
+          "freeText": false
+        },
+        {
+          "id": "low",
+          "label": "উদ্যম কম",
+          "icon": "moon",
+          "freeText": false
+        },
+        {
+          "id": "unsure",
+          "label": "নিশ্চিত নই",
+          "icon": "question",
+          "freeText": false
+        },
+        {
+          "id": "pns",
+          "label": "বলতে চাই না",
+          "icon": "lock-simple",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q21",
+      "fieldKey": "habit_priorities",
+      "order": 25,
+      "stage": 4,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": 3,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "যেসব অভ্যাসে মন দেবেন",
+      "text": "আপনার রুটিনের কোন কোন অংশ নিয়ে আগে কাজ করতে চান?",
+      "note": null,
+      "miloLine": "সর্বোচ্চ তিনটি। এগুলো মনোযোগের ক্ষেত্র, প্রতিদিনের কোনো নিয়ম নয়।",
+      "miloLineNoName": null,
+      "hint": "সর্বোচ্চ 3টি বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "portion",
+          "label": "খাবারের পরিমাণ সম্পর্কে সচেতনতা",
+          "icon": "scales",
+          "freeText": false
+        },
+        {
+          "id": "snack",
+          "label": "নাশতার রুটিন",
+          "icon": "basket",
+          "freeText": false
+        },
+        {
+          "id": "balance",
+          "label": "সব বেলার খাবারে ভারসাম্য",
+          "icon": "bowl-food",
+          "freeText": false
+        },
+        {
+          "id": "water",
+          "label": "নিয়মিত পানি পান",
+          "icon": "drop",
+          "freeText": false
+        },
+        {
+          "id": "movement",
+          "label": "চলাফেরা ও ব্যায়াম",
+          "icon": "person-simple-run",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "অন্য কোনো অভ্যাস",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "none",
+          "label": "এখনো বিশেষ কিছুতে মনোযোগ নেই",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q22",
+      "fieldKey": "routine_barriers",
+      "order": 26,
+      "stage": 4,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "যা বাধা হয়ে দাঁড়ায়",
+      "text": "কী কারণে এই পরিবর্তনগুলো কঠিন হয়ে ওঠে?",
+      "note": null,
+      "miloLine": "যাতে আমি আপনার ওপর চাপ না বাড়িয়ে পাশে থাকতে পারি।",
+      "miloLineNoName": null,
+      "hint": "প্রযোজ্য সবগুলো বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "routine",
+          "label": "রুটিন ধরে রাখা",
+          "icon": "calendar-check",
+          "freeText": false
+        },
+        {
+          "id": "habits",
+          "label": "খাওয়ার যেসব অভ্যাস বদলানো কঠিন",
+          "icon": "fork-knife",
+          "freeText": false
+        },
+        {
+          "id": "support",
+          "label": "সহায়তা কম পাওয়া",
+          "icon": "users-three",
+          "freeText": false
+        },
+        {
+          "id": "busy",
+          "label": "ব্যস্ত বা অনিশ্চিত দিন",
+          "icon": "alarm",
+          "freeText": false
+        },
+        {
+          "id": "ideas",
+          "label": "খাবারের আইডিয়া ফুরিয়ে যাওয়া",
+          "icon": "lightbulb",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "অন্য কোনো চ্যালেঞ্জ",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "none",
+          "label": "বিশেষ কিছু নয়",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q23",
+      "fieldKey": "eating_cues",
+      "order": 27,
+      "stage": 4,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "rare",
+        "pns"
+      ],
+      "reviewLabel": "খাওয়ার ইঙ্গিত",
+      "text": "খিদে না পেলেও যখন আপনি খান, তখন সাধারণত কী আপনাকে প্রভাবিত করে?",
+      "note": null,
+      "miloLine": "এটি সবাই কখনো না কখনো করে। আমার কাছ থেকে কোনো বিচার নেই।",
+      "miloLineNoName": null,
+      "hint": "প্রযোজ্য সবগুলো বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "near",
+          "label": "খাবার কাছেই থাকে বা সহজে হাতের নাগালে থাকে",
+          "icon": "basket",
+          "freeText": false
+        },
+        {
+          "id": "bored",
+          "label": "একঘেয়ে লাগে",
+          "icon": "hourglass",
+          "freeText": false
+        },
+        {
+          "id": "others",
+          "label": "অন্যরা খাচ্ছে",
+          "icon": "users-three",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "অন্য কিছু",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "rare",
+          "label": "এমন খুব কম হয়",
+          "icon": "check",
+          "freeText": false
+        },
+        {
+          "id": "pns",
+          "label": "উত্তর দিতে চাই না",
+          "icon": "lock-simple",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q24",
+      "fieldKey": "consistency_support",
+      "order": 28,
+      "stage": 5,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "নিয়মিত থাকার সহায়তা",
+      "text": "কী পেলে আপনার রুটিন সামলানো সহজ হবে?",
+      "note": null,
+      "miloLine": "যেটি কাজের মনে হয় সেটি বেছে নিন। কারও সঙ্গে কিছুই শেয়ার করা হবে না।",
+      "miloLineNoName": null,
+      "hint": "প্রযোজ্য সবগুলো বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "planlog",
+          "label": "খাওয়ার আগে খাবারের পরিকল্পনা করা ও যোগ করা",
+          "icon": "note-pencil",
+          "freeText": false
+        },
+        {
+          "id": "checkin",
+          "label": "বিশ্বস্ত কারও সঙ্গে খোঁজখবর নেওয়া",
+          "icon": "chats",
+          "freeText": false
+        },
+        {
+          "id": "prep",
+          "label": "আগে থেকে খাবার তৈরি করে রাখা ও রেসিপি জোগাড় করা",
+          "icon": "cooking-pot",
+          "freeText": false
+        },
+        {
+          "id": "streak",
+          "label": "খাবার যোগ করার টানা দিনের ধারা ব্যবহার করা",
+          "icon": "fire",
+          "freeText": false
+        },
+        {
+          "id": "review",
+          "label": "আমার ক্যালরি গ্রহণ পর্যালোচনা করা",
+          "icon": "chart-line-up",
+          "freeText": false
+        },
+        {
+          "id": "help",
+          "label": "একটি উপায় খুঁজে পেতে সাহায্য করুন",
+          "icon": "compass",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q25",
+      "fieldKey": "logging_timing",
+      "order": 29,
+      "stage": 5,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "কখন খাবার যোগ করবেন",
+      "text": "দিনের কোন সময় খাবারের হিসাব রাখা আপনার সবচেয়ে স্বাভাবিক লাগবে?",
+      "note": null,
+      "miloLine": "এটি শুধু সময়ের পছন্দ। এতে নোটিফিকেশন চালু হয় না।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "before",
+          "label": "প্রতিবার খাওয়ার আগে",
+          "icon": "fork-knife",
+          "freeText": false
+        },
+        {
+          "id": "after",
+          "label": "খাওয়ার পরপরই",
+          "icon": "check",
+          "freeText": false
+        },
+        {
+          "id": "morning",
+          "label": "সকালে দিনের খাবারের পরিকল্পনা করা",
+          "icon": "sun-horizon",
+          "freeText": false
+        },
+        {
+          "id": "evening",
+          "label": "সন্ধ্যায় দিনটি দেখে নেওয়া",
+          "icon": "moon",
+          "freeText": false
+        },
+        {
+          "id": "later",
+          "label": "পরে ঠিক করব",
+          "icon": "hourglass",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q26",
+      "fieldKey": "food_habit_actions",
+      "order": 30,
+      "stage": 5,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": 2,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "খাবারের একটি ছোট অভ্যাস",
+      "text": "খাবার-সংক্রান্ত কোন কাজগুলো আপনি চেষ্টা করতে চান?",
+      "note": null,
+      "miloLine": "সর্বোচ্চ দুটি ছোট বিষয়। পরে বদলে নিতে পারবেন।",
+      "miloLineNoName": null,
+      "hint": "সর্বোচ্চ 2টি বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "pause",
+          "label": "একটু থেমে ভেবেচিন্তে খাবার বেছে নেওয়া",
+          "icon": "pause",
+          "freeText": false
+        },
+        {
+          "id": "fruit",
+          "label": "ফল ও সবজি আরও ঘন ঘন খাওয়া",
+          "icon": "carrot",
+          "freeText": false
+        },
+        {
+          "id": "water",
+          "label": "আরও নিয়মিত পানি পান করা",
+          "icon": "drop",
+          "freeText": false
+        },
+        {
+          "id": "learn",
+          "label": "পুষ্টি সম্পর্কে আরও জানা",
+          "icon": "book-open",
+          "freeText": false
+        },
+        {
+          "id": "notice",
+          "label": "খিদে ও খাবারের পরিমাণ খেয়াল করা",
+          "icon": "eye",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "এখন কিছু নয়",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q27",
+      "fieldKey": "movement_actions",
+      "order": 31,
+      "stage": 5,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": 2,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "মানানসই চলাফেরা",
+      "text": "বেশি নড়াচড়া করার কোন উপায়গুলো আপনার জীবনে মানাবে?",
+      "note": null,
+      "miloLine": "আপনার শরীরের যা ভালো লাগে, সেভাবে এগুলো মানিয়ে নিন। সর্বোচ্চ দুটি।",
+      "miloLineNoName": null,
+      "hint": "সর্বোচ্চ 2টি বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "sport",
+          "label": "কোনো কাজকর্ম বা খেলাধুলা চেষ্টা করা",
+          "icon": "barbell",
+          "freeText": false
+        },
+        {
+          "id": "steps",
+          "label": "স্টেপ লক্ষ্যের দিকে এগোনো",
+          "icon": "sneaker",
+          "freeText": false
+        },
+        {
+          "id": "walk",
+          "label": "ছোটখাটো যাওয়া-আসায় হেঁটে যাওয়া",
+          "icon": "person-simple-walk",
+          "freeText": false
+        },
+        {
+          "id": "workout",
+          "label": "ব্যায়ামের রুটিন গড়ে তোলা",
+          "icon": "calendar-check",
+          "freeText": false
+        },
+        {
+          "id": "time",
+          "label": "চলাফেরার জন্য সময় আলাদা করে রাখা",
+          "icon": "clock",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "এখন কিছু নয়",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q28",
+      "fieldKey": "progress_preferences",
+      "order": 32,
+      "stage": 5,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "অগ্রগতির লক্ষণ",
+      "text": "কোন কোন পরিবর্তনের হিসাব রাখতে চান?",
+      "note": null,
+      "miloLine": "ওজন মাপা ঐচ্ছিক। অগ্রগতি দেখার আরও অনেক উপায় আছে।",
+      "miloLineNoName": null,
+      "hint": "প্রযোজ্য সবগুলো বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "weight",
+          "label": "সময়ের সঙ্গে ওজনের পরিবর্তন",
+          "icon": "scales",
+          "freeText": false
+        },
+        {
+          "id": "measure",
+          "label": "শরীরের মাপ",
+          "icon": "ruler",
+          "freeText": false
+        },
+        {
+          "id": "health",
+          "label": "অন্য অ্যাপ থেকে স্বাস্থ্য বা কাজকর্মের রেকর্ড",
+          "icon": "heart",
+          "freeText": false
+        },
+        {
+          "id": "energy",
+          "label": "নিজেকে কতটা প্রাণবন্ত লাগে",
+          "icon": "lightning",
+          "freeText": false
+        },
+        {
+          "id": "clothes",
+          "label": "পোশাক কেমন লাগে",
+          "icon": "t-shirt",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "অগ্রগতির অন্য কোনো লক্ষণ",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "none",
+          "label": "এখনো হিসাব রাখার কোনো পছন্দ নেই",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q29",
+      "fieldKey": "restart_support",
+      "order": 33,
+      "stage": 5,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "unsure"
+      ],
+      "reviewLabel": "কঠিন সপ্তাহের পর",
+      "text": "ধাক্কা খাওয়ার পর রুটিনে ফিরে আসতে কী আপনাকে সাহায্য করবে?",
+      "note": null,
+      "miloLine": "বিরতি নিলে কখনো অপরাধবোধ বা জোরালো রিমাইন্ডার আসে না।",
+      "miloLineNoName": null,
+      "hint": "প্রযোজ্য সবগুলো বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "trusted",
+          "label": "বিশ্বস্ত মানুষদের উৎসাহ",
+          "icon": "hand-heart",
+          "freeText": false
+        },
+        {
+          "id": "talk",
+          "label": "নিজের অগ্রগতি নিয়ে কথা বলা",
+          "icon": "chats",
+          "freeText": false
+        },
+        {
+          "id": "pause",
+          "label": "একটু বিরতি নেওয়া",
+          "icon": "pause-circle",
+          "freeText": false
+        },
+        {
+          "id": "quiet",
+          "label": "নিজে নিজে নীরবে আবার শুরু করা",
+          "icon": "moon",
+          "freeText": false
+        },
+        {
+          "id": "unsure",
+          "label": "এখনো নিশ্চিত নই",
+          "icon": "question",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q30",
+      "fieldKey": "logging_methods",
+      "order": 34,
+      "stage": 6,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "switch",
+        "later"
+      ],
+      "reviewLabel": "খাবার যোগ করার উপায়",
+      "text": "আপনি কীভাবে খাবার যোগ করতে চান?",
+      "note": null,
+      "miloLine": "যেকোনো সময় বদলাতে পারবেন। ছবি ও আনুমানিক হিসাব সংরক্ষণের আগে দেখে নেওয়া যায়।",
+      "miloLineNoName": null,
+      "hint": "প্রযোজ্য সবগুলো বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "photo",
+          "label": "খাবারের ছবি তোলা",
+          "icon": "camera",
+          "freeText": false
+        },
+        {
+          "id": "manual",
+          "label": "খাবার খুঁজে নিয়ে পরিমাণ লেখা",
+          "icon": "magnifying-glass",
+          "freeText": false
+        },
+        {
+          "id": "voice",
+          "label": "মুখে বলে খাবারের বর্ণনা দেওয়া",
+          "icon": "microphone",
+          "freeText": false
+        },
+        {
+          "id": "type",
+          "label": "লিখে খাবারের বর্ণনা দেওয়া",
+          "icon": "keyboard",
+          "freeText": false
+        },
+        {
+          "id": "switch",
+          "label": "এক উপায় থেকে অন্য উপায়ে বদলানো",
+          "icon": "swap",
+          "freeText": false
+        },
+        {
+          "id": "later",
+          "label": "পরে ঠিক করব",
+          "icon": "hourglass",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q31",
+      "fieldKey": "manual_entry_reasons",
+      "order": 35,
+      "stage": 6,
+      "version": 1,
+      "type": "multi",
+      "required": false,
+      "max": null,
+      "exclusive": [
+        "none"
+      ],
+      "reviewLabel": "কেন নিজে লেখা",
+      "text": "নিজে খাবার যোগ করার কোন দিকটি আপনার ভালো লাগে?",
+      "note": null,
+      "miloLine": "বুঝেছি। আমি বারবার ছবি তুলে যোগ করার কথা বলব না।",
+      "miloLineNoName": null,
+      "hint": "প্রযোজ্য সবগুলো বেছে নিন",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "accuracy",
+          "label": "সঠিকতা আমি নিজে যাচাই করতে চাই",
+          "icon": "checks",
+          "freeText": false
+        },
+        {
+          "id": "privacy",
+          "label": "এআই প্রক্রিয়াকরণের জন্য খাবারের ছবি শেয়ার করতে চাই না",
+          "icon": "shield-check",
+          "freeText": false
+        },
+        {
+          "id": "control",
+          "label": "প্রতিটি এন্ট্রির ওপর সরাসরি নিয়ন্ত্রণ চাই",
+          "icon": "sliders-horizontal",
+          "freeText": false
+        },
+        {
+          "id": "other",
+          "label": "অন্য কোনো কারণ",
+          "icon": "dots-three",
+          "freeText": true
+        },
+        {
+          "id": "none",
+          "label": "বিশেষ কোনো কারণ নেই",
+          "icon": "check",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q32",
+      "fieldKey": "daily_time_preference",
+      "order": 36,
+      "stage": 6,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "হাতে সময়",
+      "text": "সাধারণ একটি দিনে হিসাব রাখতে আপনি কত সময় দিতে চান?",
+      "note": null,
+      "miloLine": "অল্প সময়ও চলবে। আমি আপনাকে যা দেখাব, সেটি সেই অনুযায়ী ছোট-বড় করব।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "5",
+          "label": "প্রায় 5 মিনিট",
+          "icon": "timer",
+          "freeText": false
+        },
+        {
+          "id": "10",
+          "label": "প্রায় 10 মিনিট",
+          "icon": "timer",
+          "freeText": false
+        },
+        {
+          "id": "15",
+          "label": "প্রায় 15 মিনিট",
+          "icon": "clock",
+          "freeText": false
+        },
+        {
+          "id": "30",
+          "label": "সর্বোচ্চ 30 মিনিট",
+          "icon": "clock",
+          "freeText": false
+        },
+        {
+          "id": "varies",
+          "label": "একেক দিন একেক রকম",
+          "icon": "shuffle",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    },
+    {
+      "id": "q33",
+      "fieldKey": "logging_challenge",
+      "order": 37,
+      "stage": 6,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "খাবার যোগ করার চ্যালেঞ্জ",
+      "text": "আপনি কি নিজের জন্য খাবার যোগ করার একটি চ্যালেঞ্জ বেছে নিতে চান?",
+      "note": null,
+      "miloLine": "পুরোপুরি ঐচ্ছিক। একদিন বাদ পড়লে আপনার অগ্রগতি মুছে যায় না।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "list",
+        "grid": [
+          "7",
+          "14",
+          "30",
+          "50"
+        ]
+      },
+      "options": [
+        {
+          "id": "7",
+          "label": "টানা 7 দিন",
+          "icon": "fire",
+          "freeText": false,
+          "shortLabel": "7 দিন"
+        },
+        {
+          "id": "14",
+          "label": "টানা 14 দিন",
+          "icon": "fire",
+          "freeText": false,
+          "shortLabel": "14 দিন"
+        },
+        {
+          "id": "30",
+          "label": "টানা 30 দিন",
+          "icon": "fire",
+          "freeText": false,
+          "shortLabel": "30 দিন"
+        },
+        {
+          "id": "50",
+          "label": "টানা 50 দিন",
+          "icon": "fire",
+          "freeText": false,
+          "shortLabel": "50 দিন"
+        },
+        {
+          "id": "custom",
+          "label": "নিজের মতো সময় বেছে নিন",
+          "icon": "pencil-simple",
+          "freeText": false,
+          "input": {
+            "type": "number",
+            "min": 1,
+            "max": 365,
+            "start": 21,
+            "unit": "days",
+            "integer": true
+          }
+        },
+        {
+          "id": "flex",
+          "label": "টানা দিনের চাপ ছাড়া নমনীয় খোঁজখবর",
+          "icon": "calendar-check",
+          "freeText": false
+        },
+        {
+          "id": "none",
+          "label": "কোনো চ্যালেঞ্জ নয়",
+          "icon": "x",
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": {
+        "customDays": {
+          "min": 1,
+          "max": 365
+        }
+      }
+    },
+    {
+      "id": "q34",
+      "fieldKey": "discovery_source",
+      "order": 38,
+      "stage": 6,
+      "version": 1,
+      "type": "single",
+      "required": false,
+      "max": null,
+      "exclusive": [],
+      "reviewLabel": "অ্যাপটির খোঁজ যেভাবে পেয়েছেন",
+      "text": "এই অ্যাপটির কথা আপনি প্রথম কোথায় জেনেছেন?",
+      "note": null,
+      "miloLine": "শেষ প্রশ্ন। এটি শুধু আমাদের নিজস্ব প্রতিবেদনের জন্য।",
+      "miloLineNoName": null,
+      "hint": "ঐচ্ছিক",
+      "skipLabel": null,
+      "display": {
+        "layout": "chips",
+        "grid": []
+      },
+      "options": [
+        {
+          "id": "instagram",
+          "label": "ইনস্টাগ্রাম",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "facebook",
+          "label": "ফেসবুক",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "tiktok",
+          "label": "টিকটক",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "youtube",
+          "label": "ইউটিউব",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "friend",
+          "label": "বন্ধু বা পরিবারের কেউ",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "creator",
+          "label": "কোনো কনটেন্ট নির্মাতা",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "ai",
+          "label": "একটি এআই সহকারী",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "deals",
+          "label": "ডিল বা কুপনের সাইট",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "search",
+          "label": "সার্চ ইঞ্জিন",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "store",
+          "label": "অ্যাপ স্টোর",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "else",
+          "label": "অন্য কোথাও",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "forgot",
+          "label": "মনে নেই",
+          "icon": null,
+          "freeText": false
+        }
+      ],
+      "days": [],
+      "limits": null
+    }
+  ]
+}

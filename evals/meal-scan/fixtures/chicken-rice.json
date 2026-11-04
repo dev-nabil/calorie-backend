@@ -1,0 +1,16 @@
+{
+  "id": "chicken-rice",
+  "category": "lunch",
+  "expected": { "isFood": true, "kcal": 470, "items": [{ "name": "grilled chicken", "match": ["chicken"] }, { "name": "rice", "match": ["rice"] }, { "name": "greens", "match": ["greens", "broccoli", "spinach"] }] },
+  "fakeOutput": {
+    "isFood": true,
+    "mealName": "Grilled chicken with rice and greens",
+    "items": [
+      { "name": "Grilled chicken breast", "portion": "1 fillet", "grams": 150, "kcal": 248, "proteinG": 46.5, "carbsG": 0, "fatG": 5.4, "fiberG": 0, "confidence": 0.82, "point": { "x": 0.54, "y": 0.74 } },
+      { "name": "White rice, cooked", "portion": "1 cup", "grams": 160, "kcal": 208, "proteinG": 4.3, "carbsG": 45, "fatG": 0.5, "fiberG": 0.6, "confidence": 0.74, "point": { "x": 0.2, "y": 0.68 } },
+      { "name": "Cooking oil (estimated)", "portion": "1 tsp", "grams": 5, "kcal": 45, "proteinG": 0, "carbsG": 0, "fatG": 5, "fiberG": 0, "confidence": 0.4, "point": null }
+    ],
+    "notes": "Oil is not visible; the estimate may be low.",
+    "clarifyingQuestion": null
+  }
+}

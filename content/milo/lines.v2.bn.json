@@ -1,0 +1,1538 @@
+{
+  "kind": "milo_lines",
+  "version": 2,
+  "locale": "bn",
+  "tone": "PLAN §8.8: warm, brief, plain, never judgemental, at most 3 sentences. No food or day is good or bad. No deadlines, no fasting plans, no intake below the floor. Under-18 and habits-only users never see calorie numbers or deficit language.",
+  "placeholders": {
+    "name": "q05 preferred_name. Every line using {name} has a NoName twin or is safe to drop the name from.",
+    "kcal": "Formatted integer with thousands separator, e.g. 2,100",
+    "remainingKcal": "Daily target minus eaten, never negative",
+    "floorKcal": "BR-04 floor for this user",
+    "activityFactor": "BR-04 factor, e.g. 1.375",
+    "category": "breakfast | lunch | dinner | snack (lower case in sentences)",
+    "n": "Integer count",
+    "d": "Integer count of days in the period",
+    "deferredCount": "profiles.onboarding.deferredCount",
+    "price": "Store price string from RevenueCat in the user's currency (never hard-coded)",
+    "monthlyEquivalent": "Yearly price / 12 from the store",
+    "monthlyTimesTwelve": "Monthly price × 12 from the store",
+    "savingPct": "Rounded saving of yearly versus twelve monthly payments",
+    "date": "en-GB long date, e.g. 2 November 2027",
+    "time": "HH:mm in the user's timezone",
+    "email": "Account email",
+    "topic": "Short topic named by the safety rules, e.g. diabetes",
+    "retryAfterMin": "Minutes from AI_UNAVAILABLE retryAfterSec, rounded up",
+    "value": "Formatted measurement"
+  },
+  "prerender": "Lines without {placeholders} are canonical and pre-rendered to tts/{version}/{lineId}.mp3 (PLAN §8.7). Lines with placeholders are spoken with on-device synthesis.",
+  "lines": {
+    "welcome.greeting": {
+      "text": "হ্যালো, আমি মিলো।"
+    },
+    "welcome.title": {
+      "text": "স্বাস্থ্যকর রুটিন শুরু হয় একটি কথোপকথন দিয়ে।"
+    },
+    "welcome.sub": {
+      "text": "মিলোর সঙ্গে পরিচয় হোক, সে আপনার পুষ্টির সঙ্গী। লক্ষ্য ঠিক করুন, নিজের খাবার বুঝুন, আর প্রতিদিনের অগ্রগতি অনুসরণ করুন।"
+    },
+    "welcome.cta.meet": {
+      "text": "মিলোর সঙ্গে দেখা করুন"
+    },
+    "welcome.cta.manual": {
+      "text": "ট্যাপ করতে পছন্দ করেন? নিজে সাজিয়ে নিন"
+    },
+    "welcome.cta.resume": {
+      "text": "যেখানে থেমেছিলাম সেখান থেকে শুরু করি"
+    },
+    "setup.intro.title": {
+      "text": "চলুন একসঙ্গে সাজিয়ে নিই, আপনার গতিতে।"
+    },
+    "setup.intro.sub": {
+      "text": "কয়েকটি প্রশ্নে ট্যাপ করে এগিয়ে যান। প্রথমটির পর বাকি সবকিছু এড়িয়ে যাওয়া যায় এবং পরে বদলানো যায়।"
+    },
+    "setup.hello": {
+      "text": "হ্যালো, আমি মিলো। আমি কয়েকটি সহজ প্রশ্ন করব।"
+    },
+    "setup.react.1": {
+      "text": "বুঝেছি।"
+    },
+    "setup.react.2": {
+      "text": "চমৎকার, লিখে নিলাম।"
+    },
+    "setup.react.3": {
+      "text": "এতে সুবিধা হলো।"
+    },
+    "setup.react.4": {
+      "text": "এজন্য ধন্যবাদ।"
+    },
+    "setup.react.5": {
+      "text": "জেনে ভালো লাগল।"
+    },
+    "setup.maxReached": {
+      "text": "এখন সর্বোচ্চ {n}টি। বদলাতে চাইলে একটিতে ট্যাপ করুন।"
+    },
+    "setup.customLength": {
+      "text": "আপনার পছন্দমতো যেকোনো সময় বেছে নিন।"
+    },
+    "setup.dobFuture": {
+      "text": "এই তারিখটি ভবিষ্যতের। আবার চেষ্টা করুন।"
+    },
+    "setup.under18": {
+      "text": "ধন্যবাদ। আপাতত আমি অভ্যাসের হিসাব রাখার মধ্যেই থাকব।"
+    },
+    "setup.unusualValue": {
+      "text": "এটি স্বাভাবিক সীমার বাইরে। {value} কি ঠিক আছে?"
+    },
+    "setup.finishLater": {
+      "text": "তাড়া নেই। আপনার উত্তরগুলো সংরক্ষিত আছে।"
+    },
+    "setup.allDone": {
+      "text": "সব শেষ। একবার দেখে নিন। যেকোনো কিছু বদলাতে পারবেন।"
+    },
+    "setup.accountStep": {
+      "text": "শেষ একটি ধাপ। একটি অ্যাকাউন্ট আপনার উত্তরগুলো নিরাপদ রাখে।"
+    },
+    "setup.freshStart": {
+      "text": "নতুন করে শুরু। আবার হ্যালো।"
+    },
+    "setup.cta.continue": {
+      "text": "চালিয়ে যান"
+    },
+    "setup.cta.review": {
+      "text": "পর্যালোচনা করুন"
+    },
+    "setup.cta.skipForNow": {
+      "text": "আপাতত এড়িয়ে যান"
+    },
+    "setup.cta.skipQuestion": {
+      "text": "এই প্রশ্নটি এড়িয়ে যান"
+    },
+    "setup.cta.finishLater": {
+      "text": "পরে শেষ করব"
+    },
+    "setup.estimateToggle": {
+      "text": "এটি একটি আনুমানিক হিসাব"
+    },
+    "setup.info.fasting": {
+      "title": "খাওয়ার সময়ের পরিসর সম্পর্কে",
+      "text": "ইন্টারমিটেন্ট ফাস্টিং মানে প্রতিদিন নির্দিষ্ট কয়েক ঘণ্টার মধ্যে খাওয়া। Nouri শুধু আপনার অভিজ্ঞতা লিখে রাখে, কখনো কোনো উপবাস পরিকল্পনা বা টাইমার চালু করে না। আপনার কোনো স্বাস্থ্যগত সমস্যা থাকলে আগে একজন স্বাস্থ্যসেবা পেশাজীবীর সঙ্গে কথা বলুন।"
+    },
+    "account.title": {
+      "text": "অ্যাকাউন্ট দিয়ে আপনার পরিকল্পনা নিরাপদ রাখুন"
+    },
+    "account.sub": {
+      "text": "যেকোনো ডিভাইসে সাইন ইন করুন এবং ঠিক যেখানে থেমেছিলেন সেখান থেকে শুরু করুন।"
+    },
+    "account.connected": {
+      "text": "সংযুক্ত হয়েছে। আপনার তথ্য দেখে নিন, তাহলেই সব ঠিক।"
+    },
+    "account.socialFallback": {
+      "text": "কোনো সমস্যা নেই। আপনার পছন্দের যেকোনো ইমেইল ব্যবহার করুন।"
+    },
+    "building.title": {
+      "text": "আপনার পরিকল্পনা তৈরি হচ্ছে"
+    },
+    "building.step.1": {
+      "text": "আপনার রুটিন দেখা হচ্ছে"
+    },
+    "building.step.2": {
+      "text": "আপনার দৈনিক লক্ষ্য ঠিক করা হচ্ছে"
+    },
+    "building.step.2Habits": {
+      "text": "আপনার শুরুর অভ্যাসগুলো ঠিক করা হচ্ছে"
+    },
+    "plan.reveal.title": {
+      "text": "{name}, এই হলো আপনার শুরুর জায়গা।"
+    },
+    "plan.reveal.titleNoName": {
+      "text": "এই হলো আপনার শুরুর জায়গা।"
+    },
+    "plan.reveal.milo": {
+      "text": "এখান থেকেই আমরা শুরু করব। আপনি চাইলে যেকোনো সময় এটি বদলানো যাবে।"
+    },
+    "plan.reveal.energyLabel": {
+      "text": "দৈনিক ক্যালরি লক্ষ্য"
+    },
+    "plan.reveal.tile.protein": {
+      "text": "প্রোটিন"
+    },
+    "plan.reveal.tile.carbs": {
+      "text": "শর্করা"
+    },
+    "plan.reveal.tile.fat": {
+      "text": "চর্বি"
+    },
+    "plan.reveal.tile.water": {
+      "text": "পানি"
+    },
+    "plan.reveal.goalSummary": {
+      "text": "লক্ষ্যের সারাংশ"
+    },
+    "plan.reveal.noDeadline": {
+      "text": "ধীরে ধীরে এগোনো। সময়ের যেকোনো আনুমানিক হিসাব একটি দিকনির্দেশ মাত্র, এটি কোনো সময়সীমা নয়। কোনো একটি দিনের চেয়ে সামগ্রিক ধারাই বেশি গুরুত্বপূর্ণ।"
+    },
+    "plan.reveal.disclaimer": {
+      "text": "এটি শুরু করার জন্য একটি আনুমানিক হিসাব, চিকিৎসাগত পরামর্শ নয়। কোনো সময়সীমা ঠিক করা নেই, আর আপনি যেকোনো সময় এটি বদলাতে পারবেন।"
+    },
+    "plan.reveal.cta.start": {
+      "text": "আমার দিন শুরু করি"
+    },
+    "plan.reveal.cta.how": {
+      "text": "আমরা কীভাবে হিসাব করেছি"
+    },
+    "plan.reveal.cta.adjust": {
+      "text": "লক্ষ্য বদলান"
+    },
+    "plan.how.title": {
+      "text": "আমরা কীভাবে হিসাব করেছি"
+    },
+    "plan.how.inputs": {
+      "text": "আমরা আপনার বয়স, উচ্চতা, ওজন, জৈবিক লিঙ্গের তথ্য আর চলাফেরার মাত্রা ব্যবহার করেছি।"
+    },
+    "plan.how.equation": {
+      "text": "আমরা Mifflin–St Jeor সমীকরণ দিয়ে আপনার দৈনিক ক্যালরির আনুমানিক হিসাব করেছি, তারপর সেটিকে {activityFactor} চলাফেরার গুণক দিয়ে গুণ করেছি।"
+    },
+    "plan.how.adjust.lose": {
+      "text": "ধীরে ধীরে ওজন কমানোর জন্য আমরা এটি 10% কমিয়েছি।"
+    },
+    "plan.how.adjust.gain": {
+      "text": "ধীরে ধীরে ওজন বাড়ানোর জন্য আমরা এটি 10% বাড়িয়েছি।"
+    },
+    "plan.how.adjust.maintain": {
+      "text": "লক্ষ্য অনুযায়ী কোনো সমন্বয় নেই, তাই এটি ওজন ধরে রাখার একটি আনুমানিক হিসাব।"
+    },
+    "plan.how.floor": {
+      "text": "আপনার লক্ষ্য দিনে কখনো {floorKcal} ক্যালরির নিচে নামে না।"
+    },
+    "plan.how.macros": {
+      "text": "প্রোটিন ধরা হয়েছে শরীরের প্রতি কেজি ওজনে 1.6 গ্রাম, চর্বি ক্যালরির 27%, আর বাকিটা শর্করা।"
+    },
+    "plan.how.targetWeight": {
+      "text": "আপনার লক্ষ্য ওজন আপনার লক্ষ্যের কার্ডে দেখানো হয়। এটি এই সংখ্যাগুলো বদলায় না। ধীরস্থির অগ্রগতিতে কত সময় লাগতে পারে, তার আনুমানিক হিসাব করতে আমরা শুধু এটি ব্যবহার করি।"
+    },
+    "plan.adjust.title": {
+      "text": "লক্ষ্য বদলান"
+    },
+    "plan.adjust.floorHit": {
+      "text": "এর চেয়ে কমানো যাবে না। আপনার লক্ষ্য {floorKcal} ক্যালরি বা তার বেশি থাকবে।"
+    },
+    "plan.adjust.saved": {
+      "text": "লক্ষ্য আপডেট হয়েছে।"
+    },
+    "plan.habits.title": {
+      "text": "{name}, এই হলো আপনার শুরুর রুটিন।"
+    },
+    "plan.habits.titleNoName": {
+      "text": "এই হলো আপনার শুরুর রুটিন।"
+    },
+    "plan.habits.sub": {
+      "text": "আমরা অভ্যাসে মন দেব: খাবার, পানি আর রুটিন। কোনো ক্যালরি লক্ষ্য ঠিক করা হয়নি।"
+    },
+    "plan.habits.addDetails": {
+      "text": "পরে ক্যালরির আনুমানিক হিসাব চাইলে সেটিংসে বাকি তথ্যগুলো যোগ করুন।"
+    },
+    "today.greeting.morning": {
+      "text": "শুভ সকাল, {name}"
+    },
+    "today.greeting.afternoon": {
+      "text": "শুভ বিকেল, {name}"
+    },
+    "today.greeting.evening": {
+      "text": "শুভ সন্ধ্যা, {name}"
+    },
+    "today.greeting.morningNoName": {
+      "text": "শুভ সকাল"
+    },
+    "today.greeting.afternoonNoName": {
+      "text": "শুভ বিকেল"
+    },
+    "today.greeting.eveningNoName": {
+      "text": "শুভ সন্ধ্যা"
+    },
+    "today.energy.remaining": {
+      "text": "ক্যালরি বাকি"
+    },
+    "today.energy.over": {
+      "text": "ক্যালরি বেশি"
+    },
+    "today.energy.eaten": {
+      "text": "খাওয়া হয়েছে"
+    },
+    "today.energy.target": {
+      "text": "দৈনিক লক্ষ্য"
+    },
+    "today.freeBar.left": {
+      "title": "ফ্রি প্ল্যান · 1টি স্ক্যান বাকি",
+      "sub": "আমাদের পক্ষ থেকে একবার ছবি স্ক্যান করে দেখুন।"
+    },
+    "today.freeBar.used": {
+      "title": "ফ্রি প্ল্যান · স্ক্যান ব্যবহার হয়েছে",
+      "sub": "সীমাহীন স্ক্যানের জন্য সাবস্ক্রাইব করুন।"
+    },
+    "today.freeBar.cta": {
+      "text": "আপগ্রেড করুন"
+    },
+    "today.finishSetup": {
+      "title": "সেটআপ শেষ করুন",
+      "sub": "আর {deferredCount}টি ছোট প্রশ্ন বাকি। এগুলো আমাকে আপনার জন্য পরামর্শ সাজাতে সাহায্য করে।"
+    },
+    "today.finishSetupOne": {
+      "title": "সেটআপ শেষ করুন",
+      "sub": "আর একটি ছোট প্রশ্ন বাকি। এটি আমাকে আপনার জন্য পরামর্শ সাজাতে সাহায্য করে।"
+    },
+    "today.finishSetup.cta": {
+      "text": "চালিয়ে যান"
+    },
+    "today.finishSetup.dismiss": {
+      "text": "এখন নয়"
+    },
+    "today.meals.title": {
+      "text": "আজকের খাবার"
+    },
+    "today.week.title": {
+      "text": "এই সপ্তাহ"
+    },
+    "today.goal.title": {
+      "text": "লক্ষ্য"
+    },
+    "analysing.title": {
+      "text": "আপনার খাবার বিশ্লেষণ করা হচ্ছে"
+    },
+    "analysing.step.1": {
+      "text": "আপনার ছবির খাবারগুলো খোঁজা হচ্ছে…"
+    },
+    "analysing.step.2": {
+      "text": "পরিমাণের আনুমানিক হিসাব করা হচ্ছে…"
+    },
+    "analysing.step.3": {
+      "text": "আপনার পুষ্টির বিবরণ তৈরি করা হচ্ছে…"
+    },
+    "analysing.slow": {
+      "text": "এখনো কাজ চলছে। এটিতে একটু বেশি সময় লাগছে।"
+    },
+    "analysing.background": {
+      "text": "আপনি এই স্ক্রিন থেকে চলে যেতে পারেন। আমি পেছনে থেকে কাজটি শেষ করব।"
+    },
+    "scan.camera.guide": {
+      "text": "আপনার থালা ফ্রেমের মাঝখানে রাখুন"
+    },
+    "scan.camera.gallery": {
+      "text": "গ্যালারি"
+    },
+    "scan.preview.title": {
+      "text": "এই ছবিটি ব্যবহার করবেন?"
+    },
+    "scan.preview.analyse": {
+      "text": "খাবার বিশ্লেষণ করুন"
+    },
+    "scan.preview.retake": {
+      "text": "আবার তুলুন"
+    },
+    "scan.result.estimated": {
+      "text": "ক্যালরি (আনুমানিক)"
+    },
+    "scan.result.portion": {
+      "text": "পরিমাণ"
+    },
+    "scan.result.foods": {
+      "text": "শনাক্ত করা খাবার"
+    },
+    "scan.result.edit": {
+      "text": "খাবার বদলান"
+    },
+    "scan.result.addTo": {
+      "text": "কোন বেলায় যোগ করবেন"
+    },
+    "scan.result.add": {
+      "text": "ডায়েরিতে যোগ করুন · {kcal} ক্যালরি"
+    },
+    "scan.result.reviewNote": {
+      "text": "এগুলো আনুমানিক হিসাব। সংরক্ষণের আগে খাবার ও পরিমাণ দেখে নিন।"
+    },
+    "scan.edit.title": {
+      "title": "খাবার বদলান",
+      "sub": "থালায় যা নেই তা বাদ দিন, গ্রাম বদলান, অথবা আমি যা বাদ দিয়েছি তা যোগ করুন।"
+    },
+    "scan.edit.addFood": {
+      "text": "একটি খাবার যোগ করুন"
+    },
+    "scan.edit.addFoodHint": {
+      "text": "যেমন: এক চা-চামচ অলিভ অয়েল"
+    },
+    "scan.edit.lastItem": {
+      "text": "একটি খাবারে অন্তত একটি পদ থাকতে হবে।"
+    },
+    "scan.edit.done": {
+      "text": "সম্পন্ন"
+    },
+    "scan.consent": {
+      "title": "আপনার প্রথম স্ক্যানের আগে",
+      "text": "পুষ্টির আনুমানিক হিসাব করার জন্য আপনার ছবি নিরাপদে আমাদের এআই সেবাদাতার কাছে পাঠানো হয়। সংরক্ষণের আগে আপনি প্রতিটি ফলাফল দেখে নেন, আর খাবারটি মুছে ফেললে ছবিটিও সরিয়ে ফেলা হয়।"
+    },
+    "scan.consent.accept": {
+      "text": "বুঝেছি"
+    },
+    "scan.consent.decline": {
+      "text": "এখন নয়"
+    },
+    "scan.pending": {
+      "title": "আপনার স্ক্যান এখনো চলছে",
+      "sub": "আমি এটি পেছনে থেকে শেষ করব। তৈরি হলে এখানে দেখা যাবে।"
+    },
+    "describe.title": {
+      "text": "আপনার খাবারের বর্ণনা দিন"
+    },
+    "describe.hint": {
+      "text": "যেমন: মাখন মাখানো আটার টোস্টের ওপর দুটি স্ক্র্যাম্বল করা ডিম"
+    },
+    "describe.listening": {
+      "text": "আমি শুনছি। শেষ হলে ট্যাপ করুন।"
+    },
+    "coach.intro": {
+      "text": "হ্যালো {name}। আজকের ব্যাপারে আমাকে জিজ্ঞেস করুন, আমি সংক্ষেপে বলব।"
+    },
+    "coach.introNoName": {
+      "text": "হ্যালো। আজকের ব্যাপারে আমাকে জিজ্ঞেস করুন, আমি সংক্ষেপে বলব।"
+    },
+    "coach.quick.macros": {
+      "text": "আমার ম্যাক্রো বুঝিয়ে দিন"
+    },
+    "coach.quick.snack": {
+      "text": "একটি নাশতার আইডিয়া দিন"
+    },
+    "coach.quick.review": {
+      "text": "আমার দিনটি দেখে নিন"
+    },
+    "coach.status.idle": {
+      "text": "আপনার পুষ্টির সঙ্গী"
+    },
+    "coach.status.thinking": {
+      "text": "ভাবছি…"
+    },
+    "coach.status.speaking": {
+      "text": "বলছি"
+    },
+    "coach.inputHint": {
+      "text": "মিলোকে আপনার দিন সম্পর্কে জিজ্ঞেস করুন"
+    },
+    "coach.voiceReplies": {
+      "title": "মিলোর কণ্ঠ",
+      "sub": "মুখের উত্তর, সবসময় ক্যাপশনসহ"
+    },
+    "water.title": {
+      "text": "পানি"
+    },
+    "water.add": {
+      "text": "+250 মি.লি."
+    },
+    "water.added": {
+      "text": "250 মি.লি. যোগ হয়েছে।"
+    },
+    "water.undone": {
+      "text": "250 মি.লি. বাদ দেওয়া হয়েছে।"
+    },
+    "water.half": {
+      "text": "পানির লক্ষ্যের অর্ধেক হয়ে গেছে।"
+    },
+    "water.goal": {
+      "text": "আজকের পানির লক্ষ্য পূরণ হয়েছে। চমৎকার।"
+    },
+    "water.beyondGoal": {
+      "text": "পানির লক্ষ্য ছাড়িয়ে গেছে। আপনি বেশ ভালোভাবে পানি পান করেছেন।"
+    },
+    "streak.pill": {
+      "text": "টানা {n} দিন"
+    },
+    "streak.week": {
+      "text": "{d} দিনের মধ্যে {n} দিন যোগ করা হয়েছে"
+    },
+    "streak.none": {
+      "text": "টানা দিন শুরু করতে একটি খাবার যোগ করুন।"
+    },
+    "streak.first": {
+      "text": "প্রথম দিনের হিসাব যোগ হয়েছে। দারুণ শুরু।"
+    },
+    "streak.three": {
+      "text": "টানা তিন দিন। একটি রুটিন গড়ে উঠছে।"
+    },
+    "streak.seven": {
+      "text": "পুরো এক সপ্তাহ হিসাব রাখা হয়েছে। এটাই আসল ধারাবাহিকতা।"
+    },
+    "streak.milestone": {
+      "text": "টানা {n} দিন। চমৎকার কাজ।"
+    },
+    "streak.restart": {
+      "text": "আজ নতুন শুরু। আপনার আগের সব হিসাব এখানেই আছে।"
+    },
+    "empty.today.meals": {
+      "title": "এখনো কিছু যোগ করা হয়নি",
+      "sub": "একটি খাবার স্ক্যান করুন, অথবা কয়েকটি শব্দে যোগ করুন।"
+    },
+    "empty.diary.category": {
+      "text": "এখনো কিছু যোগ করা হয়নি"
+    },
+    "empty.diary.day": {
+      "title": "এই দিনে কোনো খাবার নেই",
+      "sub": "কী খেয়েছিলেন মনে থাকলে একটি যোগ করুন।"
+    },
+    "empty.diary.scan": {
+      "text": "স্ক্যান"
+    },
+    "empty.diary.add": {
+      "text": "যোগ করুন"
+    },
+    "empty.progress.weight": {
+      "title": "এখনো ওজন মাপা হয়নি",
+      "sub": "ধারা দেখতে প্রথম ওজনটি যোগ করুন। ওজন মাপা ঐচ্ছিক।"
+    },
+    "empty.progress.intake": {
+      "title": "এখনো যথেষ্ট দিন হয়নি",
+      "sub": "গড় দেখতে কয়েক দিন খাবার যোগ করুন।"
+    },
+    "empty.progress.logWeight": {
+      "text": "ওজন যোগ করুন"
+    },
+    "toast.added": {
+      "text": "{category} হিসেবে যোগ করা হয়েছে"
+    },
+    "toast.addedFreeScan": {
+      "text": "{category} হিসেবে যোগ করা হয়েছে · ফ্রি স্ক্যান ব্যবহার হয়েছে"
+    },
+    "toast.removed": {
+      "text": "এন্ট্রি মুছে ফেলা হয়েছে"
+    },
+    "toast.undo": {
+      "text": "পূর্বাবস্থায় ফেরান"
+    },
+    "toast.restored": {
+      "text": "খাবারটি ফিরিয়ে আনা হয়েছে"
+    },
+    "toast.mealUpdated": {
+      "text": "খাবার আপডেট হয়েছে"
+    },
+    "toast.weightSaved": {
+      "text": "ওজন সংরক্ষিত হয়েছে"
+    },
+    "toast.offlineQueued": {
+      "text": "সংরক্ষিত হয়েছে। অনলাইনে ফিরলে আমি সিঙ্ক করে দেব।"
+    },
+    "toast.synced": {
+      "text": "সব সিঙ্ক হয়েছে।"
+    },
+    "toast.answersSaved": {
+      "text": "আপনার উত্তরগুলো সংরক্ষিত হয়েছে।"
+    },
+    "toast.plusActive": {
+      "text": "Nouri Plus চালু আছে"
+    },
+    "toast.purchasesRestored": {
+      "text": "কেনাকাটা ফিরিয়ে আনা হয়েছে"
+    },
+    "toast.noPurchase": {
+      "text": "{email}-এর জন্য আগের কোনো কেনাকাটা পাওয়া যায়নি।"
+    },
+    "toast.purchaseError": {
+      "text": "কিছু একটা গোলমাল হয়েছে। কোনো অর্থ কাটা হয়নি।"
+    },
+    "toast.reminderOn": {
+      "text": "{time}-এর জন্য রিমাইন্ডার ঠিক করা হয়েছে।"
+    },
+    "toast.reminderOff": {
+      "text": "রিমাইন্ডার বন্ধ করা হয়েছে।"
+    },
+    "toast.photoSavedForLater": {
+      "text": "ছবি সংরক্ষিত হয়েছে। সুবিধামতো সময়ে বিস্তারিত যোগ করুন।"
+    },
+    "paywall.benefit.scans": {
+      "text": "সীমাহীন ছবি দিয়ে খাবার স্ক্যান"
+    },
+    "paywall.benefit.coach": {
+      "text": "যেকোনো সময় মিলোকে যেকোনো কিছু জিজ্ঞেস করুন"
+    },
+    "paywall.benefit.describe": {
+      "text": "প্রতিদিন আরও অনেক খাবারের বর্ণনা দিন"
+    },
+    "paywall.plan.yearly": {
+      "title": "বার্ষিক",
+      "sub": "মাসে {monthlyEquivalent}, বছরভিত্তিক বিল"
+    },
+    "paywall.plan.yearlyTag": {
+      "text": "{savingPct}% সাশ্রয়"
+    },
+    "paywall.plan.yearlyComparison": {
+      "text": "মাসিক দিলে {monthlyTimesTwelve}"
+    },
+    "paywall.plan.monthly": {
+      "title": "মাসিক",
+      "sub": "প্রতি মাসে বিল, যেকোনো সময় বাতিল করুন"
+    },
+    "paywall.cta.yearly": {
+      "text": "বছরে {price} দিয়ে সাবস্ক্রাইব করুন"
+    },
+    "paywall.cta.monthly": {
+      "text": "মাসে {price} দিয়ে সাবস্ক্রাইব করুন"
+    },
+    "paywall.cta.processing": {
+      "text": "প্রক্রিয়া চলছে…"
+    },
+    "paywall.cta.notNow": {
+      "text": "এখন নয়"
+    },
+    "paywall.cta.continueFree": {
+      "text": "ফ্রি অ্যাকাউন্ট নিয়ে চালিয়ে যান"
+    },
+    "paywall.cta.restore": {
+      "text": "কেনাকাটা পুনরুদ্ধার করুন"
+    },
+    "paywall.freeNote": {
+      "text": "ফ্রি অ্যাকাউন্টে 1টি খাবার স্ক্যান পাওয়া যায়।"
+    },
+    "paywall.freeNoteUsed": {
+      "text": "এই অ্যাকাউন্টের ফ্রি স্ক্যানটি ব্যবহার হয়ে গেছে।"
+    },
+    "paywall.legal": {
+      "text": "আপনি বাতিল না করা পর্যন্ত আপনার সাবস্ক্রিপশন একই মূল্যে নিজে থেকে নবায়ন হবে। নবায়নের অন্তত 24 ঘণ্টা আগে যেকোনো সময় App Store বা Google Play-এর সেটিংসে গিয়ে বাতিল করতে পারবেন।"
+    },
+    "paywall.link.terms": {
+      "text": "ব্যবহারের শর্তাবলি"
+    },
+    "paywall.link.privacy": {
+      "text": "গোপনীয়তা নীতি"
+    },
+    "paywall.success": {
+      "title": "আপনি সাবস্ক্রাইব করেছেন",
+      "sub": "Nouri Plus চালু আছে। এটি {date} তারিখে নবায়ন হবে।"
+    },
+    "safety.medical": {
+      "text": "আমি সাধারণ পুষ্টি-তথ্য দিতে পারি, কিন্তু {topic} নিয়ে আপনার জিপি (সাধারণ চিকিৎসক), পুষ্টিবিদ বা অন্য কোনো স্বাস্থ্যসেবা পেশাজীবীর সঙ্গে কথা বলাই সবচেয়ে ভালো।"
+    },
+    "safety.medicalNoTopic": {
+      "text": "আমি সাধারণ পুষ্টি-তথ্য দিতে পারি, কিন্তু চিকিৎসাসংক্রান্ত যেকোনো বিষয়ে আপনার জিপি (সাধারণ চিকিৎসক), পুষ্টিবিদ বা অন্য কোনো স্বাস্থ্যসেবা পেশাজীবীর সঙ্গে কথা বলাই সবচেয়ে ভালো।"
+    },
+    "safety.support": {
+      "text": "মনে হচ্ছে এখন সবকিছু খুব ভারী লাগছে, আর আপনি আমাকে বলেছেন বলে আমি খুশি। এটি আপনাকে একা সামলাতে হবে না। বিশ্বস্ত কারও সঙ্গে কথা বললে, বা নিচের কোনো সেবায় যোগাযোগ করলে সত্যিই সাহায্য হতে পারে।"
+    },
+    "safety.supportTitle": {
+      "text": "সহায়তা পাওয়া যাবে"
+    },
+    "safety.refusal": {
+      "text": "এই বিষয়ে আমি সাহায্য করতে পারব না। তার বদলে আপনার খাবার বা আপনার দিনটি দেখি?"
+    },
+    "safety.under18": {
+      "text": "আপাতত আমি অভ্যাসের মধ্যেই থাকব: খাবার, পানি আর রুটিন।"
+    },
+    "safety.noFastingPlan": {
+      "text": "খাওয়ার সময়ের পরিসর সম্পর্কে আমি সাধারণ তথ্য দিতে পারি, কিন্তু কোনো উপবাস পরিকল্পনা ঠিক করে দেব না।"
+    },
+    "safety.floor": {
+      "text": "দিনে {floorKcal} ক্যালরির নিচে নামার পরামর্শ আমি দিতে পারি না। চলুন অগ্রগতির অন্য উপায়গুলো দেখি।"
+    },
+    "safety.noDeadline": {
+      "text": "আমি কোনো সময়সীমা ঠিক করতে চাই না। ধীরস্থির অভ্যাস সাধারণত বেশি দিন টেকে।"
+    },
+    "safety.disclaimer": {
+      "text": "Nouri সাধারণ পুষ্টি-তথ্য দেয়। এটি কোনো চিকিৎসা-যন্ত্র নয় এবং চিকিৎসাগত পরামর্শ দেয় না।"
+    },
+    "permission.camera": {
+      "title": "ক্যামেরার অনুমতি",
+      "text": "Nouri আপনার খাবারের ছবি তুলতে এবং থালায় কী আছে তার আনুমানিক হিসাব করতে ক্যামেরা ব্যবহার করে। আপনি শাটারে ট্যাপ করলেই কেবল ছবি তোলা হয়। চাইলে সবসময় খাবারের বর্ণনা দিতে পারেন।"
+    },
+    "permission.camera.allow": {
+      "text": "ক্যামেরার অনুমতি দিন"
+    },
+    "permission.camera.notNow": {
+      "text": "এখন নয়"
+    },
+    "permission.camera.denied": {
+      "title": "ক্যামেরা বন্ধ আছে",
+      "text": "খাবার স্ক্যান করতে আপনার ফোনের সেটিংসে Nouri-র জন্য ক্যামেরার অনুমতি চালু করুন। তবুও খাবারের বর্ণনা দিতে পারবেন বা নিজে হাতে যোগ করতে পারবেন।"
+    },
+    "permission.camera.openSettings": {
+      "text": "সেটিংস খুলুন"
+    },
+    "permission.camera.describeInstead": {
+      "text": "তার বদলে বর্ণনা দিন"
+    },
+    "eligibility.title": {
+      "text": "একটি ছোট যাচাই"
+    },
+    "eligibility.sub": {
+      "text": "ক্যালরির আনুমানিক হিসাব সবার জন্য উপযুক্ত নয়। আপনার উত্তর গোপন থাকে এবং শুধু এটুকু ঠিক করে যে আমরা এমন একটি হিসাব দেখাব কি না।"
+    },
+    "eligibility.pregnantOrBreastfeeding": {
+      "text": "আমি গর্ভবতী বা বুকের দুধ খাওয়াচ্ছি"
+    },
+    "eligibility.supervisedNutritionCondition": {
+      "text": "আমার এমন একটি স্বাস্থ্যগত অবস্থা আছে, যেখানে কোনো পেশাজীবী আমার খাবার সম্পর্কে নির্দেশনা দেন"
+    },
+    "eligibility.yes": {
+      "text": "হ্যাঁ"
+    },
+    "eligibility.no": {
+      "text": "না"
+    },
+    "eligibility.continue": {
+      "text": "চালিয়ে যান"
+    },
+    "eligibility.why": {
+      "title": "কেন জিজ্ঞেস করছি",
+      "text": "ক্যালরির সমীকরণগুলো সুস্থ প্রাপ্তবয়স্কদের জন্য তৈরি। গর্ভাবস্থায়, বুকের দুধ খাওয়ানোর সময়, কিছু স্বাস্থ্যগত অবস্থায়, কিংবা খাবার বা ওজন সামলানো কঠিন মনে হলে আপনার প্রয়োজন আলাদা হয়, আর তা একজন স্বাস্থ্যসেবা পেশাজীবীর সঙ্গে মিলে ঠিক করাই সবচেয়ে ভালো।"
+    },
+    "eligibility.habitsOnly": {
+      "title": "আমরা অভ্যাসে মন দেব",
+      "text": "বলার জন্য ধন্যবাদ। আমি ক্যালরির লক্ষ্য ঠিক করব না, তবে খাবার, পানি আর রুটিনে এখনো সাহায্য করতে পারি। আপনার ক্যালরির প্রয়োজন জানতে আপনার জিপি (সাধারণ চিকিৎসক), মিডওয়াইফ বা পুষ্টিবিদই সবচেয়ে ভালো পথপ্রদর্শক।"
+    },
+    "eligibility.habitsOnlyMilo": {
+      "text": "বলার জন্য ধন্যবাদ। আমরা একসঙ্গে অভ্যাসে মন দেব।"
+    },
+    "eligibility.changeLater": {
+      "text": "এটি বদলে গেলে আপনি সেটিংসে গিয়ে আপডেট করতে পারবেন।"
+    },
+    "permission.microphone": {
+      "title": "মাইক্রোফোনের অনুমতি",
+      "text": "মিলো মাইক্রোফোন ব্যবহার করে, যাতে আপনি লেখার বদলে কথা বলতে পারেন। কথা আপনার ফোনেই লেখায় রূপান্তরিত হয়।"
+    },
+    "permission.notifications": {
+      "title": "মৃদু রিমাইন্ডার",
+      "text": "খাবার যোগ করতে বা পানি পান করতে মনে করিয়ে দেওয়া চান? সময় আপনিই ঠিক করবেন, আর যেকোনো সময় বন্ধ করে দিতে পারবেন।"
+    },
+    "reminder.logMeal": {
+      "title": "খাবার যোগ করার সময় হলো?",
+      "text": "একটি দ্রুত ছবি বা কয়েকটি শব্দই যথেষ্ট।"
+    },
+    "reminder.water": {
+      "title": "পানি পানের বিরতি",
+      "text": "এখন এক গ্লাস পানি খেলে ভালোই হয়।"
+    },
+    "onboarding.skipToPlan": {
+      "text": "সরাসরি আমার পরিকল্পনায় যান"
+    },
+    "onboarding.thinking": {
+      "text": "মিলো ভাবছে…"
+    },
+    "onboarding.tapToAnswer": {
+      "text": "উত্তর দিতে ট্যাপ করুন"
+    },
+    "onboarding.tapWhenDone": {
+      "text": "শেষ হলে ট্যাপ করুন"
+    },
+    "onboarding.allSet": {
+      "text": "সব ঠিক আছে"
+    },
+    "onboarding.typeInstead": {
+      "text": "তার বদলে লিখুন"
+    },
+    "settings.reducedMotion": {
+      "title": "কম নড়াচড়া",
+      "sub": "শান্ত ট্রানজিশন ও অবতার"
+    },
+    "settings.deleteAccount": {
+      "title": "অ্যাকাউন্ট মুছে ফেলুন",
+      "text": "এতে আপনি সব জায়গা থেকে সাইন আউট হয়ে যাবেন এবং 30 দিনের মধ্যে আপনার তথ্য স্থায়ীভাবে মুছে ফেলা হবে। এটি আর ফেরানো যাবে না।"
+    },
+    "app.forceUpdate": {
+      "title": "আপডেটের সময় হয়েছে",
+      "text": "Nouri-র এই সংস্করণটি আর সমর্থিত নয়। হিসাব রাখা চালিয়ে যেতে আপডেট করুন।"
+    },
+    "eligibility.eatingConcern": {
+      "text": "আমার খাওয়ার ব্যাধি (ইটিং ডিসঅর্ডার) আছে বা ছিল, অথবা খাবার ও ওজনের হিসাব রাখা আমার কাছে কষ্টদায়ক লাগে"
+    }
+  },
+  "eligibility": {
+    "source": "PLAN §10 eligibility check (proposal), BR-04, OQ-30. Wording pending dietitian review (OQ-03).",
+    "when": "Shown once, after account creation and before Building your plan, only when an energy estimate is otherwise possible: adult (18+), q07 female or male, q08 and q09 answered, and q10 answered with an option other than unsure. Never shown in habits-only mode.",
+    "layout": "One screen: eligibility.title, eligibility.sub, then three rows (pregnantOrBreastfeeding, supervisedNutritionCondition, eatingDisorderConcern), each with Yes / No chips and no default, then Continue (enabled when all rows are answered). eligibility.why opens as an info sheet.",
+    "mapsTo": "POST /onboarding/complete, POST /plan/preview and POST /plan/generate body: { eligibility: { pregnantOrBreastfeeding: boolean, supervisedNutritionCondition: boolean, eatingDisorderConcern: boolean } }",
+    "onYes": "If any row is Yes: show the professional-guidance result from POST /plan/generate (status professional_guidance) with eligibility.habitsOnly as the fallback copy, set habits-only targets, then continue to the habits summary (plan.habits.*). No target is calculated and no old target is reused.",
+    "onNo": "Both No: continue to Building your plan.",
+    "skipWhenAttested": "Do not show the step again when GET /plan/readiness reports attestationOnFile = true. The answers stay on the profile and can be changed in Settings."
+  },
+  "coach": {
+    "source": "PLAN §8.6 quick actions. Supersedes the proposal strings in nouri-backend src/modules/conversations/coach.service.ts (quickActionTemplate, opening).",
+    "opening": "Use lines coach.intro / coach.introNoName for the first message; chips use labelLineId below.",
+    "placeholderSyntax": "Single braces, same as the rest of this file: {energyKcal}. Numbers are formatted en-GB (2,100); grams are whole numbers.",
+    "placeholders": {
+      "energyKcal": "Active target energy",
+      "proteinG": "Target protein g",
+      "carbsG": "Target carbohydrate g",
+      "fatG": "Target fat g",
+      "eatenKcal": "Eaten today",
+      "eatenProteinG": "Protein eaten today",
+      "eatenCarbsG": "Carbohydrate eaten today",
+      "eatenFatG": "Fat eaten today",
+      "remainingKcal": "energyKcal − eatenKcal, only used when ≥ 0",
+      "waterMl": "Water logged today",
+      "mealsText": "coach.qa.mealsOne when one meal, otherwise coach.qa.mealsMany with {n}",
+      "n": "Number of meals today",
+      "nextCategory": "Capitalised name of the main meal not yet logged for the current time window (Breakfast, Lunch or Dinner)"
+    },
+    "selection": "Habits-only variants apply when mode is habits_only OR there is no active energy target (adult with incomplete inputs). They never contain calorie or macro numbers. Pick the first variant in list order whose when holds.",
+    "quickActions": {
+      "explain_macros": {
+        "labelLineId": "coach.quick.macros",
+        "kind": "template",
+        "rephrase": "The chat model rephrases the chosen text in Milo's voice (150-token cap) and must keep every number. With the chat model unavailable, the text is shown as is with the degraded caption.",
+        "variants": [
+          {
+            "id": "coach.qa.explain_macros.habitsOnly",
+            "when": "habitsOnly",
+            "text": "সংখ্যার বদলে সুষম থালার দিকে নজর দিন: কিছু প্রোটিন, প্রচুর সবজি বা ফল, আর শস্যজাতীয় খাবার বা আলুর মতো শক্তির উৎস।"
+          },
+          {
+            "id": "coach.qa.explain_macros.fullNothingLogged",
+            "when": "full AND no meals today",
+            "text": "আপনার দৈনিক লক্ষ্য {energyKcal} ক্যালরি, এর মধ্যে {proteinG} গ্রাম প্রোটিন, {carbsG} গ্রাম শর্করা আর {fatG} গ্রাম চর্বি। প্রোটিন পেট ভরা রাখতে সাহায্য করে, শর্করা আপনার দিনের শক্তি জোগায় আর চর্বি শরীরকে সহায়তা করে। একটি খাবার যোগ করুন, আমি দেখিয়ে দেব আপনি কেমন এগোচ্ছেন।"
+          },
+          {
+            "id": "coach.qa.explain_macros.full",
+            "when": "full",
+            "text": "আপনার দৈনিক লক্ষ্য {energyKcal} ক্যালরি, এর মধ্যে {proteinG} গ্রাম প্রোটিন, {carbsG} গ্রাম শর্করা আর {fatG} গ্রাম চর্বি। আজ এখন পর্যন্ত আপনি {eatenProteinG} গ্রাম প্রোটিন, {eatenCarbsG} গ্রাম শর্করা আর {eatenFatG} গ্রাম চর্বি খেয়েছেন। প্রোটিন পেট ভরা রাখতে সাহায্য করে, শর্করা আপনার দিনের শক্তি জোগায় আর চর্বি শরীরকে সহায়তা করে।"
+          }
+        ]
+      },
+      "review_day": {
+        "labelLineId": "coach.quick.review",
+        "kind": "template",
+        "rephrase": "As explain_macros.",
+        "variants": [
+          {
+            "id": "coach.qa.review_day.emptyNoPhoto",
+            "when": "no meals today AND photo logging must not be promoted (q31 includes privacy, or q30 answered without photo/switch)",
+            "text": "আজ এখনো কিছু যোগ করা হয়নি। পরের খাবারটি কয়েকটি শব্দে বর্ণনা করলেই সহজে শুরু হয়ে যায়।"
+          },
+          {
+            "id": "coach.qa.review_day.empty",
+            "when": "no meals today",
+            "text": "আজ এখনো কিছু যোগ করা হয়নি। পরের খাবারের একটি দ্রুত ছবি তুললেই সহজে শুরু হয়ে যায়।"
+          },
+          {
+            "id": "coach.qa.review_day.habitsOnly",
+            "when": "habitsOnly",
+            "text": "আজ আপনি {mealsText} আর {waterMl} মি.লি. পানি যোগ করেছেন। হিসাব রাখার কাজটি ভালো করছেন।"
+          },
+          {
+            "id": "coach.qa.review_day.fullOver",
+            "when": "full AND eatenKcal > energyKcal",
+            "text": "আজ আপনি {mealsText} এবং {eatenKcal} ক্যালরি যোগ করেছেন, যা আপনার {energyKcal} ক্যালরির লক্ষ্যের চেয়ে একটু বেশি, তাতে কোনো সমস্যা নেই। এখন পর্যন্ত পানি: {waterMl} মি.লি."
+          },
+          {
+            "id": "coach.qa.review_day.full",
+            "when": "full",
+            "text": "আজ আপনি {mealsText} এবং {eatenKcal} ক্যালরি যোগ করেছেন, আপনার {energyKcal} ক্যালরির মধ্যে {remainingKcal} ক্যালরি বাকি আছে। এখন পর্যন্ত পানি: {waterMl} মি.লি."
+          }
+        ],
+        "suffixes": [
+          {
+            "id": "coach.qa.review_day.openSlot",
+            "when": "a main meal for the current time window is not logged (any mode, not with empty)",
+            "text": "{nextCategory} এখনো বাকি আছে, এর জন্য কোনো আইডিয়া চাইলে বলুন।"
+          }
+        ]
+      },
+      "suggest_snack": {
+        "labelLineId": "coach.quick.snack",
+        "kind": "model",
+        "rephrase": "A normal model turn (coach prompt rule 8). These variants are used only when the chat model is unavailable, and as templateText context.",
+        "variants": [
+          {
+            "id": "coach.qa.suggest_snack.habitsOnlyVegan",
+            "when": "habitsOnly AND q11 vegan",
+            "text": "কিছু ফল, এক মুঠো বাদাম, বা সবজির টুকরোর সঙ্গে হামাস, সবই সহজ একটি নাশতা হতে পারে।"
+          },
+          {
+            "id": "coach.qa.suggest_snack.habitsOnly",
+            "when": "habitsOnly",
+            "text": "কিছু ফলের সঙ্গে দই, এক মুঠো বাদাম, বা সবজির টুকরোর সঙ্গে হামাস, সবই সহজ একটি নাশতা হতে পারে।"
+          },
+          {
+            "id": "coach.qa.suggest_snack.fullClose",
+            "when": "full AND remainingKcal ≤ 250 (including over target)",
+            "text": "আপনি আজকের লক্ষ্যের কাছাকাছি আছেন। খিদে পেলে একটি ফল বা কিছু সবজির টুকরো হালকা একটি বিকল্প হতে পারে।"
+          },
+          {
+            "id": "coach.qa.suggest_snack.fullRoomVegan",
+            "when": "full AND q11 vegan",
+            "text": "আজ আপনার {remainingKcal} ক্যালরি বাকি আছে। সবজির টুকরোর সঙ্গে হামাস (প্রায় 150 ক্যালরি) বা অল্প কিছু কাঠবাদাম (প্রায় 170 ক্যালরি), দুটোই মানিয়ে যাবে।"
+          },
+          {
+            "id": "coach.qa.suggest_snack.fullRoom",
+            "when": "full",
+            "text": "আজ আপনার {remainingKcal} ক্যালরি বাকি আছে। ফলের সঙ্গে গ্রিক ইয়োগার্ট (প্রায় 180 ক্যালরি) বা দুটি সেদ্ধ ডিম (প্রায় 150 ক্যালরি), দুটোই মানিয়ে যাবে।"
+          }
+        ]
+      }
+    },
+    "fragments": {
+      "coach.qa.mealsOne": {
+        "text": "1টি খাবার"
+      },
+      "coach.qa.mealsMany": {
+        "text": "{n}টি খাবার"
+      }
+    },
+    "degraded": {
+      "when": "The chat model is unavailable (AI_UNAVAILABLE: kill switch, breaker, budget or timeout). PLAN §8.10.",
+      "items": [
+        {
+          "id": "coach.qa.degraded.caption",
+          "when": "a full-mode quick action answered from its template",
+          "text": "মিলো বিশ্রামে আছে, তাই এটি আপনার সংখ্যা থেকে একটি দ্রুত উত্তর।"
+        },
+        {
+          "id": "coach.qa.degraded.captionHabits",
+          "when": "a habits-only quick action answered from its template",
+          "text": "মিলো বিশ্রামে আছে, তাই আপাতত এটি একটি দ্রুত উত্তর।"
+        },
+        {
+          "id": "coach.qa.degraded.chat",
+          "when": "free chat (no quick action)",
+          "title": "মিলো বিশ্রামে আছে, শীঘ্রই ফিরবে",
+          "text": "এর মধ্যে “আমার ম্যাক্রো বুঝিয়ে দিন”, “আমার দিনটি দেখে নিন” আর “একটি নাশতার আইডিয়া দিন” কাজ করবে।"
+        },
+        {
+          "id": "coach.qa.degraded.apiMessage",
+          "when": "error.message of AI_UNAVAILABLE responses",
+          "text": "মিলো বিশ্রামে আছে। একটু পরে আবার চেষ্টা করুন।"
+        }
+      ]
+    }
+  },
+  "scanReactions": {
+    "source": "R-10 and PLAN §8.3 rule 7. Chosen by the server, no model call. Proposal thresholds pending dietitian review (OQ-03, OQ-26).",
+    "selection": "Compute on the validated result at 1× portion. Pick the first category in order whose rule is true, then variant index = (first 8 hex digits of SHA-256(scanId)) mod 3, so a retry shows the same line. Habits-only users never get heavy.",
+    "order": [
+      "heavy",
+      "sweet",
+      "balanced",
+      "high_protein",
+      "light",
+      "neutral"
+    ],
+    "definitions": {
+      "mealKcal": "Sum of included items' kcal",
+      "proteinShare": "4 × proteinG / mealKcal",
+      "carbsShare": "4 × carbsG / mealKcal",
+      "hasVegetable": "Any item name contains a vegetable keyword (case-insensitive, whole word)",
+      "sweetShare": "kcal of items whose name contains a sweet keyword / mealKcal",
+      "remainingBefore": "Active target energy minus eaten today before this meal (full mode only)"
+    },
+    "keywords": {
+      "vegetable": [
+        "salad",
+        "vegetable",
+        "vegetables",
+        "veg",
+        "greens",
+        "broccoli",
+        "spinach",
+        "kale",
+        "carrot",
+        "carrots",
+        "pepper",
+        "peppers",
+        "tomato",
+        "tomatoes",
+        "cucumber",
+        "lettuce",
+        "courgette",
+        "aubergine",
+        "cabbage",
+        "cauliflower",
+        "peas",
+        "green beans",
+        "beans",
+        "lentils",
+        "chickpeas",
+        "onion",
+        "mushroom",
+        "mushrooms",
+        "asparagus",
+        "sweetcorn",
+        "beetroot",
+        "rocket",
+        "leek",
+        "sprouts",
+        "edamame",
+        "সবজি",
+        "সবজী",
+        "শাক",
+        "শাকসবজি",
+        "সালাদ",
+        "লাউ",
+        "চালকুমড়া",
+        "কুমড়া",
+        "করলা",
+        "উচ্ছে",
+        "বেগুন",
+        "ফুলকপি",
+        "বাঁধাকপি",
+        "কপি",
+        "টমেটো",
+        "শসা",
+        "গাজর",
+        "মুলা",
+        "শালগম",
+        "বিট",
+        "পটল",
+        "ঝিঙা",
+        "চিচিঙ্গা",
+        "ঢেঁড়স",
+        "কচু",
+        "পালংশাক",
+        "পালং",
+        "লালশাক",
+        "পুঁইশাক",
+        "কলমিশাক",
+        "ব্রকলি",
+        "ক্যাপসিকাম",
+        "বরবটি",
+        "শিম",
+        "মটরশুঁটি",
+        "কাঁচকলা",
+        "সজনে",
+        "মাশরুম",
+        "অঙ্কুরিত",
+        "ডাল",
+        "মসুর",
+        "মুগ",
+        "ছোলা",
+        "মটর",
+        "খেসারি",
+        "চচ্চড়ি",
+        "ঘণ্ট",
+        "শুক্তো"
+      ],
+      "sweet": [
+        "cake",
+        "biscuit",
+        "biscuits",
+        "cookie",
+        "cookies",
+        "chocolate",
+        "ice cream",
+        "dessert",
+        "pastry",
+        "doughnut",
+        "donut",
+        "brownie",
+        "muffin",
+        "sweets",
+        "candy",
+        "pudding",
+        "cheesecake",
+        "tart",
+        "crumble",
+        "custard",
+        "jam",
+        "honey",
+        "syrup",
+        "fizzy drink",
+        "soda",
+        "cola",
+        "milkshake",
+        "flapjack",
+        "waffle",
+        "pancakes",
+        "croissant",
+        "sorbet",
+        "gelato",
+        "fudge",
+        "toffee",
+        "মিষ্টি",
+        "মিষ্টান্ন",
+        "মিঠাই",
+        "রসগোল্লা",
+        "রসমালাই",
+        "জিলাপি",
+        "পায়েস",
+        "ফিরনি",
+        "সেমাই",
+        "হালুয়া",
+        "সন্দেশ",
+        "চমচম",
+        "গুলাব জামুন",
+        "কালোজাম",
+        "লাড্ডু",
+        "নাড়ু",
+        "মোয়া",
+        "মালপোয়া",
+        "পাটিসাপটা",
+        "কেক",
+        "চকলেট",
+        "আইসক্রিম",
+        "কুলফি",
+        "বিস্কুট",
+        "বিস্কিট",
+        "কুকিজ",
+        "কুকি",
+        "ডোনাট",
+        "ব্রাউনি",
+        "পেস্ট্রি",
+        "মাফিন",
+        "পুডিং",
+        "কাস্টার্ড",
+        "জ্যাম",
+        "মধু",
+        "সিরাপ",
+        "ক্যান্ডি",
+        "লজেন্স",
+        "টফি",
+        "কোলা",
+        "সোডা",
+        "কোমল পানীয়",
+        "সফট ড্রিংক",
+        "মিল্কশেক",
+        "শরবত"
+      ]
+    },
+    "categories": {
+      "heavy": {
+        "when": "mode full AND remainingBefore > 0 AND mealKcal ≥ 0.6 × remainingBefore",
+        "variants": [
+          {
+            "id": "scan.reaction.heavy.1",
+            "title": "ভরপেট একটি থালা",
+            "text": "আজকের জন্য যা বাকি আছে, এতে তার বেশিরভাগই হয়ে যাবে। পরে হালকা কিছু খেলে দিনটি ঠিকঠাক সম্পূর্ণ হবে।"
+          },
+          {
+            "id": "scan.reaction.heavy.2",
+            "title": "পেট ভরার মতো",
+            "text": "এটি আজকের ক্যালরির একটি বড় অংশ। একটি খাবার কখনো পুরো দিনের পরিচয় নয়।"
+          },
+          {
+            "id": "scan.reaction.heavy.3",
+            "title": "থালায় অনেক কিছু",
+            "text": "এতে আপনি আজকের লক্ষ্যের কাছাকাছি পৌঁছে যাবেন। কোনো একটি খাবারের চেয়ে সামগ্রিক ধারাই বেশি গুরুত্বপূর্ণ।"
+          }
+        ]
+      },
+      "sweet": {
+        "when": "sweetShare ≥ 0.5",
+        "variants": [
+          {
+            "id": "scan.reaction.sweet.1",
+            "title": "একটু মিষ্টি আনন্দ",
+            "text": "উপভোগ করুন। পছন্দের মজার খাবারও স্বাভাবিক সপ্তাহেরই অংশ।"
+          },
+          {
+            "id": "scan.reaction.sweet.2",
+            "title": "মিষ্টি কিছু",
+            "text": "যোগ করা হয়েছে, লিখে রাখলাম। প্রতিটি খাবারই আপনার সপ্তাহের কোথাও না কোথাও মানিয়ে যায়।"
+          },
+          {
+            "id": "scan.reaction.sweet.3",
+            "title": "মিষ্টি একটি মুহূর্ত",
+            "text": "স্বাদ নিয়ে খান। পছন্দের মিষ্টিও যোগ করলে তবেই আপনার ডায়েরি কাজের হয়।"
+          }
+        ]
+      },
+      "balanced": {
+        "when": "hasVegetable AND proteinShare between 0.15 and 0.35 AND carbsShare ≥ 0.25",
+        "variants": [
+          {
+            "id": "scan.reaction.balanced.1",
+            "title": "দারুণ ভারসাম্য!",
+            "text": "প্রচুর প্রোটিন আর সবজি। মিলো খুশি।"
+          },
+          {
+            "id": "scan.reaction.balanced.2",
+            "title": "সবকিছুর একটু একটু",
+            "text": "এক থালায় প্রোটিন, শর্করা আর সবজি। এটি আপনাকে চালিয়ে নেবে।"
+          },
+          {
+            "id": "scan.reaction.balanced.3",
+            "title": "বেশ পরিপূর্ণ",
+            "text": "এই থালায় মূল বিষয়গুলো আছে: প্রোটিন, শর্করা আর কিছু রঙের ছোঁয়া।"
+          }
+        ]
+      },
+      "high_protein": {
+        "when": "proteinShare ≥ 0.30",
+        "variants": [
+          {
+            "id": "scan.reaction.high_protein.1",
+            "title": "প্রোটিনসমৃদ্ধ",
+            "text": "এখানে প্রচুর প্রোটিন আছে। এতে অনেকক্ষণ পেট ভরা থাকে।"
+          },
+          {
+            "id": "scan.reaction.high_protein.2",
+            "title": "প্রোটিনে ভরপুর",
+            "text": "এটি আপনার দিনে প্রচুর প্রোটিন যোগ করে।"
+          },
+          {
+            "id": "scan.reaction.high_protein.3",
+            "title": "প্রোটিনের জোগান",
+            "text": "প্রোটিনের বেশ ভালো জোগান। পেট ভরার মতো।"
+          }
+        ]
+      },
+      "light": {
+        "when": "mealKcal < 300",
+        "variants": [
+          {
+            "id": "scan.reaction.light.1",
+            "title": "হালকা ও সহজ",
+            "text": "হালকা একটি খাবার। যেকোনো দিনে সহজেই মানিয়ে যায়।"
+          },
+          {
+            "id": "scan.reaction.light.2",
+            "title": "বেশ হালকা",
+            "text": "হালকা একটি খাবার। পরে খিদে পেলে নাশতা খেতে পারেন।"
+          },
+          {
+            "id": "scan.reaction.light.3",
+            "title": "হালকা খাবার",
+            "text": "হালকা ও সাধারণ। পরের বার খিদের কথা শুনে খাবেন।"
+          }
+        ]
+      },
+      "neutral": {
+        "when": "otherwise",
+        "variants": [
+          {
+            "id": "scan.reaction.neutral.1",
+            "title": "যোগ হয়েছে",
+            "text": "আপনি যতগুলো খাবার যোগ করেন, ছবিটি ততই স্পষ্ট হয়।"
+          },
+          {
+            "id": "scan.reaction.neutral.2",
+            "title": "চমৎকার",
+            "text": "আপনার দিনে যোগ হয়েছে। আপনি একটি কাজের ছবি গড়ে তুলছেন।"
+          },
+          {
+            "id": "scan.reaction.neutral.3",
+            "title": "সব লিখে নিলাম",
+            "text": "যোগ হয়ে গেছে। পরিমাণগুলো দেখে নিলেই কাজ শেষ।"
+          }
+        ]
+      }
+    }
+  },
+  "nudges": {
+    "source": "PLAN §11 Today nudge card; prototype nudgeTitle/nudgeSub. Chosen by the API for GET /days/{date}.",
+    "timeWindows": {
+      "morning": "05:00–10:59",
+      "midday": "11:00–14:59",
+      "afternoon": "15:00–17:59",
+      "evening": "18:00–21:59",
+      "late": "22:00–04:59"
+    },
+    "selection": "Device-local time. Evaluate items in priority order and use the first whose conditions all hold. Use subHabits in habits-only mode (never numbers), subNoPhoto when photo logging must not be promoted (q31 includes privacy, or q30 answered without photo/switch), and subIfBusy when q22 includes busy. cta scan opens Scan (or Describe when subNoPhoto applies); add opens Add meal. The mic button always opens Coach with voice input (R-09).",
+    "conditionKeys": {
+      "window": "One or more timeWindows keys",
+      "logged": "Object of category → boolean from today's meals (any = at least one meal)",
+      "mode": "full | habits_only",
+      "overTarget": "Eaten > target (full mode only)",
+      "pendingScan": "A scan for today is queued or processing",
+      "savedPhoto": "A meal saved with a photo and no nutrients (degraded scan) exists today"
+    },
+    "items": [
+      {
+        "id": "nudge.pendingScan",
+        "priority": 1,
+        "when": {
+          "pendingScan": true
+        },
+        "title": "আপনার স্ক্যান এখনো চলছে",
+        "sub": "আমি এটি পেছনে থেকে শেষ করব। তৈরি হলে এখানে দেখা যাবে।",
+        "cta": null
+      },
+      {
+        "id": "nudge.savedPhoto",
+        "priority": 2,
+        "when": {
+          "savedPhoto": true
+        },
+        "title": "একটি খাবারের বিস্তারিত বাকি",
+        "sub": "আপনি আগে একটি ছবি সংরক্ষণ করেছিলেন। সময় পেলে থালায় কী ছিল তা যোগ করুন।",
+        "cta": "add"
+      },
+      {
+        "id": "nudge.overTarget",
+        "priority": 3,
+        "when": {
+          "mode": "full",
+          "overTarget": true
+        },
+        "title": "আজকের লক্ষ্য পেরিয়ে গেছে",
+        "sub": "ঠিক আছে। একটি দিন কখনো আপনার অগ্রগতি নষ্ট করে না, আর আগামীকাল একটি নতুন শুরু।",
+        "cta": null
+      },
+      {
+        "id": "nudge.breakfast",
+        "priority": 4,
+        "when": {
+          "window": [
+            "morning"
+          ],
+          "logged": {
+            "breakfast": false
+          }
+        },
+        "title": "সকালের নাশতার সময় হলো?",
+        "sub": "খাওয়ার সময় যোগ করুন। একটি দ্রুত ছবিই যথেষ্ট।",
+        "subNoPhoto": "খাওয়ার সময় যোগ করুন। কয়েকটি শব্দই যথেষ্ট।",
+        "cta": "scan"
+      },
+      {
+        "id": "nudge.breakfastLogged",
+        "priority": 5,
+        "when": {
+          "window": [
+            "morning"
+          ],
+          "logged": {
+            "breakfast": true
+          }
+        },
+        "title": "সকালের নাশতা যোগ হয়েছে।",
+        "sub": "আজকের বাকি সময়ের জন্য {remainingKcal} ক্যালরি বাকি আছে।",
+        "subHabits": "দিনের শুরুটা ভালো হয়েছে। এরপর এক গ্লাস পানি খেলে বেশ হয়।",
+        "cta": null
+      },
+      {
+        "id": "nudge.lunch",
+        "priority": 6,
+        "when": {
+          "window": [
+            "midday"
+          ],
+          "logged": {
+            "lunch": false
+          }
+        },
+        "title": "দুপুরের খাবার যোগ করবেন?",
+        "sub": "একটি দ্রুত ছবিই যথেষ্ট।",
+        "subIfBusy": "আপনি ব্যস্ত দিনের কথা বলেছিলেন। একটি দ্রুত ছবিই যথেষ্ট।",
+        "subNoPhoto": "কয়েকটি শব্দই যথেষ্ট।",
+        "cta": "scan"
+      },
+      {
+        "id": "nudge.afternoonNoLunch",
+        "priority": 7,
+        "when": {
+          "window": [
+            "afternoon"
+          ],
+          "logged": {
+            "lunch": false
+          }
+        },
+        "title": "দুপুরের খাবার খেয়েছেন?",
+        "sub": "খেয়ে থাকলে কয়েক সেকেন্ডে যোগ করে নিন। না খেয়ে থাকলে চিন্তা নেই।",
+        "cta": "scan"
+      },
+      {
+        "id": "nudge.lunchLogged",
+        "priority": 8,
+        "when": {
+          "window": [
+            "midday",
+            "afternoon"
+          ],
+          "logged": {
+            "lunch": true
+          }
+        },
+        "title": "দুপুরের খাবার যোগ হয়েছে।",
+        "sub": "আজকের বাকি সময়ের জন্য {remainingKcal} ক্যালরি বাকি আছে।",
+        "subHabits": "বেশ হয়েছে। এই বিকেলে পানি খাওয়া চালিয়ে যান।",
+        "cta": null
+      },
+      {
+        "id": "nudge.dinner",
+        "priority": 9,
+        "when": {
+          "window": [
+            "evening"
+          ],
+          "logged": {
+            "dinner": false
+          }
+        },
+        "title": "রাতের খাবারের সময়?",
+        "sub": "খাওয়ার সময় যোগ করুন। ছবি বা কয়েকটি শব্দ, দুটোই চলবে।",
+        "subNoPhoto": "খাওয়ার সময় যোগ করুন। কয়েকটি শব্দই যথেষ্ট।",
+        "cta": "scan"
+      },
+      {
+        "id": "nudge.dinnerLogged",
+        "priority": 10,
+        "when": {
+          "window": [
+            "evening"
+          ],
+          "logged": {
+            "dinner": true
+          }
+        },
+        "title": "রাতের খাবার যোগ হয়েছে।",
+        "sub": "আপনার দিন প্রায় গুছিয়ে এসেছে। হিসাব রাখার কাজটি ভালো করেছেন।",
+        "cta": null
+      },
+      {
+        "id": "nudge.late",
+        "priority": 11,
+        "when": {
+          "window": [
+            "late"
+          ]
+        },
+        "title": "দিন শেষ হয়ে আসছে",
+        "sub": "আজকের জন্য আর কিছু যোগ করার আছে? না থাকলে ভালোভাবে বিশ্রাম নিন।",
+        "cta": "add"
+      },
+      {
+        "id": "nudge.fallback",
+        "priority": 12,
+        "when": {},
+        "title": "আপনার দিন কেমন যাচ্ছে?",
+        "sub": "প্রস্তুত হলে যেকোনো সময় একটি খাবার যোগ করুন।",
+        "cta": "scan"
+      }
+    ]
+  },
+  "paywall": {
+    "source": "Prototype acctVals()/Setup plans; PLAN §12 store rules (R-03): prices from the store, saving worded as a comparison, never a struck-through price.",
+    "triggers": {
+      "onboarding": {
+        "title": "Nouri Plus আনলক করুন",
+        "sub": "প্রতিটি খাবার স্ক্যান করুন, আর আপনি এইমাত্র যা সাজালেন সবই আপনার কাজে লাগবে।",
+        "primaryAlternative": "paywall.cta.continueFree"
+      },
+      "upgrade": {
+        "title": "Nouri Plus-এ আপগ্রেড করুন",
+        "sub": "সীমাহীন খাবার স্ক্যান, সঙ্গে মিলো যা যা করতে পারে সবকিছু।",
+        "primaryAlternative": "paywall.cta.notNow"
+      },
+      "limit": {
+        "title": "আপনার ফ্রি স্ক্যান ব্যবহার হয়ে গেছে",
+        "sub": "সীমাহীন খাবার স্ক্যানের জন্য সাবস্ক্রাইব করুন। আপনার ডায়েরি আর অগ্রগতি যেমন আছে তেমনই থাকবে।",
+        "primaryAlternative": "paywall.cta.notNow"
+      },
+      "limit.coach": {
+        "title": "মিলোর সঙ্গে আজকের ফ্রি আলাপ শেষ",
+        "sub": "Plus-এ প্রতিদিন মিলোর সঙ্গে আরও বেশি সময় পাবেন। আপনার ফ্রি আলাপ আগামীকাল নতুন করে শুরু হবে।",
+        "primaryAlternative": "paywall.cta.notNow"
+      },
+      "limit.describe": {
+        "title": "আজকের ফ্রি খাবারের বর্ণনা শেষ",
+        "sub": "Plus-এ প্রতিদিন আরও অনেক খাবারের বর্ণনা দেওয়া যায়। নিজে হাতে খাবার যোগ করা এখনো চলবে।",
+        "primaryAlternative": "paywall.cta.notNow"
+      }
+    },
+    "layout": [
+      "title",
+      "sub",
+      "benefits",
+      "plans (yearly first, selected)",
+      "cta",
+      "primaryAlternative",
+      "freeNote (onboarding only)",
+      "restore",
+      "legal",
+      "links"
+    ]
+  },
+  "degraded": {
+    "source": "PLAN §8.10 degraded-mode table. Shown when the API returns AI_UNAVAILABLE or a scan fails.",
+    "items": [
+      {
+        "id": "degraded.scan.unavailable",
+        "feature": "vision",
+        "title": "এখন আমি ছবি দেখতে পারছি না",
+        "text": "তার বদলে খাবারের বর্ণনা দিতে পারেন, অথবা ছবিটি সংরক্ষণ করে পরে শেষ করতে পারেন।",
+        "actions": [
+          "তার বদলে বর্ণনা দিন",
+          "ছবি সংরক্ষণ করে পরে শেষ করুন"
+        ]
+      },
+      {
+        "id": "degraded.scan.freeUntouched",
+        "feature": "vision",
+        "title": null,
+        "text": "আপনার ফ্রি স্ক্যান ব্যবহার হয়নি।",
+        "actions": []
+      },
+      {
+        "id": "degraded.scan.queued",
+        "feature": "vision",
+        "title": "এখনো সারিতে আছে",
+        "text": "মিলো একটু ব্যস্ত আছে। আমি দুই মিনিট পর্যন্ত চেষ্টা চালিয়ে যাব।",
+        "actions": []
+      },
+      {
+        "id": "degraded.scan.failed",
+        "feature": "vision",
+        "title": "এবার কাজ হয়নি",
+        "text": "আপনার প্ল্যান থেকে কিছুই ব্যবহার হয়নি। একটু পরে আবার চেষ্টা করুন।",
+        "actions": [
+          "আবার চেষ্টা করুন",
+          "তার বদলে বর্ণনা দিন"
+        ]
+      },
+      {
+        "id": "degraded.scan.rejected",
+        "feature": "vision",
+        "title": "কোনো খাবার চোখে পড়েনি",
+        "text": "থালা ফ্রেমে রেখে আরেকটি ছবি তুলে দেখুন। এতে আপনার ফ্রি স্ক্যান ব্যবহার হয়নি।",
+        "actions": [
+          "আবার তুলুন"
+        ]
+      },
+      {
+        "id": "degraded.describe.unavailable",
+        "feature": "parse",
+        "title": "খাবারের বর্ণনা এখন বিশ্রামে আছে",
+        "text": "তার বদলে নিজে হাতে যোগ করুন: একটি নাম, গ্রাম আর ক্যালরি।",
+        "actions": [
+          "নিজে হাতে লিখুন"
+        ]
+      },
+      {
+        "id": "degraded.onboarding.unavailable",
+        "feature": "extract",
+        "title": "আমার কণ্ঠ একটু বিশ্রাম নিচ্ছে",
+        "text": "চলুন এখান থেকে ট্যাপ করে এগোই, ঠিক যেখানে থেমেছিলাম।",
+        "actions": [
+          "চালিয়ে যান"
+        ]
+      },
+      {
+        "id": "degraded.coach.unavailable",
+        "feature": "chat",
+        "title": "মিলো বিশ্রামে আছে, শীঘ্রই ফিরবে",
+        "text": "এর মধ্যে “আমার ম্যাক্রো বুঝিয়ে দিন”, “আমার দিনটি দেখে নিন” আর “একটি নাশতার আইডিয়া দিন” কাজ করবে।",
+        "actions": []
+      },
+      {
+        "id": "degraded.coach.templateOnly",
+        "feature": "chat",
+        "title": null,
+        "text": "বিশ্রামের সময়ে আমি এটি সংক্ষেপে সারছি।",
+        "actions": []
+      },
+      {
+        "id": "degraded.speech.cloud",
+        "feature": "tts",
+        "title": null,
+        "text": "এখন মুখের উত্তরে আপনার ফোনের কণ্ঠ ব্যবহার হচ্ছে।",
+        "actions": []
+      },
+      {
+        "id": "degraded.retryLater",
+        "feature": "any",
+        "title": "মিলোর একটু সময় দরকার",
+        "text": "অনুগ্রহ করে প্রায় {retryAfterMin} মিনিট পরে আবার চেষ্টা করুন।",
+        "actions": []
+      },
+      {
+        "id": "degraded.offline",
+        "feature": "network",
+        "title": "আপনি অফলাইনে আছেন",
+        "text": "পানি, ওজন আর নিজে হাতে দেওয়া খাবার এখনো সংরক্ষিত হয় এবং পরে সিঙ্ক হয়। স্ক্যান আর চ্যাটের জন্য সংযোগ লাগে।",
+        "actions": []
+      }
+    ]
+  }
+}

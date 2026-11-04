@@ -1,0 +1,1445 @@
+{
+  "kind": "milo_lines",
+  "version": 2,
+  "locale": "en-GB",
+  "tone": "PLAN §8.8: warm, brief, plain, never judgemental, at most 3 sentences. No food or day is good or bad. No deadlines, no fasting plans, no intake below the floor. Under-18 and habits-only users never see calorie numbers or deficit language.",
+  "placeholders": {
+    "name": "q05 preferred_name. Every line using {name} has a NoName twin or is safe to drop the name from.",
+    "kcal": "Formatted integer with thousands separator, e.g. 2,100",
+    "remainingKcal": "Daily target minus eaten, never negative",
+    "floorKcal": "BR-04 floor for this user",
+    "activityFactor": "BR-04 factor, e.g. 1.375",
+    "category": "breakfast | lunch | dinner | snack (lower case in sentences)",
+    "n": "Integer count",
+    "d": "Integer count of days in the period",
+    "deferredCount": "profiles.onboarding.deferredCount",
+    "price": "Store price string from RevenueCat in the user's currency (never hard-coded)",
+    "monthlyEquivalent": "Yearly price / 12 from the store",
+    "monthlyTimesTwelve": "Monthly price × 12 from the store",
+    "savingPct": "Rounded saving of yearly versus twelve monthly payments",
+    "date": "en-GB long date, e.g. 2 November 2027",
+    "time": "HH:mm in the user's timezone",
+    "email": "Account email",
+    "topic": "Short topic named by the safety rules, e.g. diabetes",
+    "retryAfterMin": "Minutes from AI_UNAVAILABLE retryAfterSec, rounded up",
+    "value": "Formatted measurement"
+  },
+  "prerender": "Lines without {placeholders} are canonical and pre-rendered to tts/{version}/{lineId}.mp3 (PLAN §8.7). Lines with placeholders are spoken with on-device synthesis.",
+  "lines": {
+    "welcome.greeting": {
+      "text": "Hi, I'm Milo."
+    },
+    "welcome.title": {
+      "text": "A healthier routine starts with a conversation."
+    },
+    "welcome.sub": {
+      "text": "Meet Milo, your nutrition companion. Set your goal, understand your meals, and follow your daily progress."
+    },
+    "welcome.cta.meet": {
+      "text": "Meet Milo"
+    },
+    "welcome.cta.manual": {
+      "text": "Prefer tapping? Set up manually"
+    },
+    "welcome.cta.resume": {
+      "text": "Pick up where I left off"
+    },
+    "setup.intro.title": {
+      "text": "Let's set this up together, at your pace."
+    },
+    "setup.intro.sub": {
+      "text": "Tap through a few questions. Everything after the first one can be skipped and changed later."
+    },
+    "setup.hello": {
+      "text": "Hi, I am Milo. I will ask a few easy questions."
+    },
+    "setup.react.1": {
+      "text": "Got it."
+    },
+    "setup.react.2": {
+      "text": "Nice, noted."
+    },
+    "setup.react.3": {
+      "text": "That helps."
+    },
+    "setup.react.4": {
+      "text": "Thanks for that."
+    },
+    "setup.react.5": {
+      "text": "Good to know."
+    },
+    "setup.maxReached": {
+      "text": "Up to {n} for now. Tap one to swap it."
+    },
+    "setup.customLength": {
+      "text": "Pick any length you like."
+    },
+    "setup.dobFuture": {
+      "text": "That date is in the future. Try again."
+    },
+    "setup.under18": {
+      "text": "Thanks. I will keep things to habit tracking for now."
+    },
+    "setup.unusualValue": {
+      "text": "That's outside the usual range. Is {value} right?"
+    },
+    "setup.finishLater": {
+      "text": "No rush. Your answers are saved."
+    },
+    "setup.allDone": {
+      "text": "All done. Take a look. You can change anything."
+    },
+    "setup.accountStep": {
+      "text": "One last step. An account keeps your answers safe."
+    },
+    "setup.freshStart": {
+      "text": "Fresh start. Hi again."
+    },
+    "setup.cta.continue": {
+      "text": "Continue"
+    },
+    "setup.cta.review": {
+      "text": "Review"
+    },
+    "setup.cta.skipForNow": {
+      "text": "Skip for now"
+    },
+    "setup.cta.skipQuestion": {
+      "text": "Skip this question"
+    },
+    "setup.cta.finishLater": {
+      "text": "Finish later"
+    },
+    "setup.estimateToggle": {
+      "text": "This is an estimate"
+    },
+    "setup.info.fasting": {
+      "title": "About eating windows",
+      "text": "Intermittent fasting means eating within a set window of hours each day. Nouri only records your experience and will never start a fasting plan or timer. If you have a health condition, talk to a health professional first."
+    },
+    "account.title": {
+      "text": "Keep your plan safe with an account"
+    },
+    "account.sub": {
+      "text": "Sign in on any device and pick up exactly where you left off."
+    },
+    "account.connected": {
+      "text": "Connected. Check your details and you're all set."
+    },
+    "account.socialFallback": {
+      "text": "No problem. Use any email you like."
+    },
+    "building.title": {
+      "text": "Building your plan"
+    },
+    "building.step.1": {
+      "text": "Reviewing your routine"
+    },
+    "building.step.2": {
+      "text": "Preparing your daily targets"
+    },
+    "building.step.2Habits": {
+      "text": "Preparing your starting habits"
+    },
+    "plan.reveal.title": {
+      "text": "Here's a starting point, {name}."
+    },
+    "plan.reveal.titleNoName": {
+      "text": "Here's a starting point."
+    },
+    "plan.reveal.milo": {
+      "text": "Here's where we'll start. We can change it whenever you like."
+    },
+    "plan.reveal.energyLabel": {
+      "text": "Daily energy target"
+    },
+    "plan.reveal.tile.protein": {
+      "text": "Protein"
+    },
+    "plan.reveal.tile.carbs": {
+      "text": "Carbohydrates"
+    },
+    "plan.reveal.tile.fat": {
+      "text": "Fat"
+    },
+    "plan.reveal.tile.water": {
+      "text": "Water"
+    },
+    "plan.reveal.goalSummary": {
+      "text": "Goal summary"
+    },
+    "plan.reveal.noDeadline": {
+      "text": "Gradual progress. Any time estimate is a guide, not a deadline. Trends matter more than any single day."
+    },
+    "plan.reveal.disclaimer": {
+      "text": "This is an estimate to start from, not medical advice. No deadline is set, and you can adjust it any time."
+    },
+    "plan.reveal.cta.start": {
+      "text": "Start my day"
+    },
+    "plan.reveal.cta.how": {
+      "text": "How we calculated this"
+    },
+    "plan.reveal.cta.adjust": {
+      "text": "Adjust targets"
+    },
+    "plan.how.title": {
+      "text": "How we calculated this"
+    },
+    "plan.how.inputs": {
+      "text": "We used your age, height, weight, sex input and activity level."
+    },
+    "plan.how.equation": {
+      "text": "We estimated your daily energy with the Mifflin–St Jeor equation, then multiplied it by an activity factor of {activityFactor}."
+    },
+    "plan.how.adjust.lose": {
+      "text": "For gradual weight loss we lowered it by 10%."
+    },
+    "plan.how.adjust.gain": {
+      "text": "For gradual weight gain we raised it by 10%."
+    },
+    "plan.how.adjust.maintain": {
+      "text": "There is no goal adjustment, so this is a maintenance estimate."
+    },
+    "plan.how.floor": {
+      "text": "Your target never goes below {floorKcal} kcal a day."
+    },
+    "plan.how.macros": {
+      "text": "Protein is set at 1.6 g per kg of body weight, fat at 27% of energy, and carbohydrates make up the rest."
+    },
+    "plan.how.targetWeight": {
+      "text": "Your target weight is shown on your goal card. It doesn't change these numbers. We only use it to estimate how long steady progress may take."
+    },
+    "plan.adjust.title": {
+      "text": "Adjust targets"
+    },
+    "plan.adjust.floorHit": {
+      "text": "That's as low as it goes. Your target stays at or above {floorKcal} kcal."
+    },
+    "plan.adjust.saved": {
+      "text": "Targets updated."
+    },
+    "plan.habits.title": {
+      "text": "Here's your starting routine, {name}."
+    },
+    "plan.habits.titleNoName": {
+      "text": "Here's your starting routine."
+    },
+    "plan.habits.sub": {
+      "text": "We'll focus on habits: meals, water and routine. No calorie target is set."
+    },
+    "plan.habits.addDetails": {
+      "text": "If you'd like an energy estimate later, add the missing details in Settings."
+    },
+    "today.greeting.morning": {
+      "text": "Good morning, {name}"
+    },
+    "today.greeting.afternoon": {
+      "text": "Good afternoon, {name}"
+    },
+    "today.greeting.evening": {
+      "text": "Good evening, {name}"
+    },
+    "today.greeting.morningNoName": {
+      "text": "Good morning"
+    },
+    "today.greeting.afternoonNoName": {
+      "text": "Good afternoon"
+    },
+    "today.greeting.eveningNoName": {
+      "text": "Good evening"
+    },
+    "today.energy.remaining": {
+      "text": "kcal remaining"
+    },
+    "today.energy.over": {
+      "text": "kcal over"
+    },
+    "today.energy.eaten": {
+      "text": "Eaten"
+    },
+    "today.energy.target": {
+      "text": "Daily target"
+    },
+    "today.freeBar.left": {
+      "title": "Free plan · 1 scan left",
+      "sub": "Try a photo scan on us."
+    },
+    "today.freeBar.used": {
+      "title": "Free plan · scan used",
+      "sub": "Subscribe for unlimited scans."
+    },
+    "today.freeBar.cta": {
+      "text": "Upgrade"
+    },
+    "today.finishSetup": {
+      "title": "Finish setting up",
+      "sub": "{deferredCount} quick questions left. They help me tailor your tips."
+    },
+    "today.finishSetupOne": {
+      "title": "Finish setting up",
+      "sub": "One quick question left. It helps me tailor your tips."
+    },
+    "today.finishSetup.cta": {
+      "text": "Continue"
+    },
+    "today.finishSetup.dismiss": {
+      "text": "Not now"
+    },
+    "today.meals.title": {
+      "text": "Today's meals"
+    },
+    "today.week.title": {
+      "text": "This week"
+    },
+    "today.goal.title": {
+      "text": "Goal"
+    },
+    "analysing.title": {
+      "text": "Analysing your meal"
+    },
+    "analysing.step.1": {
+      "text": "Finding foods in your photo…"
+    },
+    "analysing.step.2": {
+      "text": "Estimating portions…"
+    },
+    "analysing.step.3": {
+      "text": "Preparing your nutrition breakdown…"
+    },
+    "analysing.slow": {
+      "text": "Still working on it. This one's taking a little longer."
+    },
+    "analysing.background": {
+      "text": "You can leave this screen. I'll finish in the background."
+    },
+    "scan.camera.guide": {
+      "text": "Centre your plate in the frame"
+    },
+    "scan.camera.gallery": {
+      "text": "Gallery"
+    },
+    "scan.preview.title": {
+      "text": "Use this photo?"
+    },
+    "scan.preview.analyse": {
+      "text": "Analyse meal"
+    },
+    "scan.preview.retake": {
+      "text": "Retake"
+    },
+    "scan.result.estimated": {
+      "text": "kcal estimated"
+    },
+    "scan.result.portion": {
+      "text": "Portion"
+    },
+    "scan.result.foods": {
+      "text": "Recognised foods"
+    },
+    "scan.result.edit": {
+      "text": "Edit foods"
+    },
+    "scan.result.addTo": {
+      "text": "Add to"
+    },
+    "scan.result.add": {
+      "text": "Add to diary · {kcal} kcal"
+    },
+    "scan.result.reviewNote": {
+      "text": "These are estimates. Check the foods and portions before you save."
+    },
+    "scan.edit.title": {
+      "title": "Edit foods",
+      "sub": "Remove anything that isn't on your plate, change the grams, or add something I missed."
+    },
+    "scan.edit.addFood": {
+      "text": "Add a food"
+    },
+    "scan.edit.addFoodHint": {
+      "text": "For example: a teaspoon of olive oil"
+    },
+    "scan.edit.lastItem": {
+      "text": "A meal needs at least one food."
+    },
+    "scan.edit.done": {
+      "text": "Done"
+    },
+    "scan.consent": {
+      "title": "Before your first scan",
+      "text": "To estimate nutrition, your photo is sent securely to our AI provider. You review every result before it's saved, and the photo is removed after you delete the meal."
+    },
+    "scan.consent.accept": {
+      "text": "Got it"
+    },
+    "scan.consent.decline": {
+      "text": "Not now"
+    },
+    "scan.pending": {
+      "title": "Your scan is still working",
+      "sub": "I'll finish it in the background. It will appear here when it's ready."
+    },
+    "describe.title": {
+      "text": "Describe your meal"
+    },
+    "describe.hint": {
+      "text": "For example: two scrambled eggs on wholemeal toast with butter"
+    },
+    "describe.listening": {
+      "text": "I'm listening. Tap when you're done."
+    },
+    "coach.intro": {
+      "text": "Hi {name}. Ask me about today and I'll keep it short."
+    },
+    "coach.introNoName": {
+      "text": "Hi. Ask me about today and I'll keep it short."
+    },
+    "coach.quick.macros": {
+      "text": "Explain my macros"
+    },
+    "coach.quick.snack": {
+      "text": "Suggest a snack"
+    },
+    "coach.quick.review": {
+      "text": "Review my day"
+    },
+    "coach.status.idle": {
+      "text": "Your nutrition companion"
+    },
+    "coach.status.thinking": {
+      "text": "Thinking…"
+    },
+    "coach.status.speaking": {
+      "text": "Speaking"
+    },
+    "coach.inputHint": {
+      "text": "Ask Milo about your day"
+    },
+    "coach.voiceReplies": {
+      "title": "Milo's voice",
+      "sub": "Spoken replies, always captioned"
+    },
+    "water.title": {
+      "text": "Water"
+    },
+    "water.add": {
+      "text": "+250 ml"
+    },
+    "water.added": {
+      "text": "Added 250 ml."
+    },
+    "water.undone": {
+      "text": "Removed 250 ml."
+    },
+    "water.half": {
+      "text": "Halfway to your water goal."
+    },
+    "water.goal": {
+      "text": "That's your water goal for today. Lovely."
+    },
+    "water.beyondGoal": {
+      "text": "Past your water goal. Nicely hydrated."
+    },
+    "streak.pill": {
+      "text": "{n}-day streak"
+    },
+    "streak.week": {
+      "text": "{n} of {d} days logged"
+    },
+    "streak.none": {
+      "text": "Log a meal to start your streak."
+    },
+    "streak.first": {
+      "text": "Day one logged. Nice start."
+    },
+    "streak.three": {
+      "text": "Three days in a row. A routine is forming."
+    },
+    "streak.seven": {
+      "text": "A full week of logging. That's real consistency."
+    },
+    "streak.milestone": {
+      "text": "{n} days in a row. Lovely work."
+    },
+    "streak.restart": {
+      "text": "A fresh start today. Your history is all still here."
+    },
+    "empty.today.meals": {
+      "title": "Nothing logged yet",
+      "sub": "Scan a meal or add one in a few words."
+    },
+    "empty.diary.category": {
+      "text": "Nothing logged yet"
+    },
+    "empty.diary.day": {
+      "title": "No meals on this day",
+      "sub": "Add one if you remember what you had."
+    },
+    "empty.diary.scan": {
+      "text": "Scan"
+    },
+    "empty.diary.add": {
+      "text": "Add"
+    },
+    "empty.progress.weight": {
+      "title": "No weigh-ins yet",
+      "sub": "Log your first weigh-in to see a trend. Weight is optional."
+    },
+    "empty.progress.intake": {
+      "title": "Not enough days yet",
+      "sub": "Log meals on a few days to see your average."
+    },
+    "empty.progress.logWeight": {
+      "text": "Log weight"
+    },
+    "toast.added": {
+      "text": "Added to {category}"
+    },
+    "toast.addedFreeScan": {
+      "text": "Added to {category} · free scan used"
+    },
+    "toast.removed": {
+      "text": "Entry removed"
+    },
+    "toast.undo": {
+      "text": "Undo"
+    },
+    "toast.restored": {
+      "text": "Meal restored"
+    },
+    "toast.mealUpdated": {
+      "text": "Meal updated"
+    },
+    "toast.weightSaved": {
+      "text": "Weight saved"
+    },
+    "toast.offlineQueued": {
+      "text": "Saved. I'll sync it when you're back online."
+    },
+    "toast.synced": {
+      "text": "All synced."
+    },
+    "toast.answersSaved": {
+      "text": "Your answers are saved."
+    },
+    "toast.plusActive": {
+      "text": "Nouri Plus is active"
+    },
+    "toast.purchasesRestored": {
+      "text": "Purchases restored"
+    },
+    "toast.noPurchase": {
+      "text": "No previous purchase found for {email}."
+    },
+    "toast.purchaseError": {
+      "text": "Something went wrong. Nothing was charged."
+    },
+    "toast.reminderOn": {
+      "text": "Reminder set for {time}."
+    },
+    "toast.reminderOff": {
+      "text": "Reminder turned off."
+    },
+    "toast.photoSavedForLater": {
+      "text": "Photo saved. Add the details when you're ready."
+    },
+    "paywall.benefit.scans": {
+      "text": "Unlimited photo food scans"
+    },
+    "paywall.benefit.coach": {
+      "text": "Ask Milo anything, any time"
+    },
+    "paywall.benefit.describe": {
+      "text": "Describe many more meals each day"
+    },
+    "paywall.plan.yearly": {
+      "title": "Yearly",
+      "sub": "{monthlyEquivalent} a month, billed yearly"
+    },
+    "paywall.plan.yearlyTag": {
+      "text": "Save {savingPct}%"
+    },
+    "paywall.plan.yearlyComparison": {
+      "text": "{monthlyTimesTwelve} if paid monthly"
+    },
+    "paywall.plan.monthly": {
+      "title": "Monthly",
+      "sub": "Billed monthly, cancel any time"
+    },
+    "paywall.cta.yearly": {
+      "text": "Subscribe for {price} a year"
+    },
+    "paywall.cta.monthly": {
+      "text": "Subscribe for {price} a month"
+    },
+    "paywall.cta.processing": {
+      "text": "Processing…"
+    },
+    "paywall.cta.notNow": {
+      "text": "Not now"
+    },
+    "paywall.cta.continueFree": {
+      "text": "Continue with a free account"
+    },
+    "paywall.cta.restore": {
+      "text": "Restore purchases"
+    },
+    "paywall.freeNote": {
+      "text": "A free account includes 1 food scan."
+    },
+    "paywall.freeNoteUsed": {
+      "text": "The free scan on this account has been used."
+    },
+    "paywall.legal": {
+      "text": "Your subscription renews automatically at the same price until you cancel. Cancel any time in your App Store or Google Play settings, at least 24 hours before it renews."
+    },
+    "paywall.link.terms": {
+      "text": "Terms of use"
+    },
+    "paywall.link.privacy": {
+      "text": "Privacy policy"
+    },
+    "paywall.success": {
+      "title": "You're subscribed",
+      "sub": "Nouri Plus is active. It renews on {date}."
+    },
+    "safety.medical": {
+      "text": "I can share general nutrition information, but for {topic} it's best to speak to your GP, a dietitian or another health professional."
+    },
+    "safety.medicalNoTopic": {
+      "text": "I can share general nutrition information, but for anything medical it's best to speak to your GP, a dietitian or another health professional."
+    },
+    "safety.support": {
+      "text": "It sounds like things feel heavy right now, and I'm glad you told me. You don't have to sort this out alone. Talking to someone you trust, or one of the services below, can really help."
+    },
+    "safety.supportTitle": {
+      "text": "Support is available"
+    },
+    "safety.refusal": {
+      "text": "I can't help with that one. Shall we look at your meals or your day instead?"
+    },
+    "safety.under18": {
+      "text": "I'll keep things to habits for now: meals, water and routine."
+    },
+    "safety.noFastingPlan": {
+      "text": "I can share general information about eating windows, but I won't set up a fasting plan."
+    },
+    "safety.floor": {
+      "text": "I can't suggest going below {floorKcal} kcal a day. Let's look at other ways to make progress."
+    },
+    "safety.noDeadline": {
+      "text": "I'd rather not set a deadline. Steady habits tend to last longer."
+    },
+    "safety.disclaimer": {
+      "text": "Nouri gives general nutrition information. It is not a medical device and does not give medical advice."
+    },
+    "permission.camera": {
+      "title": "Camera access",
+      "text": "Nouri uses the camera to photograph your meals and estimate what's on the plate. A photo is only taken when you tap the shutter. You can always describe a meal instead."
+    },
+    "permission.camera.allow": {
+      "text": "Allow camera"
+    },
+    "permission.camera.notNow": {
+      "text": "Not now"
+    },
+    "permission.camera.denied": {
+      "title": "Camera is off",
+      "text": "To scan meals, turn on camera access for Nouri in your phone's Settings. You can still describe a meal or add it by hand."
+    },
+    "permission.camera.openSettings": {
+      "text": "Open Settings"
+    },
+    "permission.camera.describeInstead": {
+      "text": "Describe it instead"
+    },
+    "eligibility.title": {
+      "text": "One quick check"
+    },
+    "eligibility.sub": {
+      "text": "A calorie estimate isn't right for everyone. Your answers stay private and only decide whether we show one."
+    },
+    "eligibility.pregnantOrBreastfeeding": {
+      "text": "I'm pregnant or breastfeeding"
+    },
+    "eligibility.supervisedNutritionCondition": {
+      "text": "I have a health condition where a professional guides what I eat"
+    },
+    "eligibility.yes": {
+      "text": "Yes"
+    },
+    "eligibility.no": {
+      "text": "No"
+    },
+    "eligibility.continue": {
+      "text": "Continue"
+    },
+    "eligibility.why": {
+      "title": "Why we ask",
+      "text": "Energy equations are designed for healthy adults. During pregnancy, while breastfeeding, with some health conditions and when food or weight feels hard to cope with, your needs are different and are best set with a professional."
+    },
+    "eligibility.habitsOnly": {
+      "title": "We'll focus on habits",
+      "text": "Thanks for telling me. I won't set calorie targets, but I can still help with meals, water and routine. For your energy needs, your GP, midwife or dietitian is the best guide."
+    },
+    "eligibility.habitsOnlyMilo": {
+      "text": "Thanks for telling me. We'll focus on habits together."
+    },
+    "eligibility.changeLater": {
+      "text": "If this changes, you can update it in Settings."
+    },
+    "permission.microphone": {
+      "title": "Microphone access",
+      "text": "Milo uses the microphone so you can talk instead of type. Speech is turned into text on your phone."
+    },
+    "permission.notifications": {
+      "title": "Gentle reminders",
+      "text": "Want a nudge to log meals or drink water? You choose the times, and you can turn them off any time."
+    },
+    "reminder.logMeal": {
+      "title": "Time to add a meal?",
+      "text": "A quick photo or a few words is enough."
+    },
+    "reminder.water": {
+      "title": "Water break",
+      "text": "A glass of water would be a nice idea about now."
+    },
+    "onboarding.skipToPlan": {
+      "text": "Skip to my plan"
+    },
+    "onboarding.thinking": {
+      "text": "Milo is thinking…"
+    },
+    "onboarding.tapToAnswer": {
+      "text": "Tap to answer"
+    },
+    "onboarding.tapWhenDone": {
+      "text": "Tap when done"
+    },
+    "onboarding.allSet": {
+      "text": "All set"
+    },
+    "onboarding.typeInstead": {
+      "text": "Type instead"
+    },
+    "settings.reducedMotion": {
+      "title": "Reduced motion",
+      "sub": "Calmer transitions and avatar"
+    },
+    "settings.deleteAccount": {
+      "title": "Delete account",
+      "text": "This signs you out everywhere and permanently deletes your data within 30 days. This can't be undone."
+    },
+    "app.forceUpdate": {
+      "title": "Time for an update",
+      "text": "This version of Nouri is no longer supported. Update to keep logging."
+    },
+    "eligibility.eatingConcern": {
+      "text": "I have, or have had, an eating disorder, or counting food and weight feels distressing"
+    }
+  },
+  "eligibility": {
+    "source": "PLAN §10 eligibility check (proposal), BR-04, OQ-30. Wording pending dietitian review (OQ-03).",
+    "when": "Shown once, after account creation and before Building your plan, only when an energy estimate is otherwise possible: adult (18+), q07 female or male, q08 and q09 answered, and q10 answered with an option other than unsure. Never shown in habits-only mode.",
+    "layout": "One screen: eligibility.title, eligibility.sub, then three rows (pregnantOrBreastfeeding, supervisedNutritionCondition, eatingDisorderConcern), each with Yes / No chips and no default, then Continue (enabled when all rows are answered). eligibility.why opens as an info sheet.",
+    "mapsTo": "POST /onboarding/complete, POST /plan/preview and POST /plan/generate body: { eligibility: { pregnantOrBreastfeeding: boolean, supervisedNutritionCondition: boolean, eatingDisorderConcern: boolean } }",
+    "onYes": "If any row is Yes: show the professional-guidance result from POST /plan/generate (status professional_guidance) with eligibility.habitsOnly as the fallback copy, set habits-only targets, then continue to the habits summary (plan.habits.*). No target is calculated and no old target is reused.",
+    "onNo": "Both No: continue to Building your plan.",
+    "skipWhenAttested": "Do not show the step again when GET /plan/readiness reports attestationOnFile = true. The answers stay on the profile and can be changed in Settings."
+  },
+  "coach": {
+    "source": "PLAN §8.6 quick actions. Supersedes the proposal strings in nouri-backend src/modules/conversations/coach.service.ts (quickActionTemplate, opening).",
+    "opening": "Use lines coach.intro / coach.introNoName for the first message; chips use labelLineId below.",
+    "placeholderSyntax": "Single braces, same as the rest of this file: {energyKcal}. Numbers are formatted en-GB (2,100); grams are whole numbers.",
+    "placeholders": {
+      "energyKcal": "Active target energy",
+      "proteinG": "Target protein g",
+      "carbsG": "Target carbohydrate g",
+      "fatG": "Target fat g",
+      "eatenKcal": "Eaten today",
+      "eatenProteinG": "Protein eaten today",
+      "eatenCarbsG": "Carbohydrate eaten today",
+      "eatenFatG": "Fat eaten today",
+      "remainingKcal": "energyKcal − eatenKcal, only used when ≥ 0",
+      "waterMl": "Water logged today",
+      "mealsText": "coach.qa.mealsOne when one meal, otherwise coach.qa.mealsMany with {n}",
+      "n": "Number of meals today",
+      "nextCategory": "Capitalised name of the main meal not yet logged for the current time window (Breakfast, Lunch or Dinner)"
+    },
+    "selection": "Habits-only variants apply when mode is habits_only OR there is no active energy target (adult with incomplete inputs). They never contain calorie or macro numbers. Pick the first variant in list order whose when holds.",
+    "quickActions": {
+      "explain_macros": {
+        "labelLineId": "coach.quick.macros",
+        "kind": "template",
+        "rephrase": "The chat model rephrases the chosen text in Milo's voice (150-token cap) and must keep every number. With the chat model unavailable, the text is shown as is with the degraded caption.",
+        "variants": [
+          {
+            "id": "coach.qa.explain_macros.habitsOnly",
+            "when": "habitsOnly",
+            "text": "Rather than numbers, aim for balanced plates: some protein, plenty of vegetables or fruit, and a source of energy like grains or potatoes."
+          },
+          {
+            "id": "coach.qa.explain_macros.fullNothingLogged",
+            "when": "full AND no meals today",
+            "text": "Your daily targets are {energyKcal} kcal, with {proteinG} g protein, {carbsG} g carbs and {fatG} g fat. Protein helps you feel full, carbs fuel your day and fat supports your body. Log a meal and I'll show how you're tracking."
+          },
+          {
+            "id": "coach.qa.explain_macros.full",
+            "when": "full",
+            "text": "Your daily targets are {energyKcal} kcal, with {proteinG} g protein, {carbsG} g carbs and {fatG} g fat. So far today you've had {eatenProteinG} g protein, {eatenCarbsG} g carbs and {eatenFatG} g fat. Protein helps you feel full, carbs fuel your day and fat supports your body."
+          }
+        ]
+      },
+      "review_day": {
+        "labelLineId": "coach.quick.review",
+        "kind": "template",
+        "rephrase": "As explain_macros.",
+        "variants": [
+          {
+            "id": "coach.qa.review_day.emptyNoPhoto",
+            "when": "no meals today AND photo logging must not be promoted (q31 includes privacy, or q30 answered without photo/switch)",
+            "text": "Nothing logged yet today. Describing your next meal in a few words is an easy start."
+          },
+          {
+            "id": "coach.qa.review_day.empty",
+            "when": "no meals today",
+            "text": "Nothing logged yet today. A quick photo of your next meal is an easy start."
+          },
+          {
+            "id": "coach.qa.review_day.habitsOnly",
+            "when": "habitsOnly",
+            "text": "Today you've logged {mealsText} and {waterMl} ml of water. Nice work keeping track."
+          },
+          {
+            "id": "coach.qa.review_day.fullOver",
+            "when": "full AND eatenKcal > energyKcal",
+            "text": "Today you've logged {mealsText} and {eatenKcal} kcal, a little over your {energyKcal} kcal target, which is fine. Water so far: {waterMl} ml."
+          },
+          {
+            "id": "coach.qa.review_day.full",
+            "when": "full",
+            "text": "Today you've logged {mealsText} and {eatenKcal} kcal, with {remainingKcal} kcal left of your {energyKcal} kcal. Water so far: {waterMl} ml."
+          }
+        ],
+        "suffixes": [
+          {
+            "id": "coach.qa.review_day.openSlot",
+            "when": "a main meal for the current time window is not logged (any mode, not with empty)",
+            "text": "{nextCategory} is still open if you'd like an idea for it."
+          }
+        ]
+      },
+      "suggest_snack": {
+        "labelLineId": "coach.quick.snack",
+        "kind": "model",
+        "rephrase": "A normal model turn (coach prompt rule 8). These variants are used only when the chat model is unavailable, and as templateText context.",
+        "variants": [
+          {
+            "id": "coach.qa.suggest_snack.habitsOnlyVegan",
+            "when": "habitsOnly AND q11 vegan",
+            "text": "Some fruit, a handful of nuts, or hummus with vegetable sticks all make an easy snack."
+          },
+          {
+            "id": "coach.qa.suggest_snack.habitsOnly",
+            "when": "habitsOnly",
+            "text": "A yoghurt with some fruit, a handful of nuts, or hummus with vegetable sticks all make an easy snack."
+          },
+          {
+            "id": "coach.qa.suggest_snack.fullClose",
+            "when": "full AND remainingKcal ≤ 250 (including over target)",
+            "text": "You're close to today's target. A piece of fruit or some vegetable sticks would be a light option if you're hungry."
+          },
+          {
+            "id": "coach.qa.suggest_snack.fullRoomVegan",
+            "when": "full AND q11 vegan",
+            "text": "You have {remainingKcal} kcal left today. Hummus with vegetable sticks (about 150 kcal) or a small handful of almonds (about 170 kcal) would both fit."
+          },
+          {
+            "id": "coach.qa.suggest_snack.fullRoom",
+            "when": "full",
+            "text": "You have {remainingKcal} kcal left today. Greek yoghurt with fruit (about 180 kcal) or two boiled eggs (about 150 kcal) would both fit."
+          }
+        ]
+      }
+    },
+    "fragments": {
+      "coach.qa.mealsOne": {
+        "text": "1 meal"
+      },
+      "coach.qa.mealsMany": {
+        "text": "{n} meals"
+      }
+    },
+    "degraded": {
+      "when": "The chat model is unavailable (AI_UNAVAILABLE: kill switch, breaker, budget or timeout). PLAN §8.10.",
+      "items": [
+        {
+          "id": "coach.qa.degraded.caption",
+          "when": "a full-mode quick action answered from its template",
+          "text": "Milo is resting, so this is a quick answer from your numbers."
+        },
+        {
+          "id": "coach.qa.degraded.captionHabits",
+          "when": "a habits-only quick action answered from its template",
+          "text": "Milo is resting, so this is a quick answer for now."
+        },
+        {
+          "id": "coach.qa.degraded.chat",
+          "when": "free chat (no quick action)",
+          "title": "Milo is resting, back soon",
+          "text": "Explain my macros, Review my day and Suggest a snack still work in the meantime."
+        },
+        {
+          "id": "coach.qa.degraded.apiMessage",
+          "when": "error.message of AI_UNAVAILABLE responses",
+          "text": "Milo is resting. Try again soon."
+        }
+      ]
+    }
+  },
+  "scanReactions": {
+    "source": "R-10 and PLAN §8.3 rule 7. Chosen by the server, no model call. Proposal thresholds pending dietitian review (OQ-03, OQ-26).",
+    "selection": "Compute on the validated result at 1× portion. Pick the first category in order whose rule is true, then variant index = (first 8 hex digits of SHA-256(scanId)) mod 3, so a retry shows the same line. Habits-only users never get heavy.",
+    "order": [
+      "heavy",
+      "sweet",
+      "balanced",
+      "high_protein",
+      "light",
+      "neutral"
+    ],
+    "definitions": {
+      "mealKcal": "Sum of included items' kcal",
+      "proteinShare": "4 × proteinG / mealKcal",
+      "carbsShare": "4 × carbsG / mealKcal",
+      "hasVegetable": "Any item name contains a vegetable keyword (case-insensitive, whole word)",
+      "sweetShare": "kcal of items whose name contains a sweet keyword / mealKcal",
+      "remainingBefore": "Active target energy minus eaten today before this meal (full mode only)"
+    },
+    "keywords": {
+      "vegetable": [
+        "salad",
+        "vegetable",
+        "vegetables",
+        "veg",
+        "greens",
+        "broccoli",
+        "spinach",
+        "kale",
+        "carrot",
+        "carrots",
+        "pepper",
+        "peppers",
+        "tomato",
+        "tomatoes",
+        "cucumber",
+        "lettuce",
+        "courgette",
+        "aubergine",
+        "cabbage",
+        "cauliflower",
+        "peas",
+        "green beans",
+        "beans",
+        "lentils",
+        "chickpeas",
+        "onion",
+        "mushroom",
+        "mushrooms",
+        "asparagus",
+        "sweetcorn",
+        "beetroot",
+        "rocket",
+        "leek",
+        "sprouts",
+        "edamame"
+      ],
+      "sweet": [
+        "cake",
+        "biscuit",
+        "biscuits",
+        "cookie",
+        "cookies",
+        "chocolate",
+        "ice cream",
+        "dessert",
+        "pastry",
+        "doughnut",
+        "donut",
+        "brownie",
+        "muffin",
+        "sweets",
+        "candy",
+        "pudding",
+        "cheesecake",
+        "tart",
+        "crumble",
+        "custard",
+        "jam",
+        "honey",
+        "syrup",
+        "fizzy drink",
+        "soda",
+        "cola",
+        "milkshake",
+        "flapjack",
+        "waffle",
+        "pancakes",
+        "croissant",
+        "sorbet",
+        "gelato",
+        "fudge",
+        "toffee"
+      ]
+    },
+    "categories": {
+      "heavy": {
+        "when": "mode full AND remainingBefore > 0 AND mealKcal ≥ 0.6 × remainingBefore",
+        "variants": [
+          {
+            "id": "scan.reaction.heavy.1",
+            "title": "A hearty plate",
+            "text": "This covers most of what's left for today. Something lighter later would round things off."
+          },
+          {
+            "id": "scan.reaction.heavy.2",
+            "title": "A filling one",
+            "text": "That's a big part of today's energy. One meal never defines a day."
+          },
+          {
+            "id": "scan.reaction.heavy.3",
+            "title": "Plenty on the plate",
+            "text": "This takes you close to today's target. Trends matter more than any single meal."
+          }
+        ]
+      },
+      "sweet": {
+        "when": "sweetShare ≥ 0.5",
+        "variants": [
+          {
+            "id": "scan.reaction.sweet.1",
+            "title": "A sweet treat",
+            "text": "Enjoy it. Treats are part of a normal week."
+          },
+          {
+            "id": "scan.reaction.sweet.2",
+            "title": "Something sweet",
+            "text": "Logged and noted. Every food fits somewhere in your week."
+          },
+          {
+            "id": "scan.reaction.sweet.3",
+            "title": "A sweet moment",
+            "text": "Savour it. Logging treats too is what makes your diary useful."
+          }
+        ]
+      },
+      "balanced": {
+        "when": "hasVegetable AND proteinShare between 0.15 and 0.35 AND carbsShare ≥ 0.25",
+        "variants": [
+          {
+            "id": "scan.reaction.balanced.1",
+            "title": "Great balance!",
+            "text": "Plenty of protein and veg. Milo approves."
+          },
+          {
+            "id": "scan.reaction.balanced.2",
+            "title": "A bit of everything",
+            "text": "Protein, carbs and veg on one plate. That should keep you going."
+          },
+          {
+            "id": "scan.reaction.balanced.3",
+            "title": "Nicely rounded",
+            "text": "This plate covers the basics: protein, carbs and some colour."
+          }
+        ]
+      },
+      "high_protein": {
+        "when": "proteinShare ≥ 0.30",
+        "variants": [
+          {
+            "id": "scan.reaction.high_protein.1",
+            "title": "Protein-rich",
+            "text": "Lots of protein here. That helps you feel full for longer."
+          },
+          {
+            "id": "scan.reaction.high_protein.2",
+            "title": "Strong on protein",
+            "text": "This one brings plenty of protein to your day."
+          },
+          {
+            "id": "scan.reaction.high_protein.3",
+            "title": "A protein boost",
+            "text": "A solid protein boost. Nice and filling."
+          }
+        ]
+      },
+      "light": {
+        "when": "mealKcal < 300",
+        "variants": [
+          {
+            "id": "scan.reaction.light.1",
+            "title": "Light and easy",
+            "text": "A lighter bite. Easy to fit into any day."
+          },
+          {
+            "id": "scan.reaction.light.2",
+            "title": "Nice and light",
+            "text": "A light one. Have a snack later if you're still hungry."
+          },
+          {
+            "id": "scan.reaction.light.3",
+            "title": "A light meal",
+            "text": "Light and simple. Listen to your hunger for the next one."
+          }
+        ]
+      },
+      "neutral": {
+        "when": "otherwise",
+        "variants": [
+          {
+            "id": "scan.reaction.neutral.1",
+            "title": "Logged",
+            "text": "Every meal you log makes the picture clearer."
+          },
+          {
+            "id": "scan.reaction.neutral.2",
+            "title": "Nice one",
+            "text": "Added to your day. You're building a useful picture."
+          },
+          {
+            "id": "scan.reaction.neutral.3",
+            "title": "All noted",
+            "text": "That's in. Check the portions and you're done."
+          }
+        ]
+      }
+    }
+  },
+  "nudges": {
+    "source": "PLAN §11 Today nudge card; prototype nudgeTitle/nudgeSub. Chosen by the API for GET /days/{date}.",
+    "timeWindows": {
+      "morning": "05:00–10:59",
+      "midday": "11:00–14:59",
+      "afternoon": "15:00–17:59",
+      "evening": "18:00–21:59",
+      "late": "22:00–04:59"
+    },
+    "selection": "Device-local time. Evaluate items in priority order and use the first whose conditions all hold. Use subHabits in habits-only mode (never numbers), subNoPhoto when photo logging must not be promoted (q31 includes privacy, or q30 answered without photo/switch), and subIfBusy when q22 includes busy. cta scan opens Scan (or Describe when subNoPhoto applies); add opens Add meal. The mic button always opens Coach with voice input (R-09).",
+    "conditionKeys": {
+      "window": "One or more timeWindows keys",
+      "logged": "Object of category → boolean from today's meals (any = at least one meal)",
+      "mode": "full | habits_only",
+      "overTarget": "Eaten > target (full mode only)",
+      "pendingScan": "A scan for today is queued or processing",
+      "savedPhoto": "A meal saved with a photo and no nutrients (degraded scan) exists today"
+    },
+    "items": [
+      {
+        "id": "nudge.pendingScan",
+        "priority": 1,
+        "when": {
+          "pendingScan": true
+        },
+        "title": "Your scan is still working",
+        "sub": "I'll finish it in the background. It will appear here when it's ready.",
+        "cta": null
+      },
+      {
+        "id": "nudge.savedPhoto",
+        "priority": 2,
+        "when": {
+          "savedPhoto": true
+        },
+        "title": "A meal needs its details",
+        "sub": "You saved a photo earlier. Add what was on the plate when you have a moment.",
+        "cta": "add"
+      },
+      {
+        "id": "nudge.overTarget",
+        "priority": 3,
+        "when": {
+          "mode": "full",
+          "overTarget": true
+        },
+        "title": "Past today's target",
+        "sub": "That's okay. One day never undoes your progress, and tomorrow is a fresh start.",
+        "cta": null
+      },
+      {
+        "id": "nudge.breakfast",
+        "priority": 4,
+        "when": {
+          "window": [
+            "morning"
+          ],
+          "logged": {
+            "breakfast": false
+          }
+        },
+        "title": "Ready for breakfast?",
+        "sub": "Add it when you eat. A quick photo is enough.",
+        "subNoPhoto": "Add it when you eat. A few words are enough.",
+        "cta": "scan"
+      },
+      {
+        "id": "nudge.breakfastLogged",
+        "priority": 5,
+        "when": {
+          "window": [
+            "morning"
+          ],
+          "logged": {
+            "breakfast": true
+          }
+        },
+        "title": "Breakfast is logged.",
+        "sub": "{remainingKcal} kcal left for the rest of today.",
+        "subHabits": "Nice start to the day. A glass of water is a good next step.",
+        "cta": null
+      },
+      {
+        "id": "nudge.lunch",
+        "priority": 6,
+        "when": {
+          "window": [
+            "midday"
+          ],
+          "logged": {
+            "lunch": false
+          }
+        },
+        "title": "Ready to add your lunch?",
+        "sub": "A quick photo is enough.",
+        "subIfBusy": "You mentioned busy days. A quick photo is enough.",
+        "subNoPhoto": "A few words are enough.",
+        "cta": "scan"
+      },
+      {
+        "id": "nudge.afternoonNoLunch",
+        "priority": 7,
+        "when": {
+          "window": [
+            "afternoon"
+          ],
+          "logged": {
+            "lunch": false
+          }
+        },
+        "title": "Had lunch yet?",
+        "sub": "If you did, add it in a few seconds. If not, no worries.",
+        "cta": "scan"
+      },
+      {
+        "id": "nudge.lunchLogged",
+        "priority": 8,
+        "when": {
+          "window": [
+            "midday",
+            "afternoon"
+          ],
+          "logged": {
+            "lunch": true
+          }
+        },
+        "title": "Lunch is logged.",
+        "sub": "{remainingKcal} kcal left for the rest of today.",
+        "subHabits": "Nicely done. Keep the water going this afternoon.",
+        "cta": null
+      },
+      {
+        "id": "nudge.dinner",
+        "priority": 9,
+        "when": {
+          "window": [
+            "evening"
+          ],
+          "logged": {
+            "dinner": false
+          }
+        },
+        "title": "Time for dinner?",
+        "sub": "Add it when you eat. A photo or a few words both work.",
+        "subNoPhoto": "Add it when you eat. A few words are enough.",
+        "cta": "scan"
+      },
+      {
+        "id": "nudge.dinnerLogged",
+        "priority": 10,
+        "when": {
+          "window": [
+            "evening"
+          ],
+          "logged": {
+            "dinner": true
+          }
+        },
+        "title": "Dinner is logged.",
+        "sub": "That's your day nearly wrapped up. Nice work keeping track.",
+        "cta": null
+      },
+      {
+        "id": "nudge.late",
+        "priority": 11,
+        "when": {
+          "window": [
+            "late"
+          ]
+        },
+        "title": "Winding down",
+        "sub": "Anything else to add today? If not, rest well.",
+        "cta": "add"
+      },
+      {
+        "id": "nudge.fallback",
+        "priority": 12,
+        "when": {},
+        "title": "How's your day going?",
+        "sub": "Add a meal whenever you're ready.",
+        "cta": "scan"
+      }
+    ]
+  },
+  "paywall": {
+    "source": "Prototype acctVals()/Setup plans; PLAN §12 store rules (R-03): prices from the store, saving worded as a comparison, never a struck-through price.",
+    "triggers": {
+      "onboarding": {
+        "title": "Unlock Nouri Plus",
+        "sub": "Scan every meal, with everything you just set up working for you.",
+        "primaryAlternative": "paywall.cta.continueFree"
+      },
+      "upgrade": {
+        "title": "Upgrade to Nouri Plus",
+        "sub": "Unlimited food scans, plus everything Milo can do.",
+        "primaryAlternative": "paywall.cta.notNow"
+      },
+      "limit": {
+        "title": "You've used your free scan",
+        "sub": "Subscribe for unlimited food scans. Your diary and progress stay just as they are.",
+        "primaryAlternative": "paywall.cta.notNow"
+      },
+      "limit.coach": {
+        "title": "That's today's free chats with Milo",
+        "sub": "Plus gives you more time with Milo every day. Your free chats reset tomorrow.",
+        "primaryAlternative": "paywall.cta.notNow"
+      },
+      "limit.describe": {
+        "title": "That's today's free meal descriptions",
+        "sub": "Plus lets you describe many more meals each day. You can still add meals by hand.",
+        "primaryAlternative": "paywall.cta.notNow"
+      }
+    },
+    "layout": [
+      "title",
+      "sub",
+      "benefits",
+      "plans (yearly first, selected)",
+      "cta",
+      "primaryAlternative",
+      "freeNote (onboarding only)",
+      "restore",
+      "legal",
+      "links"
+    ]
+  },
+  "degraded": {
+    "source": "PLAN §8.10 degraded-mode table. Shown when the API returns AI_UNAVAILABLE or a scan fails.",
+    "items": [
+      {
+        "id": "degraded.scan.unavailable",
+        "feature": "vision",
+        "title": "I can't look at photos right now",
+        "text": "You can describe the meal instead, or save the photo and finish it later.",
+        "actions": [
+          "Describe it instead",
+          "Save photo and finish later"
+        ]
+      },
+      {
+        "id": "degraded.scan.freeUntouched",
+        "feature": "vision",
+        "title": null,
+        "text": "Your free scan hasn't been used.",
+        "actions": []
+      },
+      {
+        "id": "degraded.scan.queued",
+        "feature": "vision",
+        "title": "Still in the queue",
+        "text": "Milo's a little busy. I'll keep trying for up to two minutes.",
+        "actions": []
+      },
+      {
+        "id": "degraded.scan.failed",
+        "feature": "vision",
+        "title": "That didn't work this time",
+        "text": "Nothing was used from your plan. Try again in a moment.",
+        "actions": [
+          "Try again",
+          "Describe it instead"
+        ]
+      },
+      {
+        "id": "degraded.scan.rejected",
+        "feature": "vision",
+        "title": "I couldn't spot any food",
+        "text": "Try another photo with the plate in the frame. This didn't use your free scan.",
+        "actions": [
+          "Retake"
+        ]
+      },
+      {
+        "id": "degraded.describe.unavailable",
+        "feature": "parse",
+        "title": "Describing meals is resting",
+        "text": "Add it by hand instead: a name, the grams and the energy.",
+        "actions": [
+          "Enter manually"
+        ]
+      },
+      {
+        "id": "degraded.onboarding.unavailable",
+        "feature": "extract",
+        "title": "My voice is resting for a moment",
+        "text": "Let's carry on with taps from here, right where we left off.",
+        "actions": [
+          "Continue"
+        ]
+      },
+      {
+        "id": "degraded.coach.unavailable",
+        "feature": "chat",
+        "title": "Milo is resting, back soon",
+        "text": "Explain my macros, Review my day and Suggest a snack still work in the meantime.",
+        "actions": []
+      },
+      {
+        "id": "degraded.coach.templateOnly",
+        "feature": "chat",
+        "title": null,
+        "text": "I'm keeping this one short while I rest.",
+        "actions": []
+      },
+      {
+        "id": "degraded.speech.cloud",
+        "feature": "tts",
+        "title": null,
+        "text": "Spoken replies are using your phone's voice for now.",
+        "actions": []
+      },
+      {
+        "id": "degraded.retryLater",
+        "feature": "any",
+        "title": "Milo needs a moment",
+        "text": "Please try again in about {retryAfterMin} minutes.",
+        "actions": []
+      },
+      {
+        "id": "degraded.offline",
+        "feature": "network",
+        "title": "You're offline",
+        "text": "Water, weigh-ins and manual meals still save and sync later. Scans and chat need a connection.",
+        "actions": []
+      }
+    ]
+  }
+}

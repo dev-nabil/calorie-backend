@@ -1,0 +1,79 @@
+/**
+ * Reminder scheduling (M9-T1). Pure. Times are local wall-clock times in the reminder's timezone;
+ * `nextFireAtUtc` is precomputed so the minute job is one indexed query (S-11).
+ * DST: a time that does not exist (spring forward) fires at the same offset after the gap
+ * (01:30 → 02:30); a repeated time (fall back) fires at its first occurrence.
+ */
+import { addDays, dayKeyFor, isoWeekday } from '../day-keys';
+
+export const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+export type Weekday = (typeof WEEKDAYS)[number];
+
+export interface ReminderRule {
+  time: string; // HH:mm
+  days: Weekday[]; // empty = every day
+  timezone: string;
+}
+
+export const MAX_PER_DAY = 3;
+export const DEFAULT_QUIET_HOURS = { start: '22:00', end: '07:00' };
+
+const minutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
+export function isValidTime(t: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
+}
+
+/** True when a local time falls inside quiet hours (ranges may wrap past midnight). */
+export function inQuietHours(time: string, quiet = DEFAULT_QUIET_HOURS): boolean {
+  const t = minutes(time);
+  const s = minutes(quiet.start);
+  const e = minutes(quiet.end);
+  return s <= e ? t >= s && t < e : t >= s || t < e;
+}
+
+/** UTC offset (ms) of a zone at an instant. */
+export function offsetMs(timeZone: string, at: number): number {
+  const p = new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(at));
+  const v = (t: string) => Number(p.find((x) => x.type === t)!.value);
+  return Date.UTC(v('year'), v('month') - 1, v('day'), v('hour'), v('minute'), v('second')) - Math.floor(at / 1000) * 1000;
+}
+
+function localTime(at: number, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(at));
+}
+
+/** The instant of a local date and time in a zone (see DST rules above). */
+export function localToUtc(dayKey: string, time: string, timeZone: string): Date {
+  const [y, m, d] = dayKey.split('-').map(Number) as [number, number, number];
+  const want = Date.UTC(y, m - 1, d, Number(time.slice(0, 2)), Number(time.slice(3, 5)));
+  const candidates = [...new Set([want - offsetMs(timeZone, want - 86_400_000), want - offsetMs(timeZone, want + 86_400_000)])].sort((a, b) => a - b);
+  const exact = candidates.find((c) => dayKeyFor(new Date(c), timeZone) === dayKey && localTime(c, timeZone) === time);
+  return new Date(exact ?? Math.max(...candidates));
+}
+
+/** Next fire time strictly after `after`, or null when no day is selected. */
+export function nextFireAt(rule: ReminderRule, after: Date): Date | null {
+  const today = dayKeyFor(after, rule.timezone);
+  for (let i = 0; i <= 8; i++) {
+    const day = addDays(today, i);
+    const weekday = WEEKDAYS[isoWeekday(day) - 1]!;
+    if (rule.days.length && !rule.days.includes(weekday)) continue;
+    const at = localToUtc(day, rule.time, rule.timezone);
+    if (at.getTime() > after.getTime()) return at;
+  }
+  return null;
+}
+
+/** M9-T1 limits: at most 3 enabled reminders on any weekday, none inside quiet hours. */
+export function validateReminders(rules: { time: string; days: Weekday[]; enabled: boolean }[], quiet = DEFAULT_QUIET_HOURS): { ok: true } | { ok: false; reason: string; details: Record<string, unknown> } {
+  for (const r of rules) {
+    if (!isValidTime(r.time)) return { ok: false, reason: 'time', details: { time: r.time } };
+    if (r.enabled && inQuietHours(r.time, quiet)) return { ok: false, reason: 'quiet_hours', details: { time: r.time, quietHours: quiet } };
+  }
+  for (const day of WEEKDAYS) {
+    const n = rules.filter((r) => r.enabled && (r.days.length === 0 || r.days.includes(day))).length;
+    if (n > MAX_PER_DAY) return { ok: false, reason: 'max_per_day', details: { day, count: n, max: MAX_PER_DAY } };
+  }
+  return { ok: true };
+}

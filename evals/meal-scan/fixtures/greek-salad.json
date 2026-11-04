@@ -1,0 +1,16 @@
+{
+  "id": "greek-salad",
+  "category": "lunch",
+  "expected": { "isFood": true, "kcal": 320, "items": [{ "name": "salad", "match": ["salad", "lettuce", "tomato", "cucumber"] }, { "name": "feta", "match": ["feta", "cheese"] }, { "name": "olive oil", "match": ["oil", "dressing"] }] },
+  "fakeOutput": {
+    "isFood": true,
+    "mealName": "Greek salad",
+    "items": [
+      { "name": "Tomato and cucumber salad", "portion": "1 bowl", "grams": 200, "kcal": 40, "proteinG": 2, "carbsG": 8, "fatG": 0.4, "fiberG": 2.4, "confidence": 0.8, "point": null },
+      { "name": "Feta cheese", "portion": "40 g", "grams": 40, "kcal": 105, "proteinG": 5.7, "carbsG": 1.6, "fatG": 8.5, "fiberG": 0, "confidence": 0.7, "point": null },
+      { "name": "Olive oil dressing", "portion": "1 tbsp", "grams": 14, "kcal": 124, "proteinG": 0, "carbsG": 0, "fatG": 14, "fiberG": 0, "confidence": 0.5, "point": null }
+    ],
+    "notes": null,
+    "clarifyingQuestion": null
+  }
+}

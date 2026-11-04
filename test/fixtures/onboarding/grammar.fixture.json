@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "questions": [
+    { "id": "a", "fieldKey": "a", "type": "single", "options": [{ "id": "x" }, { "id": "y" }, { "id": "z" }] },
+    { "id": "m", "fieldKey": "m", "type": "multi", "options": [{ "id": "p" }, { "id": "q" }, { "id": "r" }] },
+    { "id": "age", "fieldKey": "age", "type": "age", "limits": { "min": 10, "max": 110 } },
+    { "id": "s1", "fieldKey": "s1", "type": "text" },
+    { "id": "s2", "fieldKey": "s2", "type": "text" },
+    { "id": "s3", "fieldKey": "s3", "type": "text" },
+    { "id": "s4", "fieldKey": "s4", "type": "text" },
+    { "id": "s5", "fieldKey": "s5", "type": "text" },
+    { "id": "s6", "fieldKey": "s6", "type": "text" },
+    { "id": "s7", "fieldKey": "s7", "type": "text" },
+    { "id": "n", "fieldKey": "n", "type": "number", "limits": { "min": 1, "max": 9 } }
+  ],
+  "branching": [
+    { "show": "s1", "when": { "ageGte": 18 } },
+    { "show": "s2", "when": { "all": [{ "age": { "gt": 12, "lt": 20 } }, { "not": { "q": "a", "eq": "x" } }] } },
+    { "show": "s3", "when": { "q": "m", "in": "p" } },
+    { "show": "s4", "when": { "q": "m", "eqSet": ["q", "p"] } },
+    { "show": "s5", "when": { "any": [{ "route": { "in": ["basic"] } }, { "q": "a", "in": ["y", "z"] }] } },
+    { "show": "s6", "when": { "all": [{ "q": "a", "answered": false }, { "age": { "lte": 65 } }] } },
+    { "show": "s7", "when": { "q": "m", "in": ["r", "q"] } }
+  ],
+  "routes": {
+    "basic": { "questionIds": ["a", "m", "age", "s1", "s5"] },
+    "detailed": { "questionIds": ["a", "m", "age", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "n"] },
+    "conversation": { "questionIds": ["a", "age"] }
+  }
+}

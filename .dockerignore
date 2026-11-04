@@ -1,0 +1,19 @@
+# Only the lockfile, package.json, configs, src/ and content/ go into the image.
+node_modules
+dist
+coverage
+.local
+.git
+.github
+.env
+.env.*
+!.env.example
+*.log
+test
+evals
+openapi
+infra
+scripts
+docs
+**/*.spec.ts
+.DS_Store
