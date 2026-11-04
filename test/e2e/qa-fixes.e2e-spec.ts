@@ -5,7 +5,7 @@ import type { Model } from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, signIn, uploadPhoto } from '../setup/helpers';
-import { buildOpenApi } from '../../src/bootstrap';
+import { buildOpenApi } from '../../src/app.setup';
 import { clock } from '../../src/common/clock';
 import { AiProvider, FakeAiProvider } from '../../src/modules/ai/ai.provider';
 import { InlineScanQueue, ScanQueue } from '../../src/modules/scans/scan-queue';

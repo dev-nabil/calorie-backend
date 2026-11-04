@@ -28,10 +28,10 @@ import {
 import { assessEligibility, isSafetyReason } from '../../domain/plan-calculator';
 import { ContentService } from '../content/content.service';
 import { planInputsFrom, PlansService } from '../plans/plans.service';
-import type { WeightLogDoc } from '../tracking/tracking.schemas';
+import type { WeightLogDoc } from '../tracking/schemas/tracking.schema';
 import { UsersService } from '../users/users.service';
-import type { UserDoc } from '../users/users.schemas';
-import type { OnboardingAnswerDoc, ProfileDoc } from './onboarding.schemas';
+import type { UserDoc } from '../users/schemas/users.schema';
+import type { OnboardingAnswerDoc, ProfileDoc } from './schemas/onboarding.schema';
 
 interface Loaded {
   user: UserDoc;

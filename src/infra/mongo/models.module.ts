@@ -1,19 +1,19 @@
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { AiUsageDailySchema } from '../../modules/ai/ai.schemas';
-import { OtpCodeSchema, SessionSchema } from '../../modules/auth/auth.schemas';
-import { AbuseEventSchema, ScanSchema } from '../../modules/scans/scans.schemas';
-import { ConversationSchema, MessageSchema } from '../../modules/conversations/conversations.schemas';
-import { AdminUserSchema, AuditLogSchema } from '../../modules/admin/admin.schemas';
-import { DeletionRequestDbSchema, WaitlistSchema } from '../../modules/public/public.schemas';
-import { BillingEventSchema, SubscriptionSchema } from '../../modules/billing/billing.schemas';
-import { ReminderSchema } from '../../modules/reminders/reminders.module';
+import { AiUsageDailySchema } from '../../modules/ai/schemas/ai.schema';
+import { OtpCodeSchema, SessionSchema } from '../../modules/auth/schemas/auth.schema';
+import { AbuseEventSchema, ScanSchema } from '../../modules/scans/schemas/scans.schema';
+import { ConversationSchema, MessageSchema } from '../../modules/conversations/schemas/conversations.schema';
+import { AdminUserSchema, AuditLogSchema } from '../../modules/admin/schemas/admin.schema';
+import { DeletionRequestDbSchema, WaitlistSchema } from '../../modules/public/schemas/public.schema';
+import { BillingEventSchema, SubscriptionSchema } from '../../modules/billing/schemas/billing.schema';
+import { ReminderSchema } from '../../modules/reminders/schemas/reminders.schema';
 import { ReconcileRunSchema } from '../../jobs/reconcile';
-import { AiPromptSchema, AppConfigSchema, ContentVersionSchema } from '../../modules/content/content.schemas';
-import { OnboardingAnswerSchema, ProfileSchema } from '../../modules/onboarding/onboarding.schemas';
-import { PlanDraftSchema, PlanSchema } from '../../modules/plans/plans.schemas';
-import { DailyLogSchema, MealSchema, WeightLogSchema } from '../../modules/tracking/tracking.schemas';
-import { DeviceSchema, ScanLedgerSchema, UserSchema } from '../../modules/users/users.schemas';
+import { AiPromptSchema, AppConfigSchema, ContentVersionSchema } from '../../modules/content/schemas/content.schema';
+import { OnboardingAnswerSchema, ProfileSchema } from '../../modules/onboarding/schemas/onboarding.schema';
+import { PlanDraftSchema, PlanSchema } from '../../modules/plans/schemas/plans.schema';
+import { DailyLogSchema, MealSchema, WeightLogSchema } from '../../modules/tracking/schemas/tracking.schema';
+import { DeviceSchema, ScanLedgerSchema, UserSchema } from '../../modules/users/schemas/users.schema';
 
 /** Every collection, registered once (plan section 6). Inject with @InjectModel('<Name>'). */
 export const MODEL_DEFINITIONS = [

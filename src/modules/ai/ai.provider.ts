@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { MealAnalysisOutputSchema, MealParseOutputSchema, PlanNarrativeOutputSchema } from '../../shared';
-import { PLAN_EXAMPLE_ANALYSIS } from '../../domain/nutrition-validator';
+import { PLAN_EXAMPLE_ANALYSIS } from '../../domain/nutrition-validator/fixtures';
 
 export interface AiUsage {
   inputTokens: number;

@@ -8,7 +8,7 @@ import { getConnectionToken } from '@nestjs/mongoose';
 import type { Connection } from 'mongoose';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
-import { configureApp } from '../../src/bootstrap';
+import { configureApp } from '../../src/app.setup';
 import { loadConfig, type AppConfig } from '../../src/config/env';
 
 export interface TestApp {

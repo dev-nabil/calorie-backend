@@ -6,7 +6,7 @@ import { bearer, idem, INTEGRITY, signIn, uploadPhoto } from '../setup/helpers';
 import { AiProvider, FakeAiProvider } from '../../src/modules/ai/ai.provider';
 import { AppConfigService } from '../../src/modules/content/app-config.service';
 import { InlineScanQueue, ScanQueue } from '../../src/modules/scans/scan-queue';
-import { ScanProcessor } from '../../src/modules/scans/scan.processor';
+import { ScanProcessor } from '../../src/modules/scans/services/scan.processor';
 import { UsersService } from '../../src/modules/users/users.service';
 import { GoogleTokenVerifier } from '../../src/modules/auth/providers';
 

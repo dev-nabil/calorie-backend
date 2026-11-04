@@ -7,7 +7,7 @@ import { noStore } from '../../common/http/etag';
 import { integrityOk, RequireIntegrity } from '../../common/integrity/integrity';
 import { ApiErrors, ZBody, ZParam, ZResponse } from '../../common/zod/decorators';
 import { UsersService } from '../users/users.service';
-import { ScansService } from './scans.service';
+import { ScansService } from './services/scans.service';
 
 const FINAL = new Set(['succeeded', 'failed', 'rejected']);
 const SSE_MAX_MS = 40_000;

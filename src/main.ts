@@ -1,5 +1,5 @@
 // Telemetry must load before the instrumented libraries (http, express, mongodb, ioredis).
-import { startTelemetry } from './telemetry';
+import { startTelemetry } from './infra/telemetry/telemetry';
 if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) startTelemetry();
 import 'reflect-metadata';
 import { existsSync } from 'node:fs';
@@ -10,7 +10,7 @@ import { KvStore } from './infra/kv/kv-store';
 import { healthOf } from './modules/health/health.controller';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { configureApp } from './bootstrap';
+import { configureApp } from './app.setup';
 import { loadConfig } from './config/env';
 import { WorkerModule } from './worker.module';
 

@@ -1,6 +1,7 @@
 import { ERROR_CODES } from '../errors';
 import { LOCALE_CODES } from '../locales';
-import { CATALOGS, localizedError, translatorFor, type MessageKey } from './index';
+import { CATALOGS, localizedError, translatorFor } from './index';
+import { type MessageKey } from './en';
 import { en } from './en';
 
 const SAMPLE = { n: 12, unit: 'weeks', a: 10, b: '12 weeks', verb: 'losing', verbNoun: 'losing', change: '8', eta: 'about 10 weeks', req: '6 months', safeMin: '10 weeks', maxPace: '0.8', bmr: 1500, activity: 'x', factor: 1.4, tdee: 2100, pct: 10, kcal: 1900, floor: 1200, kcalPerKg: '7,700', code: '123456' };

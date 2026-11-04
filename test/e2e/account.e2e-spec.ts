@@ -6,7 +6,7 @@ import type { Model } from 'mongoose';
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, signIn, uploadPhoto } from '../setup/helpers';
 import { encodeCbor } from '../../src/common/integrity/cbor';
-import { JobQueue } from '../../src/jobs/background-jobs';
+import { JobQueue } from '../../src/jobs/jobs.module';
 import { AccountService } from '../../src/modules/account/account.service';
 import { EmailSender, type MemoryEmailSender } from '../../src/modules/auth/providers';
 import { UsersService } from '../../src/modules/users/users.service';

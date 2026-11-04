@@ -1,5 +1,5 @@
 import { createTestApp, type TestApp } from '../setup/test-app';
-import { TurnstileVerifier } from '../../src/modules/public/public.module';
+import { TurnstileVerifier } from '../../src/modules/public/turnstile.verifier';
 
 describe('Public endpoints (M8-T2)', () => {
   let t: TestApp;

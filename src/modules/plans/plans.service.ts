@@ -30,10 +30,10 @@ import { DEFAULT_LOCALE, parseLocale, type LocaleCode } from '../../shared/local
 import { KvStore } from '../../infra/kv/kv-store';
 import { AiJobRunner } from '../ai/ai-jobs';
 import { ContentService } from '../content/content.service';
-import type { ProfileDoc } from '../onboarding/onboarding.schemas';
+import type { ProfileDoc } from '../onboarding/schemas/onboarding.schema';
 import { UsersService } from '../users/users.service';
 import { PLAN_NARRATIVE_BUDGET_MS, PLAN_NARRATIVE_JOB, type PlanNarrativeJob, type PlanNarrativeResult } from './plan-narrative.handler';
-import type { PlanDraftDoc, PlanDoc } from './plans.schemas';
+import type { PlanDraftDoc, PlanDoc } from './schemas/plans.schema';
 
 export function planInputsFrom(profile: ProfileDoc | null, attestation?: EligibilityAttestation | null): PlanInputs {
   return {

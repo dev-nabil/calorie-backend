@@ -6,9 +6,9 @@ import type { AppConfig } from './config/env';
 import { KvModule } from './infra/kv/kv.module';
 import { ModelsModule } from './infra/mongo/models.module';
 import { MongoModule } from './infra/mongo/mongo.module';
-import { JobsModule } from './jobs/background-jobs';
+import { JobsModule } from './jobs/jobs.module';
 import { StorageModule } from './infra/storage/storage.module';
-import { WORKER_MODULES } from './jobs';
+import { WORKER_MODULES } from './jobs/worker-modules';
 
 /** ROLE=worker: no HTTP server; BullMQ processors and scheduled jobs only. */
 @Module({})

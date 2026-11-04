@@ -19,8 +19,8 @@ import { TokenService } from '../../common/auth/token.service';
 import { RateLimiter } from '../../common/rate-limit/rate-limiter.service';
 import { KvStore } from '../../infra/kv/kv-store';
 import { UsersService } from '../users/users.service';
-import type { DeviceDoc, UserDoc } from '../users/users.schemas';
-import type { OtpCodeDoc, SessionDoc } from './auth.schemas';
+import type { DeviceDoc, UserDoc } from '../users/schemas/users.schema';
+import type { OtpCodeDoc, SessionDoc } from './schemas/auth.schema';
 import { AppleTokenVerifier, EmailSender, GoogleTokenVerifier, isDisposableEmail, type ProviderIdentity } from './providers';
 
 const RESEND_COOLDOWN_SEC = 60;

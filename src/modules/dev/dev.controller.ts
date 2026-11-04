@@ -17,13 +17,13 @@ import { AiProvider, FAKE_AI_MODES, FakeAiProvider } from '../ai/ai.provider';
 import { AppConfigService } from '../content/app-config.service';
 import { ContentService } from '../content/content.service';
 import { isSafeKey, LocalStorageService, StorageService } from '../../infra/storage/storage';
-import { JobHandlers } from '../../jobs/background-jobs';
+import { JobHandlers } from '../../jobs/jobs.module';
 import { RECONCILE_JOB } from '../../jobs/reconcile';
 import { PURGE_JOB } from '../account/account.service';
-import { SUMMARY_JOB } from '../conversations/conversations.module';
-import { REMINDER_JOB } from '../reminders/reminders.module';
-import { ConsolePushSender, PushSender } from '../reminders/push';
-import type { DeviceDoc } from '../users/users.schemas';
+import { SUMMARY_JOB } from '../conversations/services/conversation-summaries.service';
+import { REMINDER_JOB } from '../reminders/reminders.service';
+import { ConsolePushSender, PushSender } from '../reminders/providers/push';
+import type { DeviceDoc } from '../users/schemas/users.schema';
 
 /** Scheduled jobs QA can run on demand (POST /v1/dev/jobs/{name}). */
 const DEV_JOBS = { purge: PURGE_JOB, reconcile: RECONCILE_JOB, reminders: REMINDER_JOB, summaries: SUMMARY_JOB } as const;

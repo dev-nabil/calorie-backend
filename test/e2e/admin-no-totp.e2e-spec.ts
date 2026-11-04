@@ -1,7 +1,7 @@
 import { getModelToken } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import { createTestApp, type TestApp } from '../setup/test-app';
-import { hashPassword } from '../../src/modules/admin/admin-crypto';
+import { hashPassword } from '../../src/modules/admin/security/admin-crypto';
 
 const PASSWORD = 'correct-horse-battery';
 

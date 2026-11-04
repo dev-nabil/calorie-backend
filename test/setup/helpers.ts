@@ -31,7 +31,7 @@ export async function uploadPhoto(t: TestApp, auth: Record<string, string>, seed
 /** Seeds one admin per role (password `correct-horse-battery`) and returns a login helper. */
 export async function seedAdmins(t: TestApp): Promise<(role: 'owner' | 'admin' | 'support' | 'editor' | 'analyst') => Promise<Record<string, string>>> {
   const { getModelToken } = await import('@nestjs/mongoose');
-  const { encryptSecret, hashPassword, newTotpSecret, totp } = await import('../../src/modules/admin/admin-crypto');
+  const { encryptSecret, hashPassword, newTotpSecret, totp } = await import('../../src/modules/admin/security/admin-crypto');
   const admins = t.get<{ create: (d: unknown) => Promise<unknown> }>(getModelToken('AdminUser'));
   const secrets = new Map<string, string>();
   for (const role of ['owner', 'admin', 'support', 'editor', 'analyst']) {

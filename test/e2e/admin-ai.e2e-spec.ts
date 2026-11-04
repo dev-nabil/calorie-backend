@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, seedAdmins, signIn, uploadPhoto } from '../setup/helpers';
-import { totp } from '../../src/modules/admin/admin-crypto';
+import { totp } from '../../src/modules/admin/security/admin-crypto';
 import { AiProvider, FakeAiProvider } from '../../src/modules/ai/ai.provider';
 import { InlineScanQueue, ScanQueue } from '../../src/modules/scans/scan-queue';
 import { AppConfigService } from '../../src/modules/content/app-config.service';

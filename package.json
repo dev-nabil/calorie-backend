@@ -20,12 +20,12 @@
     "test:unit": "jest --selectProjects unit",
     "test:e2e": "jest --selectProjects e2e",
     "test:cov": "jest --coverage",
-    "openapi": "tsc -p tsconfig.build.json && node dist/openapi.js",
-    "start:local": "tsc -p tsconfig.build.json && node dist/dev/local.js",
-    "plan:smoke": "tsc -p tsconfig.build.json && node dist/dev/plan-smoke.js",
-    "env:doctor": "tsc -p tsconfig.build.json && node dist/dev/env-doctor.js",
-    "admin:seed":"tsc -p tsconfig.build.json && node dist/dev/admin-seed.js",
-    "eval:meal-scan": "tsc -p tsconfig.build.json && node dist/evals/meal-scan.js"
+    "openapi": "tsc -p tsconfig.build.json && node dist/scripts/openapi.js",
+    "start:local": "tsc -p tsconfig.build.json && node dist/scripts/local.js",
+    "plan:smoke": "tsc -p tsconfig.build.json && node dist/scripts/plan-smoke.js",
+    "env:doctor": "tsc -p tsconfig.build.json && node dist/scripts/env-doctor.js",
+    "admin:seed":"tsc -p tsconfig.build.json && node dist/scripts/admin-seed.js",
+    "eval:meal-scan": "tsc -p tsconfig.build.json && node dist/scripts/meal-scan-eval.js"
   },
   "dependencies": {
     "@nestjs/common": "11.2.8",

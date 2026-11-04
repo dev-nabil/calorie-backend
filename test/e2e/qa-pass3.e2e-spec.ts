@@ -1,10 +1,10 @@
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, seedAdmins, signIn } from '../setup/helpers';
-import { buildOpenApi } from '../../src/bootstrap';
+import { buildOpenApi } from '../../src/app.setup';
 import { clock } from '../../src/common/clock';
 import { AiProvider, FakeAiProvider } from '../../src/modules/ai/ai.provider';
 import { EmailSender, type MemoryEmailSender } from '../../src/modules/auth/providers';
-import { runsInlineSweep } from '../../src/modules/scans/scans.module';
+import { runsInlineSweep } from '../../src/modules/scans/services/inline-sweep.service';
 
 describe('QA pass 3 regressions (B12–B18, dev clock)', () => {
   let t: TestApp;

@@ -2,10 +2,10 @@ import { getModelToken } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, signIn } from '../setup/helpers';
-import { JobQueue } from '../../src/jobs/background-jobs';
+import { JobQueue } from '../../src/jobs/jobs.module';
 import { AiProvider, FakeAiProvider } from '../../src/modules/ai/ai.provider';
 import { AppConfigService } from '../../src/modules/content/app-config.service';
-import { VoiceService } from '../../src/modules/voice/voice.module';
+import { VoiceService } from '../../src/modules/voice/voice.service';
 
 describe('M5 leftovers: moderation, summaries, pre-rendered audio, spoken replies', () => {
   let t: TestApp;

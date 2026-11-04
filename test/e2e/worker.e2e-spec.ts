@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { loadConfig } from '../../src/config/env';
 import { WorkerModule } from '../../src/worker.module';
-import { ScanProcessor } from '../../src/modules/scans/scan.processor';
+import { ScanProcessor } from '../../src/modules/scans/services/scan.processor';
 import { IndexBuilder } from '../../src/jobs/indexes';
 
 describe('ROLE=worker (DEC-02)', () => {

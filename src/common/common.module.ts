@@ -3,7 +3,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import { APP_CONFIG } from '../config/config.module';
 import type { AppConfig } from '../config/env';
-import type { DeviceDoc } from '../modules/users/users.schemas';
+import type { DeviceDoc } from '../modules/users/schemas/users.schema';
 import { AppAttestVerifier } from './integrity/app-attest';
 import { DeviceIntegrityVerifier } from './integrity/device-verifier';
 import { googlePlayDecoder } from './integrity/play-integrity';

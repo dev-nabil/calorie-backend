@@ -4,7 +4,7 @@ import type { Model } from 'mongoose';
 import sharp from 'sharp';
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, signIn, uploadPhoto } from '../setup/helpers';
-import { JobQueue } from '../../src/jobs/background-jobs';
+import { JobQueue } from '../../src/jobs/jobs.module';
 import { AppConfigService } from '../../src/modules/content/app-config.service';
 import { InlineScanQueue, ScanQueue } from '../../src/modules/scans/scan-queue';
 

@@ -3,8 +3,8 @@ import type { Model } from 'mongoose';
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, signIn } from '../setup/helpers';
 import { ReconcileService } from '../../src/jobs/reconcile';
-import { ConsolePushSender, PushSender } from '../../src/modules/reminders/push';
-import { RemindersService } from '../../src/modules/reminders/reminders.module';
+import { ConsolePushSender, PushSender } from '../../src/modules/reminders/providers/push';
+import { RemindersService } from '../../src/modules/reminders/reminders.service';
 
 describe('Reminders (M9-T1) and the daily_logs reconcile job', () => {
   let t: TestApp;

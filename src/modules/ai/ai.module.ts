@@ -1,10 +1,9 @@
-import { Global, Inject, Injectable, Logger, Module, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
-import type { Worker } from 'bullmq';
+import { Global, Logger, Module } from '@nestjs/common';
 import type Redis from 'ioredis';
 import { APP_CONFIG } from '../../config/config.module';
 import type { AppConfig } from '../../config/env';
 import { REDIS_CONNECTION } from '../../infra/kv/kv.module';
-import { AiJobHandlers, AiJobRunner, BullAiJobRunner, InlineAiJobRunner, startAiWorker } from './ai-jobs';
+import { AiJobHandlers, AiJobRunner, BullAiJobRunner, InlineAiJobRunner } from './ai-jobs';
 import { AiProvider, FakeAiProvider, OpenAiProvider } from './ai.provider';
 import { AiService } from './ai.service';
 
@@ -38,23 +37,3 @@ import { AiService } from './ai.service';
   exports: [AiService, AiProvider, AiJobHandlers, AiJobRunner],
 })
 export class AiModule {}
-
-@Injectable()
-class AiWorker implements OnModuleInit, OnApplicationShutdown {
-  private readonly logger = new Logger('AiWorker');
-  private worker: Worker | null = null;
-  constructor(
-    @Inject(REDIS_CONNECTION) private readonly redis: Redis | null,
-    private readonly handlers: AiJobHandlers,
-  ) {}
-  onModuleInit(): void {
-    if (this.redis) this.worker = startAiWorker(this.redis, this.handlers, this.logger);
-  }
-  async onApplicationShutdown(): Promise<void> {
-    await this.worker?.close();
-  }
-}
-
-/** Worker role: processes queue `ai` (meal parse, onboarding extraction). */
-@Module({ providers: [AiWorker] })
-export class AiWorkerModule {}

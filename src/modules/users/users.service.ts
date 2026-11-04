@@ -9,7 +9,7 @@ import { entitlementView, freeScansRemaining, hmacEmail, isVerifiedAccount } fro
 import { ApiError } from '../../common/errors/api-error';
 import { LOCALES, localeTag, parseLocale } from '../../shared/locales';
 import { TokenService } from '../../common/auth/token.service';
-import type { ScanLedgerDoc, UserDoc } from './users.schemas';
+import type { ScanLedgerDoc, UserDoc } from './schemas/users.schema';
 
 export const DELETION_GRACE_DAYS = 30; // BR-13
 

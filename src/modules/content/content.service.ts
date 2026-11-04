@@ -4,11 +4,11 @@ import type { Model } from 'mongoose';
 import { APP_CONFIG } from '../../config/config.module';
 import type { AppConfig } from '../../config/env';
 import { conversationTurns, loadQuestionSet, type ConversationTurn, type QuestionSet } from '../../domain/onboarding-engine';
-import type { ScanReactionContent } from '../../domain/nutrition-validator';
+import type { ScanReactionContent } from '../../domain/nutrition-validator/reactions';
 import { requestLocale } from '../../common/http/request-context';
 import { DEFAULT_LOCALE, type LocaleCode } from '../../shared/locales';
 import { defaultContentDir, loadContentBundle, type ContentBundle, type PromptFile } from './content.loader';
-import type { AiPromptDoc, ContentVersionDoc } from './content.schemas';
+import type { AiPromptDoc, ContentVersionDoc } from './schemas/content.schema';
 
 type Kind = 'onboarding_questions' | 'conversation' | 'milo_lines';
 const CACHE_MS = 60_000; // admin publishes take effect within 60 s (M7)

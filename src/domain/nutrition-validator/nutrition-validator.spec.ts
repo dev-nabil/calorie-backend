@@ -1,14 +1,6 @@
-import {
-  chooseReactionLine,
-  computeTotals,
-  editItemGrams,
-  kcalFromMacros,
-  normaliseAnalysis,
-  normaliseItem,
-  parseModelOutput,
-  PLAN_EXAMPLE_ANALYSIS,
-  scaleItem,
-} from './index';
+import { computeTotals, editItemGrams, kcalFromMacros, normaliseAnalysis, normaliseItem, parseModelOutput, scaleItem } from './index';
+import { chooseReactionLine } from './reactions';
+import { PLAN_EXAMPLE_ANALYSIS } from './fixtures';
 import type { MealAnalysisOutput } from '../../shared';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';

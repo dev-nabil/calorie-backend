@@ -2,8 +2,8 @@ import { getModelToken } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, signIn } from '../setup/helpers';
-import { encryptSecret, hashPassword, newTotpSecret, totp } from '../../src/modules/admin/admin-crypto';
-import type { AdminRole } from '../../src/modules/admin/admin.schemas';
+import { encryptSecret, hashPassword, newTotpSecret, totp } from '../../src/modules/admin/security/admin-crypto';
+import type { AdminRole } from '../../src/modules/admin/schemas/admin.schema';
 
 const PASSWORD = 'correct-horse-battery';
 

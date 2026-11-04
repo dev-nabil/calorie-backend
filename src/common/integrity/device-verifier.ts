@@ -1,5 +1,5 @@
 import type { Model } from 'mongoose';
-import type { DeviceDoc } from '../../modules/users/users.schemas';
+import type { DeviceDoc } from '../../modules/users/schemas/users.schema';
 import { AppAttestVerifier } from './app-attest';
 import { IntegrityVerifier, type IntegrityContext, type IntegrityResult } from './integrity';
 import { evaluatePlayVerdict, requestHashFor, type PlayDecoder } from './play-integrity';

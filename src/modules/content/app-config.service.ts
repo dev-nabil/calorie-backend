@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
-import type { AppConfigDoc } from './content.schemas';
+import type { AppConfigDoc } from './schemas/content.schema';
 
 const CACHE_MS = 30_000;
 

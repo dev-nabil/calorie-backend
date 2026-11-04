@@ -15,7 +15,7 @@ export type AiRunFeature = AiFeature | 'plan' | 'realtime';
 import { ApiError } from '../../common/errors/api-error';
 import { AppConfigService } from '../content/app-config.service';
 import { AiProvider, FakeAiProvider, type AiResult, type AiUsage } from './ai.provider';
-import type { AiUsageDailyDoc } from './ai.schemas';
+import type { AiUsageDailyDoc } from './schemas/ai.schema';
 import { CircuitBreaker } from './circuit-breaker';
 
 /** Thrown when a kill switch, open breaker or the budget guard stops a call (plan 8.10). */

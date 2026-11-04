@@ -1,6 +1,7 @@
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, seedAdmins, signIn } from '../setup/helpers';
-import { BillingEventsService, RevenueCatWebhookController } from '../../src/modules/billing/revenuecat-webhook';
+import { BillingEventsService } from '../../src/modules/billing/services/billing-events.service';
+import { RevenueCatWebhookController } from '../../src/modules/billing/controllers/revenuecat-webhook.controller';
 import type { AppConfig } from '../../src/config/env';
 import type { Request } from 'express';
 

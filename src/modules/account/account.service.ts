@@ -6,11 +6,11 @@ import { ERROR_CODES } from '../../shared';
 import { clock } from '../../common/clock';
 import { ApiError } from '../../common/errors/api-error';
 import { RateLimiter } from '../../common/rate-limit/rate-limiter.service';
-import { JobHandlers, JobQueue } from '../../jobs/background-jobs';
+import { JobHandlers, JobQueue } from '../../jobs/jobs.module';
 import { StorageService } from '../../infra/storage/storage';
 import { EmailSender } from '../auth/providers';
 import { DELETION_GRACE_DAYS } from '../users/users.service';
-import type { UserDoc } from '../users/users.schemas';
+import type { UserDoc } from '../users/schemas/users.schema';
 
 export const EXPORT_JOB = 'account_export';
 export const PURGE_JOB = 'account_purge';

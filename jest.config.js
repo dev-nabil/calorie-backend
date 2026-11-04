@@ -31,6 +31,6 @@ module.exports = {
       globalTeardown: '<rootDir>/test/setup/global-teardown.ts',
     },
   ],
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.spec.ts', '!src/main.ts', '!src/openapi.ts'],
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.spec.ts', '!src/main.ts', '!src/scripts/**'],
   coverageThreshold: { './src/domain/': { lines: 90, branches: 85, functions: 90, statements: 90 } },
 };

@@ -3,11 +3,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Schema, type Model, type Types } from 'mongoose';
 import { addDays, dayKeyFor } from '../domain/day-keys';
 import { clock } from '../common/clock';
-import { DailyLogsService } from '../modules/tracking/daily-logs.service';
+import { DailyLogsService } from '../modules/tracking/services/daily-logs.service';
 import { TrackingModule } from '../modules/tracking/tracking.module';
 import { PlansModule } from '../modules/plans/plans.module';
-import type { DailyLogDoc } from '../modules/tracking/tracking.schemas';
-import { JobHandlers } from './background-jobs';
+import type { DailyLogDoc } from '../modules/tracking/schemas/tracking.schema';
+import { JobHandlers } from './jobs.module';
 
 export const RECONCILE_JOB = 'daily_logs_reconcile';
 

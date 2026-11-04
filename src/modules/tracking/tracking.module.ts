@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { PlansModule } from '../plans/plans.module';
-import { DailyLogsService } from './daily-logs.service';
-import { DaysService } from './days.service';
-import { MealsService } from './meals.service';
-import { DaysController, MealsController, ProgressController, WeightsController } from './tracking.controllers';
-import { WeightsService } from './weights.service';
+import { DailyLogsService } from './services/daily-logs.service';
+import { DaysService } from './services/days.service';
+import { MealsService } from './services/meals.service';
+import { DaysController } from './controllers/days.controller';
+import { MealsController } from './controllers/meals.controller';
+import { ProgressController } from './controllers/progress.controller';
+import { WeightsController } from './controllers/weights.controller';
+import { WeightsService } from './services/weights.service';
 
 @Module({
   imports: [PlansModule],
