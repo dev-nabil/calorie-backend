@@ -18,7 +18,7 @@ describe('Realtime voice conversation', () => {
   const tool = (h: Record<string, string>, id: string, name: string, args: object) =>
     t.http().post(`/v1/conversations/${id}/realtime/tool`).set(h).set(INTEGRITY).set(idem(`call_test_${String(++n).padStart(4, '0')}`)).send({ callId: `call_test_${n}`, name, arguments: args });
 
-  it('says so, without faking anything, while no OpenAI key is configured', async () => {
+  it('says so, without faking anything, while no Gemini key is configured', async () => {
     const h = bearer((await signIn(t)).accessToken);
     const c = await start(h);
     const res = await session(h, c.id).expect(503);
@@ -32,12 +32,13 @@ describe('Realtime voice conversation', () => {
     const c = await start(h);
     const res = await session(h, c.id).expect(200);
     expect(res.headers['cache-control']).toContain('no-store');
-    expect(res.body).toMatchObject({ clientSecret: 'ek_fake_secret', model: 'gpt-realtime-2.1', voice: 'marin', maxSeconds: 600, sessionKind: 'start' });
-    expect(res.body.callsUrl).toContain('/calls');
+    expect(res.body).toMatchObject({ clientSecret: 'auth_tokens/fake_secret', model: 'gemini-3.8-live', voice: 'Kore', maxSeconds: 600, sessionKind: 'start' });
+    expect(res.body.callsUrl).toMatch(/^wss:\/\//);
 
     const req = fake.realtimeCalls[0]!;
     expect(req.tools.map((x) => x.name)).toEqual(['record_answers', 'confirm_answers']);
-    expect(req.transcriptionLanguage).toBe('en');
+    expect(req.sessionSec).toBeGreaterThan(600);
+    expect(req.tools[0]).not.toHaveProperty('type');
     expect(req.instructions).toContain('You are Milo');
     expect(req.instructions).toContain('Greet the user warmly');
     expect(req.instructions).toContain('What should I call you'); // first question
@@ -47,13 +48,60 @@ describe('Realtime voice conversation', () => {
     expect(JSON.stringify(req.tools[0])).toContain('"questionId"');
   });
 
-  it('hints the transcription language and speaks Bangla when the app is in Bangla', async () => {
+  it('ends the user\'s turn after three seconds of silence and keeps replies short', async () => {
+    fake.configured = true;
+    const h = bearer((await signIn(t)).accessToken);
+    const c = await start(h);
+    await session(h, c.id).expect(200);
+    const req = fake.realtimeCalls[0]!;
+    expect(req.silenceMs).toBe(3000);
+    expect(req.maxOutputTokens).toBe(500);
+    expect(req.instructions).toContain('three seconds of silence');
+    expect(req.instructions).not.toContain('If the user interrupts');
+  });
+
+  it('a seeded row follows its file on reboot; an admin version is left alone', async () => {
+    const { ContentService } = await import('../../src/modules/content/content.service');
+    const { getModelToken } = await import('@nestjs/mongoose');
+    const content = t.get<InstanceType<typeof ContentService>>(ContentService);
+    const versions = t.get<import('mongoose').Model<{ kind: string; version: number; data: unknown; source: string; publishedAt: Date }>>(getModelToken('ContentVersion'));
+    const prompts = t.get<import('mongoose').Model<{ key: string; version: number; content: string }>>(getModelToken('AiPrompt'));
+    const file = (await versions.findOne({ kind: 'conversation', version: 2 }).lean())!.data;
+    await versions.updateOne({ kind: 'conversation', version: 2 }, { $set: { data: { stale: true } } });
+    await versions.create({ kind: 'conversation', version: 9, data: { edited: true }, source: 'admin', publishedAt: new Date() });
+    await prompts.updateOne({ key: 'onboarding-voice', version: 3 }, { $set: { content: 'stale' } });
+
+    await content.seed();
+
+    expect((await versions.findOne({ kind: 'conversation', version: 2 }).lean())!.data).toEqual(file);
+    expect((await versions.findOne({ kind: 'conversation', version: 9 }).lean())!.data).toEqual({ edited: true });
+    expect((await prompts.findOne({ key: 'onboarding-voice', version: 3 }).lean())!.content).not.toBe('stale');
+    await versions.deleteOne({ kind: 'conversation', version: 9 });
+    content.clearCache();
+  });
+
+  it('serves the newest prompt file, and a version an admin chose survives a reboot', async () => {
+    const { ContentService } = await import('../../src/modules/content/content.service');
+    const content = t.get<InstanceType<typeof ContentService>>(ContentService);
+    expect((await content.activePrompt('onboarding-voice'))?.version).toBe(3);
+
+    const { getModelToken } = await import('@nestjs/mongoose');
+    const prompts = t.get<import('mongoose').Model<{ key: string; version: number; active: boolean; activatedAt: Date | null }>>(getModelToken('AiPrompt'));
+    await prompts.updateMany({ key: 'onboarding-voice' }, { $set: { active: false } });
+    await prompts.updateOne({ key: 'onboarding-voice', version: 1 }, { $set: { active: true, activatedAt: new Date() } });
+    await content.seed();
+    expect((await content.activePrompt('onboarding-voice'))?.version).toBe(1);
+
+    await prompts.updateOne({ key: 'onboarding-voice', version: 1 }, { $set: { active: false, activatedAt: null } });
+    await prompts.updateOne({ key: 'onboarding-voice', version: 2 }, { $set: { active: true } });
+  });
+
+  it('speaks Bangla when the app is in Bangla', async () => {
     fake.configured = true;
     const h = bearer((await signIn(t)).accessToken);
     const c = await start(h);
     await session(h, c.id, { 'X-App-Locale': 'bn-BD', 'Accept-Language': 'bn' }).expect(200);
     const req = fake.realtimeCalls[0]!;
-    expect(req.transcriptionLanguage).toBe('bn');
     expect(req.instructions).toContain('Bangla');
   });
 
@@ -79,14 +127,16 @@ describe('Realtime voice conversation', () => {
       answers: [
         { questionId: 'q05', value: 'Alex', confidence: 0.95 },
         { questionId: 'q01', value: 'lose', confidence: 0.9 },
-        { questionId: 'q09', value: { kind: 'weight', unit: 'kg', value: 80, stone: null, pounds: null, isEstimate: false }, confidence: 0.95 }, // not open yet: dropped
+        { questionId: 'q09', value: { kind: 'weight', unit: 'kg', value: 80, stone: null, pounds: null, isEstimate: false }, confidence: 0.95 }, // volunteered before its rule shows it: held, not saved yet
       ],
     }).expect(200);
     const out1 = JSON.parse(first.body.output);
     expect(out1.status).toBe('saved');
-    expect(out1.saved).toHaveLength(2);
-    expect(out1.next.questions.map((q: { id: string }) => q.id)).toEqual(['q06', 'q08', 'q09']);
-    expect(first.body.reply).toMatchObject({ turnId: 'about_you', needsConfirmation: false, done: false });
+    expect(out1.saved).toHaveLength(3);
+    expect(out1.next.questions.filter((q: { askNow: boolean }) => q.askNow).map((q: { id: string }) => q.id)).toEqual(['q06']);
+    expect(out1.next.questions.map((q: { id: string }) => q.id)).not.toContain('q07'); // always its own turn
+    expect(first.body.reply).toMatchObject({ turnId: 'age', needsConfirmation: false, done: false });
+    expect(first.body.reply.extracted.find((a: { questionId: string }) => a.questionId === 'q09').held).toBe(true);
 
     const state = await t.http().get('/v1/onboarding/state').set(h).expect(200);
     expect(state.body.answers.map((a: { questionId: string }) => a.questionId).sort()).toEqual(['q01', 'q05']);
@@ -152,6 +202,7 @@ describe('Realtime voice conversation', () => {
     const usage = t.get<{ findOne: (q: object) => { lean: () => Promise<{ requests: number; costUsd: number } | null> } }>(getModelToken('AiUsageDaily'));
     const row = await usage.findOne({ feature: 'realtime' }).lean();
     expect(row?.requests).toBe(1);
-    expect(row!.costUsd).toBeGreaterThan(0.1);
+    // (2000-1000 fresh audio in x $3 + 3000 text in x $0.75 + 1000 cached x $0.75 + 1500 audio out x $12 + 200 text out x $4.5) / 1M
+    expect(row!.costUsd).toBeCloseTo(0.0249, 6);
   });
 });

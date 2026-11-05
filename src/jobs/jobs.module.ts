@@ -78,7 +78,7 @@ export class InlineJobQueue extends JobQueue {
 }
 
 /**
- * Runs schedules: with Redis the worker role creates BullMQ job schedulers; without Redis
+ * Runs schedules: with Redis the worker role (or `all`) creates BullMQ job schedulers; without Redis
  * (`start:local`) the API process runs them with timers. Never in NODE_ENV=test.
  */
 @Injectable()
@@ -101,7 +101,7 @@ class JobRunner implements OnModuleInit, OnApplicationShutdown {
 
   private async start(): Promise<void> {
     if (this.config.NODE_ENV === 'test') return;
-    if (this.redis && this.config.ROLE === 'worker') {
+    if (this.redis && (this.config.ROLE === 'worker' || this.config.ROLE === 'all')) {
       this.worker = new Worker(JOBS_QUEUE, async (job) => this.handlers.dispatch(job.name, job.data), { connection: this.redis, concurrency: 4 });
       for (const [name, every] of this.handlers.scheduled()) await (this.queue as BullJobQueue).schedule(name, every);
       this.logger.log(`jobs worker started (${this.handlers.scheduled().length} schedules)`);

@@ -6,7 +6,6 @@ import {
   ERROR_CODES,
   type AnswerInput,
   type CompleteOnboardingResponse,
-  type EligibilityAttestation,
   type OnboardingAnswer,
   type OnboardingRoute,
   type OnboardingState,
@@ -19,6 +18,7 @@ import {
   applicableQuestions,
   deferUnanswered,
   deferredQuestions,
+  isSettled,
   nextQuestion,
   profileFromAnswers,
   type AnswerMap,
@@ -96,10 +96,12 @@ export class OnboardingService {
       await this.profiles.updateOne({ userId: new Types.ObjectId(userId) }, { $set: { 'onboarding.route': route } }, { upsert: true });
     }
     const l = await this.load(userId, route);
+    // "Not asked yet" never overwrites a real answer or a decline: a device that missed an answer cannot wipe it.
+    const updates = inputs.filter((i) => i.status !== 'deferred' || !isSettled(l.answers[i.questionId]));
     const result = applyAnswers(
       l.set,
       l.answers,
-      inputs.map((i) => ({ questionId: i.questionId, status: i.status, value: i.value, detail: i.detail ?? null, inputMethod: i.inputMethod })),
+      updates.map((i) => ({ questionId: i.questionId, status: i.status, value: i.value, detail: i.detail ?? null, inputMethod: i.inputMethod })),
       l.ctx,
     );
     const at = new Map(inputs.map((i) => [i.questionId, i.answeredAt ? new Date(i.answeredAt) : new Date()]));
@@ -144,8 +146,7 @@ export class OnboardingService {
   /** profiles hold the current active values; habits-only never keeps energy targets. */
   private async rebuildProfile(l: Loaded, extra: Record<string, unknown> = {}): Promise<ProfileDoc> {
     const fields = profileFromAnswers(l.set, l.answers, l.ctx.today);
-    const attestation = (extra.attestation as EligibilityAttestation | undefined) ?? l.profile.attestation ?? null;
-    const { mode, ...eligibility } = assessEligibility(planInputsFrom({ ...l.profile, ...fields } as ProfileDoc, attestation));
+    const { mode, ...eligibility } = assessEligibility(planInputsFrom({ ...l.profile, ...fields } as ProfileDoc));
     const completed = (extra['onboarding.status'] ?? l.profile.onboarding.status) === 'completed';
     const deferredCount = completed ? deferredQuestions(l.set, l.answers, { ...l.ctx, route: 'detailed' }).length : 0;
     const profile = await this.profiles
@@ -158,13 +159,13 @@ export class OnboardingService {
     if (fields.displayName && fields.displayName !== l.user.displayName) {
       await this.users.users.updateOne({ _id: l.user._id }, { $set: { displayName: fields.displayName.slice(0, 50) } });
     }
-    // Under 18 / unknown age, or a safety reason (pregnancy, supervised condition, eating-disorder concern, underweight + loss goal): no calorie plan stays active.
+    // Under 18 / unknown age, pregnant or breastfeeding, or underweight with a loss goal: no calorie plan stays active.
     if (mode === 'habits_only' || eligibility.reasons.some(isSafetyReason)) await this.plans.enforceHabitsOnly(l.user._id.toString());
     return profile!;
   }
 
   /** POST /onboarding/complete: defer what was not asked, build the profile and a plan preview. */
-  async complete(userId: string, attestation?: EligibilityAttestation): Promise<CompleteOnboardingResponse> {
+  async complete(userId: string): Promise<CompleteOnboardingResponse> {
     const l = await this.load(userId);
     if (l.answers.q01?.status !== 'answered') {
       throw new DomainError(ERROR_CODES.ANSWER_REQUIRED, 'The main goal (q01) is required before finishing (BR-10)', { questionId: 'q01' });
@@ -175,7 +176,6 @@ export class OnboardingService {
     const profile = await this.rebuildProfile(next, {
       'onboarding.status': 'completed',
       'onboarding.completedAt': l.profile.onboarding.completedAt ?? new Date(),
-      ...(attestation ? { attestation } : {}),
     });
     if (profile.weightKg != null) await this.seedWeight(l.user, profile);
     const preview = await this.plans.preview(userId);

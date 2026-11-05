@@ -1061,7 +1061,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "What a plan can be made from right now: missing essentials, contradictions, professional-guidance reasons. No model call",
+            "description": "What a plan can be made from right now: missing essentials and contradictions. No model call",
             "content": {
               "application/json": {
                 "schema": {
@@ -2317,6 +2317,102 @@
             }
           },
           "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "scans"
+        ]
+      }
+    },
+    "/v1/scans/{scanId}/recalculate": {
+      "post": {
+        "operationId": "ScansController_recalculate",
+        "parameters": [
+          {
+            "name": "scanId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecalculateScanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Portion and name corrections from the stored per-100-gram values. No model call, no charge, nothing saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecalculatedScan"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
             "description": "Error",
             "content": {
               "application/json": {
@@ -7168,7 +7264,7 @@
         },
         "responses": {
           "200": {
-            "description": "MP3 URL, valid 1 hour; cached per message",
+            "description": "WAV URL, valid 1 hour; cached per message",
             "content": {
               "application/json": {
                 "schema": {
@@ -8414,12 +8510,10 @@
             "type": "boolean"
           },
           "supervisedNutritionCondition": {
-            "type": "boolean",
-            "description": "A medical condition that needs supervised nutrition"
+            "type": "boolean"
           },
           "eatingDisorderConcern": {
-            "type": "boolean",
-            "description": "Has, or has had, an eating disorder, or counting food and weight feels distressing. Required: an answer that was never given is never read as \"no\""
+            "type": "boolean"
           }
         },
         "required": [
@@ -8427,7 +8521,8 @@
           "supervisedNutritionCondition",
           "eatingDisorderConcern"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Deprecated: the health check is gone. Still accepted from older apps and ignored"
       },
       "CompleteOnboardingRequest": {
         "type": "object",
@@ -9033,7 +9128,7 @@
         "properties": {
           "questionId": {
             "type": "string",
-            "description": "Question to answer; \"eligibility\" for the health check step"
+            "description": "Question to answer"
           },
           "field": {
             "type": "string"
@@ -9079,7 +9174,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Why a professional should guide this plan (professional_guidance)"
+            "description": "Why this is a habits goal without calorie targets (habits_only): under_18, pregnant_or_breastfeeding"
           },
           "optionalUnanswered": {
             "type": "array",
@@ -9140,7 +9235,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Why a professional should guide this plan (professional_guidance)"
+            "description": "Why this is a habits goal without calorie targets (habits_only): under_18, pregnant_or_breastfeeding"
           },
           "optionalUnanswered": {
             "type": "array",
@@ -9165,11 +9260,11 @@
           },
           "attestationOnFile": {
             "type": "boolean",
-            "description": "The health check was answered; do not ask again"
+            "description": "Deprecated: always false, the health check is gone"
           },
           "attestationNeeded": {
             "type": "boolean",
-            "description": "An estimate is otherwise possible, so the health check step must be shown"
+            "description": "Deprecated: always false, the health check is gone"
           },
           "latestDraftId": {
             "nullable": true,
@@ -9751,6 +9846,162 @@
           "fatG"
         ]
       },
+      "NutrientValues": {
+        "type": "object",
+        "properties": {
+          "kcal": {
+            "nullable": true,
+            "type": "number"
+          },
+          "proteinG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "carbsG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "fatG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "fiberG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sugarG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sodiumMg": {
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "kcal",
+          "proteinG",
+          "carbsG",
+          "fatG",
+          "fiberG",
+          "sugarG",
+          "sodiumMg"
+        ]
+      },
+      "MealTotals": {
+        "type": "object",
+        "properties": {
+          "kcal": {
+            "nullable": true,
+            "type": "number"
+          },
+          "proteinG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "carbsG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "fatG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "fiberG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sugarG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sodiumMg": {
+            "nullable": true,
+            "type": "number"
+          },
+          "incomplete": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "kcal",
+                "proteinG",
+                "carbsG",
+                "fatG",
+                "fiberG",
+                "sugarG",
+                "sodiumMg"
+              ]
+            },
+            "description": "Nutrients unknown for at least one counted item"
+          }
+        },
+        "required": [
+          "kcal",
+          "proteinG",
+          "carbsG",
+          "fatG",
+          "fiberG",
+          "sugarG",
+          "sodiumMg",
+          "incomplete"
+        ]
+      },
+      "NutritionSource": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "verified_record",
+              "ai_estimate",
+              "adjusted_estimate",
+              "user_entered"
+            ]
+          },
+          "recordId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "nullable": true,
+            "description": "Publisher of the record, for display",
+            "type": "string"
+          },
+          "reference": {
+            "nullable": true,
+            "description": "Identifier inside that publication",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "recordId",
+          "name",
+          "reference"
+        ]
+      },
+      "OtherNutrient": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "calciumMg",
+              "ironMg",
+              "potassiumMg",
+              "vitaminCMg"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "amount"
+        ]
+      },
       "Point": {
         "type": "object",
         "properties": {
@@ -9770,6 +10021,63 @@
           "y"
         ]
       },
+      "Per100gInput": {
+        "type": "object",
+        "properties": {
+          "kcal": {
+            "nullable": true,
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "proteinG": {
+            "nullable": true,
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "carbsG": {
+            "nullable": true,
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "fatG": {
+            "nullable": true,
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "fiberG": {
+            "nullable": true,
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "sugarG": {
+            "nullable": true,
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "sodiumMg": {
+            "nullable": true,
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100000
+          }
+        },
+        "required": [
+          "kcal",
+          "proteinG",
+          "carbsG",
+          "fatG",
+          "fiberG",
+          "sugarG",
+          "sodiumMg"
+        ],
+        "additionalProperties": false
+      },
       "MealItemInput": {
         "type": "object",
         "properties": {
@@ -9784,29 +10092,46 @@
             "maximum": 2000
           },
           "kcal": {
+            "nullable": true,
             "type": "number",
             "minimum": 0,
             "maximum": 10000
           },
           "proteinG": {
+            "nullable": true,
             "type": "number",
             "minimum": 0,
             "maximum": 1000
           },
           "carbsG": {
+            "nullable": true,
             "type": "number",
             "minimum": 0,
             "maximum": 1000
           },
           "fatG": {
+            "nullable": true,
             "type": "number",
             "minimum": 0,
             "maximum": 1000
           },
           "fiberG": {
+            "nullable": true,
             "type": "number",
             "minimum": 0,
             "maximum": 1000
+          },
+          "sugarG": {
+            "nullable": true,
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "sodiumMg": {
+            "nullable": true,
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100000
           },
           "confidence": {
             "type": "number",
@@ -9821,6 +10146,36 @@
           },
           "addedByUser": {
             "type": "boolean"
+          },
+          "preparation": {
+            "type": "string",
+            "enum": [
+              "boiled",
+              "steamed",
+              "fried",
+              "deep_fried",
+              "grilled",
+              "roasted",
+              "baked",
+              "curried",
+              "stewed",
+              "raw",
+              "mixed",
+              "unknown"
+            ]
+          },
+          "scanItemId": {
+            "description": "AnalysedItem.id: the server rebuilds this item from the stored scan, ignoring the numbers sent here",
+            "type": "string",
+            "maxLength": 16
+          },
+          "per100g": {
+            "description": "Basis for items not from a scan; item values are then computed from it",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Per100gInput"
+              }
+            ]
           }
         },
         "required": [
@@ -9843,18 +10198,30 @@
             "type": "number"
           },
           "kcal": {
+            "nullable": true,
             "type": "number"
           },
           "proteinG": {
+            "nullable": true,
             "type": "number"
           },
           "carbsG": {
+            "nullable": true,
             "type": "number"
           },
           "fatG": {
+            "nullable": true,
             "type": "number"
           },
           "fiberG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sugarG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sodiumMg": {
             "nullable": true,
             "type": "number"
           },
@@ -9871,31 +10238,82 @@
           "addedByUser": {
             "type": "boolean"
           },
+          "preparation": {
+            "nullable": true,
+            "type": "string",
+            "enum": [
+              "boiled",
+              "steamed",
+              "fried",
+              "deep_fried",
+              "grilled",
+              "roasted",
+              "baked",
+              "curried",
+              "stewed",
+              "raw",
+              "mixed",
+              "unknown",
+              null
+            ]
+          },
+          "scanItemId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "per100g": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NutrientValues"
+              }
+            ],
+            "type": "object"
+          },
+          "source": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NutritionSource"
+              }
+            ],
+            "type": "object"
+          },
+          "otherNutrients": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OtherNutrient"
+            }
+          },
           "scaled": {
             "type": "object",
             "properties": {
+              "grams": {
+                "type": "number"
+              },
               "kcal": {
+                "nullable": true,
                 "type": "number"
               },
               "proteinG": {
+                "nullable": true,
                 "type": "number"
               },
               "carbsG": {
+                "nullable": true,
                 "type": "number"
               },
               "fatG": {
-                "type": "number"
-              },
-              "grams": {
+                "nullable": true,
                 "type": "number"
               }
             },
             "required": [
+              "grams",
               "kcal",
               "proteinG",
               "carbsG",
-              "fatG",
-              "grams"
+              "fatG"
             ],
             "description": "Values after the portion multiplier"
           }
@@ -9908,10 +10326,17 @@
           "carbsG",
           "fatG",
           "fiberG",
+          "sugarG",
+          "sodiumMg",
           "confidence",
           "edited",
           "excluded",
           "addedByUser",
+          "preparation",
+          "scanItemId",
+          "per100g",
+          "source",
+          "otherNutrients",
           "scaled"
         ]
       },
@@ -10111,7 +10536,7 @@
             }
           },
           "totals": {
-            "$ref": "#/components/schemas/NutrientTotals"
+            "$ref": "#/components/schemas/MealTotals"
           },
           "deletedAt": {
             "nullable": true,
@@ -10829,7 +11254,16 @@
       "AnalysedItem": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable within one scan; send it back as scanItemId"
+          },
           "name": {
+            "type": "string"
+          },
+          "canonicalName": {
+            "nullable": true,
+            "description": "English name used to look up records",
             "type": "string"
           },
           "portion": {
@@ -10840,20 +11274,89 @@
             "type": "number"
           },
           "kcal": {
+            "nullable": true,
             "type": "number"
           },
           "proteinG": {
+            "nullable": true,
             "type": "number"
           },
           "carbsG": {
+            "nullable": true,
             "type": "number"
           },
           "fatG": {
+            "nullable": true,
             "type": "number"
           },
           "fiberG": {
             "nullable": true,
             "type": "number"
+          },
+          "sugarG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sodiumMg": {
+            "nullable": true,
+            "type": "number"
+          },
+          "per100g": {
+            "description": "Basis for every value on this item; portion changes recalculate from it",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NutrientValues"
+              }
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/NutritionSource"
+          },
+          "otherNutrients": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OtherNutrient"
+            }
+          },
+          "preparation": {
+            "nullable": true,
+            "type": "string",
+            "enum": [
+              "boiled",
+              "steamed",
+              "fried",
+              "deep_fried",
+              "grilled",
+              "roasted",
+              "baked",
+              "curried",
+              "stewed",
+              "raw",
+              "mixed",
+              "unknown",
+              null
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "single",
+              "mixed_dish",
+              "component"
+            ]
+          },
+          "excluded": {
+            "type": "boolean",
+            "description": "Left out of totals, for example an ingredient of a mixed dish"
+          },
+          "countedIn": {
+            "nullable": true,
+            "description": "id of the mixed dish that already contains this item",
+            "type": "string"
+          },
+          "assumption": {
+            "nullable": true,
+            "type": "string"
           },
           "confidence": {
             "type": "number"
@@ -10873,7 +11376,9 @@
           }
         },
         "required": [
+          "id",
           "name",
+          "canonicalName",
           "portion",
           "grams",
           "kcal",
@@ -10881,6 +11386,16 @@
           "carbsG",
           "fatG",
           "fiberG",
+          "sugarG",
+          "sodiumMg",
+          "per100g",
+          "source",
+          "otherNutrients",
+          "preparation",
+          "role",
+          "excluded",
+          "countedIn",
+          "assumption",
           "confidence",
           "point",
           "kcalRecomputed"
@@ -10889,8 +11404,23 @@
       "MealAnalysis": {
         "type": "object",
         "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "no_food",
+              "unclear"
+            ]
+          },
           "isFood": {
             "type": "boolean"
+          },
+          "isEstimate": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "A photo cannot establish weight, ingredients or hidden oil"
           },
           "mealName": {
             "nullable": true,
@@ -10903,7 +11433,13 @@
             }
           },
           "totals": {
-            "$ref": "#/components/schemas/NutrientTotals"
+            "$ref": "#/components/schemas/MealTotals"
+          },
+          "assumptions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "notes": {
             "nullable": true,
@@ -10913,6 +11449,17 @@
             "nullable": true,
             "type": "string"
           },
+          "retakeReason": {
+            "nullable": true,
+            "type": "string",
+            "enum": [
+              "blurry",
+              "too_dark",
+              "too_far",
+              "obstructed",
+              null
+            ]
+          },
           "reactionLineId": {
             "nullable": true,
             "description": "Rule-based Milo reaction (R-10)",
@@ -10920,12 +11467,16 @@
           }
         },
         "required": [
+          "outcome",
           "isFood",
+          "isEstimate",
           "mealName",
           "items",
           "totals",
+          "assumptions",
           "notes",
           "clarifyingQuestion",
+          "retakeReason",
           "reactionLineId"
         ]
       },
@@ -11041,6 +11592,133 @@
           "queuedAt",
           "finishedAt"
         ]
+      },
+      "RecalculateScanRequest": {
+        "type": "object",
+        "properties": {
+          "portionMultiplier": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 5
+          },
+          "items": {
+            "maxItems": 15,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 16
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "grams": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 2000
+                },
+                "preparation": {
+                  "type": "string",
+                  "enum": [
+                    "boiled",
+                    "steamed",
+                    "fried",
+                    "deep_fried",
+                    "grilled",
+                    "roasted",
+                    "baked",
+                    "curried",
+                    "stewed",
+                    "raw",
+                    "mixed",
+                    "unknown"
+                  ]
+                },
+                "excluded": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "addedItems": {
+            "description": "Foods added by text after the scan",
+            "maxItems": 15,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "grams": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 2000
+                },
+                "per100g": {
+                  "$ref": "#/components/schemas/Per100gInput"
+                },
+                "excluded": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name",
+                "grams",
+                "per100g"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "RecalculatedScan": {
+        "type": "object",
+        "properties": {
+          "portionMultiplier": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalysedItem"
+            },
+            "description": "Values at the base portion (1×)"
+          },
+          "totals": {
+            "description": "Counted items after the portion multiplier",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MealTotals"
+              }
+            ]
+          },
+          "staleItems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Renamed items with no matching record: their nutrition is still the earlier estimate"
+          }
+        },
+        "required": [
+          "portionMultiplier",
+          "items",
+          "totals",
+          "staleItems"
+        ],
+        "description": "Not saved; review then POST /meals"
       },
       "MealParseRequest": {
         "type": "object",
@@ -11664,6 +12342,14 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ExtractedAnswer"
+            },
+            "description": "Answers this turn saved or held, chips included; the app mirrors them"
+          },
+          "skipped": {
+            "description": "Questions this turn saved as skipped (onboarding)",
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           },
           "needsConfirmation": {
@@ -11809,12 +12495,12 @@
         "properties": {
           "clientSecret": {
             "type": "string",
-            "description": "Ephemeral OpenAI client secret (ek_...). Valid only to open the call; never store it"
+            "description": "Ephemeral Gemini auth token (auth_tokens/...). One use, valid only to open the call; never store it"
           },
           "expiresAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Open the WebRTC call before this time"
+            "description": "Open the Live WebSocket before this time"
           },
           "model": {
             "type": "string"
@@ -11824,7 +12510,7 @@
           },
           "callsUrl": {
             "type": "string",
-            "description": "SDP exchange endpoint: POST the offer with Content-Type application/sdp and Authorization: Bearer clientSecret"
+            "description": "Live API WebSocket endpoint: connect to callsUrl + \"?access_token=\" + clientSecret, then send {\"setup\":{\"model\":\"models/<model>\"}}. Instructions, tools, voice and turn detection are locked into the token"
           },
           "maxSeconds": {
             "type": "integer",
@@ -11884,7 +12570,7 @@
         "properties": {
           "output": {
             "type": "string",
-            "description": "JSON text to return to the model as the function_call_output"
+            "description": "JSON text to return to the model as the function response"
           },
           "reply": {
             "description": "The same state as a normal turn: saved answers to mirror, chips, confirmation, done. Its `reply` text is a hint; the model speaks in its own words",
@@ -11985,7 +12671,7 @@
             "additionalProperties": {
               "type": "string"
             },
-            "description": "lineId → signed URL of tts/[<lang>/]{version}/{lineId}.mp3"
+            "description": "lineId → signed URL of tts/[<lang>/]{version}/{lineId}.wav"
           }
         },
         "required": [

@@ -5,7 +5,6 @@
 import {
   WATER_DEFAULT_TARGET_ML,
   type ActivityLevel,
-  type EligibilityAttestation,
   type MacroTargets,
   type PlanPreview,
   type PlanSource,
@@ -46,11 +45,14 @@ export const FAT_SHARE = 0.27; // BR-05
 /** Upper bound of user adjustment above maintenance. OQ-21 proposal, not yet a product rule. */
 export const ADJUST_MAX_OVER_TDEE = 0.2;
 export const ADULT_AGE = 18;
-/** Below this BMI a weight-loss goal is referred to a professional instead of getting a plan. */
+/** Below this BMI a weight-loss goal cannot be set: the person picks another goal instead. */
 export const UNDERWEIGHT_BMI = 18.5;
 
-/** Reasons that mean a professional, not this app, should guide the person. No calorie, weight or time figures for them. */
-export const SAFETY_REASONS = ['pregnant_or_breastfeeding', 'supervised_condition', 'eating_disorder_concern', 'underweight_loss_goal'] as const;
+/** Stated life stages that get a habits goal instead of calorie, weight or time figures (q38). */
+export const NO_TARGET_LIFE_STAGES: readonly string[] = ['pregnant', 'breastfeeding'];
+
+/** Reasons no calorie, weight or time figures are set. The person keeps a habits goal or picks another goal; nothing here is a diagnosis. */
+export const SAFETY_REASONS = ['pregnant_or_breastfeeding', 'underweight_loss_goal'] as const;
 export const isSafetyReason = (r: string): boolean => (SAFETY_REASONS as readonly string[]).includes(r);
 
 export function bmiOf(weightKg: number, heightCm: number): number {
@@ -70,7 +72,8 @@ export interface PlanInputs {
   activityLevel: ActivityLevel | null;
   goal: string | null;
   targetWeightKg?: number | null;
-  attestation?: EligibilityAttestation | null;
+  /** q38: none | pregnant | breastfeeding | declined; null = not asked yet. Only read when the sex input is female. */
+  lifeStage?: string | null;
   waterMl?: number;
 }
 
@@ -82,8 +85,8 @@ export interface EligibilityResult {
 }
 
 /**
- * BR-04 eligibility. Unknown age or under 18 → habits-only mode (plan 8.8 rule 3). Adults
- * need sex input, height, weight, activity and the eligibility check (plan section 10).
+ * BR-04 eligibility. Unknown age or under 18 → habits-only mode (plan 8.8 rule 3). Adults need
+ * sex input, height, weight and activity, plus the life stage when the sex input is female.
  */
 export function assessEligibility(i: PlanInputs): EligibilityResult {
   if (i.ageYears === null || !Number.isFinite(i.ageYears)) {
@@ -94,17 +97,15 @@ export function assessEligibility(i: PlanInputs): EligibilityResult {
   }
   const reasons: string[] = [];
   if (!i.calculationSex) reasons.push('sex_input_missing');
+  // Only asked when it can apply. A question never asked is not read as "no"; a declined one is the person's choice.
+  if (i.calculationSex === 'female') {
+    if (!i.lifeStage) reasons.push('life_stage_missing');
+    else if (NO_TARGET_LIFE_STAGES.includes(i.lifeStage)) reasons.push('pregnant_or_breastfeeding');
+  }
   if (!isPositive(i.heightCm)) reasons.push('height_missing');
   if (!isPositive(i.weightKg)) reasons.push('weight_missing');
   if (!i.activityLevel) reasons.push('activity_missing');
-  // A stored attestation from before the eating-disorder row existed counts as unanswered, never as "no".
-  if (!i.attestation || typeof (i.attestation as { eatingDisorderConcern?: unknown }).eatingDisorderConcern !== 'boolean') reasons.push('eligibility_unconfirmed');
-  else {
-    if (i.attestation.pregnantOrBreastfeeding) reasons.push('pregnant_or_breastfeeding');
-    if (i.attestation.supervisedNutritionCondition) reasons.push('supervised_condition');
-    if (i.attestation.eatingDisorderConcern) reasons.push('eating_disorder_concern');
-  }
-  // A person who is already underweight is not given a weight-loss plan (a professional should look first).
+  // A person who is already underweight is not given a weight-loss plan: they choose another goal (plan-assessment).
   if (i.goal === 'lose' && isPositive(i.heightCm) && isPositive(i.weightKg) && bmiOf(i.weightKg, i.heightCm) < UNDERWEIGHT_BMI) {
     reasons.push('underweight_loss_goal');
   }

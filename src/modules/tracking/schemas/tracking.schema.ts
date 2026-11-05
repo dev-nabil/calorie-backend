@@ -1,14 +1,36 @@
 import { Schema, Types } from 'mongoose';
-import { MEAL_CATEGORIES, MEAL_SOURCES, WEIGHT_SOURCES, type MealCategory, type MealSource, type NutrientTotals, type WeightSource } from '../../../shared';
+import {
+  MEAL_CATEGORIES,
+  MEAL_SOURCES,
+  WEIGHT_SOURCES,
+  type FoodPreparation,
+  type MealCategory,
+  type MealSource,
+  type MealTotals,
+  type NutrientTotals,
+  type NutrientValues,
+  type NutritionSource,
+  type OtherNutrient,
+  type WeightSource,
+} from '../../../shared';
 
 export interface StoredMealItem {
   name: string;
   grams: number;
-  kcal: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
+  kcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
   fiberG: number | null;
+  sugarG: number | null;
+  sodiumMg: number | null;
+  preparation: FoodPreparation | null;
+  /** AnalysedItem.id of the scan this came from. */
+  scanItemId: string | null;
+  /** The basis of every value above; null for entries made before scans stored one. */
+  per100g: NutrientValues | null;
+  source: NutritionSource | null;
+  otherNutrients: OtherNutrient[];
   confidence: number | null;
   edited: boolean;
   excluded: boolean;
@@ -29,7 +51,7 @@ export interface MealDoc {
   portionMultiplier: number;
   /** Items at the base portion (1×); totals apply the multiplier (plan 8.3 rule 6). */
   items: StoredMealItem[];
-  totals: NutrientTotals;
+  totals: MealTotals;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -44,6 +66,13 @@ const ItemSchema = new Schema<StoredMealItem>(
     carbsG: Number,
     fatG: Number,
     fiberG: { type: Number, default: null },
+    sugarG: { type: Number, default: null },
+    sodiumMg: { type: Number, default: null },
+    preparation: { type: String, default: null },
+    scanItemId: { type: String, default: null },
+    per100g: { type: Schema.Types.Mixed, default: null },
+    source: { type: Schema.Types.Mixed, default: null },
+    otherNutrients: { type: Schema.Types.Mixed, default: () => [] },
     confidence: { type: Number, default: null },
     edited: { type: Boolean, default: false },
     excluded: { type: Boolean, default: false },
@@ -66,7 +95,7 @@ export const MealSchema = new Schema<MealDoc>(
     photo: { type: new Schema({ key: String, thumbKey: { type: String, default: null }, displayKey: { type: String, default: null } }, { _id: false }), default: null },
     portionMultiplier: { type: Number, default: 1 },
     items: { type: [ItemSchema], default: [] },
-    totals: { kcal: Number, proteinG: Number, carbsG: Number, fatG: Number },
+    totals: { kcal: Number, proteinG: Number, carbsG: Number, fatG: Number, fiberG: Number, sugarG: Number, sodiumMg: Number, incomplete: { type: [String], default: [] } },
     deletedAt: { type: Date, default: null },
   },
   { collection: 'meals', timestamps: true, minimize: false },

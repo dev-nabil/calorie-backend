@@ -8,6 +8,7 @@ import type { LocaleCode } from '../../shared/locales';
 import { languageDirective } from '../ai/language';
 import { AiJobHandlers } from '../ai/ai-jobs';
 import { AiProvider } from '../ai/ai.provider';
+import { DEFAULT_TEXT_MODEL } from '../ai/ai-models';
 import { AiService, AiUnavailableError } from '../ai/ai.service';
 import { fillTemplate } from '../content/content.loader';
 import { ContentService } from '../content/content.service';
@@ -15,7 +16,7 @@ import { ContentService } from '../content/content.service';
 export const PLAN_NARRATIVE_JOB = 'plan_narrative';
 /** Whole budget for one generation, both attempts included (the app waits at most this long plus a little). */
 export const PLAN_NARRATIVE_BUDGET_MS = 75_000;
-const DEFAULT_MODEL = 'gpt-5-mini';
+const DEFAULT_MODEL = DEFAULT_TEXT_MODEL;
 const DEFAULT_TIMEOUT_MS = 40_000;
 const MIN_ATTEMPT_MS = 8_000;
 const MAX_ATTEMPTS = 2;
@@ -71,7 +72,7 @@ export class PlanNarrativeHandler implements OnModuleInit {
 
     const prompt = await this.content.activePrompt('plan-narrative');
     if (!prompt) return fail('unavailable', false, null, job.locale);
-    const model = await this.ai.modelFor('plan', this.config.OPENAI_PLAN_MODEL || (typeof prompt.meta?.model === 'string' ? prompt.meta.model : '') || DEFAULT_MODEL);
+    const model = await this.ai.modelFor('plan', this.config.GEMINI_PLAN_MODEL || (typeof prompt.meta?.model === 'string' ? prompt.meta.model : '') || DEFAULT_MODEL);
     const timeoutMs = (prompt.params?.timeoutSec ?? 0) * 1000 || DEFAULT_TIMEOUT_MS;
     const maxOutputTokens = prompt.params?.maxOutputTokens || 3000;
     const deadline = Date.now() + PLAN_NARRATIVE_BUDGET_MS;
@@ -93,9 +94,8 @@ export class PlanNarrativeHandler implements OnModuleInit {
             context: languageDirective(job.locale) + fillTemplate(prompt.dynamicTemplate, { facts: job.facts, retryNote }),
             timeoutMs: Math.max(MIN_ATTEMPT_MS, Math.min(timeoutMs, deadline - Date.now())),
             maxOutputTokens,
-            store: false,
-            // Reasoning models spend most of their time and tokens thinking; a short personalised write-up needs little (Bangla needs most tokens).
-            reasoningEffort: /^(gpt-5|o\d)/.test(model) ? 'low' : undefined,
+            // Thinking tokens bill as output and count against maxOutputTokens; a short personalised write-up needs little.
+            thinking: 'low',
           }),
           { retry: false },
         );

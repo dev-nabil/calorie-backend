@@ -1,6 +1,6 @@
 # nouri-backend
 
-NestJS 11 API and BullMQ worker for Nouri. One codebase, two deployables: `ROLE=api` serves HTTP, `ROLE=worker` runs the queue processors (`src/main.ts` picks the root module).
+NestJS 11 API and BullMQ worker for Nouri. One codebase, two deployables: `ROLE=api` serves HTTP, `ROLE=worker` runs the queue processors (`src/main.ts` picks the root module). `ROLE=all` (the development default in `.env.example`) does both in one process, so `pnpm start:dev` is enough.
 
 ## Structure
 
@@ -9,7 +9,7 @@ Follows the NestJS [modules](https://docs.nestjs.com/modules) guidance: one feat
 ```
 nouri-backend/
 ├── src/
-│   ├── main.ts               entry point (ROLE=api | worker)
+│   ├── main.ts               entry point (ROLE=api | worker | all)
 │   ├── app.module.ts         API root module        worker.module.ts   worker root module
 │   ├── app.setup.ts          HTTP setup shared by main.ts, e2e tests and the OpenAPI script
 │   ├── config/               env schema (zod) and ConfigModule
@@ -45,11 +45,16 @@ Sub-folders appear only when a module has several files of that kind. Request/re
 ```sh
 pnpm install
 cp .env.example .env            # then fill in; check with `pnpm env:doctor`
-pnpm start:dev                  # API with watch        pnpm start:worker   # worker with watch
+pnpm start:dev                  # API + worker in one process with watch (ROLE=all in .env)
+pnpm start:worker               # only for a separate worker (production layout, ROLE=api in .env)
 pnpm start:local                # API with embedded Mongo, no Docker needed
 pnpm lint | typecheck | test    # test = content validation + unit + e2e
 pnpm openapi                    # regenerate openapi/openapi.json (commit it with API changes)
-pnpm admin:seed | plan:smoke | eval:meal-scan
+pnpm admin:seed | plan:smoke | coach:smoke | eval:meal-scan
 ```
 
 `pnpm build` compiles to `dist/`; `node dist/main.js` runs it (the Docker image does exactly this).
+
+## AI
+
+Every AI feature (onboarding extraction, meal-text parsing, coach chat and moderation, plan narrative, conversation summaries, text to speech, food photo scans and the Realtime voice token) runs on Google Gemini through the official `@google/genai` SDK, inside `src/modules/ai` (decision 0011). One key, `GEMINI_API_KEY`; `AI_PROVIDER=fake` (the default in `.env.example`, refused in production) swaps in deterministic fakes. Spend is capped by `AI_MONTHLY_BUDGET_USD` (alert and downgrade thresholds in the admin AI settings); food photo scans keep their own daily caps (`GEMINI_FOOD_DAILY_*`) outside that budget.

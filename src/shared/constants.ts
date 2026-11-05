@@ -39,8 +39,11 @@ export const PLAN_MODEL_ATTEMPTS_PER_DAY = 20;
 /** Energy in one kg of body weight change; a rule of thumb, shown to the user as an estimate. */
 export const KCAL_PER_KG_BODY_WEIGHT = 7700;
 
-/** AI limits per plan (section 8.9); live values come from app_config. */
+/**
+ * AI limits per plan (section 8.9); live values come from app_config. `maxReplyTokens` caps a coach answer, thinking included:
+ * a 120-word answer in Bangla or Hindi takes about three times the tokens of the same answer in English.
+ */
 export const AI_LIMITS = {
-  free: { scansLifetime: FREE_SCANS_DEFAULT, describePerDay: 3, coachPerDay: 10, maxReplyTokens: 300 },
-  plus: { scansPerDay: 30, scansPerMonthSoft: 200, describePerDay: 50, coachPerDay: 100, maxReplyTokens: 400 },
+  free: { scansLifetime: FREE_SCANS_DEFAULT, describePerDay: 3, coachPerDay: 10, maxReplyTokens: 700 },
+  plus: { scansPerDay: 30, scansPerMonthSoft: 200, describePerDay: 50, coachPerDay: 100, maxReplyTokens: 900 },
 } as const;

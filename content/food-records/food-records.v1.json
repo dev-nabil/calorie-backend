@@ -1,0 +1,1301 @@
+{
+ "version": 1,
+ "retrievedOn": "2026-11-04",
+ "sources": {
+  "fct_bd_2013": {
+   "name": "Food Composition Table for Bangladesh (2013)",
+   "publisher": "Institute of Nutrition and Food Science, University of Dhaka; hosted by FAO",
+   "url": "https://www.fao.org/fileadmin/templates/food_composition/documents/FCDB_7_4_14.xlsx",
+   "terms": "Listed by FAO as free access; no licence stated. Confirm before commercial launch."
+  },
+  "usda_fdc": {
+   "name": "USDA FoodData Central",
+   "publisher": "U.S. Department of Agriculture",
+   "url": "https://fdc.nal.usda.gov/",
+   "terms": "Public domain (CC0 1.0)."
+  }
+ },
+ "records": [
+  {
+   "id": "fct_bd:01_0041",
+   "source": "fct_bd_2013",
+   "sourceRef": "01_0041",
+   "sourceName": "Rice, white, sunned, polished, milled, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "white rice",
+    "rice",
+    "plain rice",
+    "steamed rice",
+    "boiled rice",
+    "cooked rice",
+    "plain white rice",
+    "bhat",
+    "bhaat",
+    "ভাত",
+    "সাদা ভাত"
+   ],
+   "preparations": [
+    "boiled",
+    "steamed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 111,
+    "proteinG": 2.1,
+    "carbsG": 24.8,
+    "fatG": 0.1,
+    "fiberG": 1.0,
+    "sugarG": null,
+    "sodiumMg": 4
+   },
+   "other": {
+    "calciumMg": 4.8,
+    "ironMg": 0.4,
+    "potassiumMg": 19.4,
+    "vitaminCMg": 0.0
+   }
+  },
+  {
+   "id": "fct_bd:01_0040",
+   "source": "fct_bd_2013",
+   "sourceRef": "01_0040",
+   "sourceName": "Rice, white, sunned, aromatic, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "aromatic rice",
+    "fragrant rice",
+    "chinigura rice",
+    "sugondhi bhat"
+   ],
+   "preparations": [
+    "boiled",
+    "steamed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 110,
+    "proteinG": 2.2,
+    "carbsG": 24.4,
+    "fatG": 0.2,
+    "fiberG": 1.0,
+    "sugarG": null,
+    "sodiumMg": 3
+   },
+   "other": {
+    "calciumMg": 6.4,
+    "ironMg": 0.4,
+    "potassiumMg": 20.2,
+    "vitaminCMg": 0.0
+   }
+  },
+  {
+   "id": "fct_bd:01_0039",
+   "source": "fct_bd_2013",
+   "sourceRef": "01_0039",
+   "sourceName": "Rice, brown, parboiled, milled, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "brown rice",
+    "red rice",
+    "lal chal",
+    "lal bhat",
+    "লাল ভাত"
+   ],
+   "preparations": [
+    "boiled",
+    "steamed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 112,
+    "proteinG": 2.5,
+    "carbsG": 23.2,
+    "fatG": 0.8,
+    "fiberG": 1.2,
+    "sugarG": null,
+    "sodiumMg": 4
+   },
+   "other": {
+    "calciumMg": 7.0,
+    "ironMg": 0.4,
+    "potassiumMg": 83.9,
+    "vitaminCMg": 0.0
+   }
+  },
+  {
+   "id": "fct_bd:01_0035",
+   "source": "fct_bd_2013",
+   "sourceRef": "01_0035",
+   "sourceName": "Plain Khichuri",
+   "kind": "mixed_dish",
+   "aliases": [
+    "khichuri",
+    "khichdi",
+    "khichri",
+    "plain khichuri",
+    "bhuna khichuri",
+    "খিচুড়ি"
+   ],
+   "preparations": [
+    "mixed",
+    "curried",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 163,
+    "proteinG": 5.1,
+    "carbsG": 17.7,
+    "fatG": 7.4,
+    "fiberG": 2.5,
+    "sugarG": null,
+    "sodiumMg": 410
+   },
+   "other": {
+    "calciumMg": 13.4,
+    "ironMg": 1.1,
+    "potassiumMg": 91.7,
+    "vitaminCMg": 0.2
+   }
+  },
+  {
+   "id": "fct_bd:01_0036",
+   "source": "fct_bd_2013",
+   "sourceRef": "01_0036",
+   "sourceName": "Plain pulao",
+   "kind": "mixed_dish",
+   "aliases": [
+    "pulao",
+    "polao",
+    "plain pulao",
+    "plain polao",
+    "pilaf",
+    "পোলাও"
+   ],
+   "preparations": [
+    "mixed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 128,
+    "proteinG": 2.2,
+    "carbsG": 24.1,
+    "fatG": 2.3,
+    "fiberG": 1.1,
+    "sugarG": null,
+    "sodiumMg": 167
+   },
+   "other": {
+    "calciumMg": 6.3,
+    "ironMg": 0.4,
+    "potassiumMg": 26.6,
+    "vitaminCMg": 0.1
+   }
+  },
+  {
+   "id": "fct_bd:01_0042",
+   "source": "fct_bd_2013",
+   "sourceRef": "01_0042",
+   "sourceName": "Ruti",
+   "kind": "single",
+   "aliases": [
+    "roti",
+    "ruti",
+    "chapati",
+    "chapathi",
+    "plain roti",
+    "atta roti",
+    "flatbread roti",
+    "রুটি"
+   ],
+   "preparations": [
+    "baked",
+    "grilled",
+    "roasted",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 246,
+    "proteinG": 7.5,
+    "carbsG": 49.7,
+    "fatG": 1.2,
+    "fiberG": 3.1,
+    "sugarG": null,
+    "sodiumMg": 231
+   },
+   "other": {
+    "calciumMg": 11.0,
+    "ironMg": 2.7,
+    "potassiumMg": 149.0,
+    "vitaminCMg": 0.0
+   }
+  },
+  {
+   "id": "fct_bd:01_0003",
+   "source": "fct_bd_2013",
+   "sourceRef": "01_0003",
+   "sourceName": "Bread, white, for toasting",
+   "kind": "single",
+   "aliases": [
+    "white bread",
+    "bread",
+    "toast bread",
+    "pauruti",
+    "পাউরুটি"
+   ],
+   "preparations": [
+    "baked",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 272,
+    "proteinG": 8.0,
+    "carbsG": 55.6,
+    "fatG": 1.4,
+    "fiberG": 2.5,
+    "sugarG": null,
+    "sodiumMg": 592
+   },
+   "other": {
+    "calciumMg": 119.0,
+    "ironMg": 2.2,
+    "potassiumMg": 131.0,
+    "vitaminCMg": 0.0
+   }
+  },
+  {
+   "id": "fct_bd:02_0015",
+   "source": "fct_bd_2013",
+   "sourceRef": "02_0015",
+   "sourceName": "Lentis, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "boiled lentils",
+    "lentils",
+    "masoor dal boiled",
+    "mosur dal boiled"
+   ],
+   "preparations": [
+    "boiled"
+   ],
+   "per100g": {
+    "kcal": 155,
+    "proteinG": 13.6,
+    "carbsG": 21.2,
+    "fatG": 0.4,
+    "fiberG": 6.5,
+    "sugarG": null,
+    "sodiumMg": 16
+   },
+   "other": {
+    "calciumMg": 12.2,
+    "ironMg": 2.2,
+    "potassiumMg": 233.7,
+    "vitaminCMg": 0.0
+   }
+  },
+  {
+   "id": "fct_bd:02_0013",
+   "source": "fct_bd_2013",
+   "sourceRef": "02_0013",
+   "sourceName": "Green gram, split, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "boiled mung dal",
+    "mung dal boiled",
+    "moong dal boiled"
+   ],
+   "preparations": [
+    "boiled"
+   ],
+   "per100g": {
+    "kcal": 161,
+    "proteinG": 10.9,
+    "carbsG": 28.1,
+    "fatG": 0.5,
+    "fiberG": null,
+    "sugarG": null,
+    "sodiumMg": 13
+   },
+   "other": {
+    "calciumMg": 30.1,
+    "ironMg": 2.9,
+    "potassiumMg": 447.9,
+    "vitaminCMg": 0.0
+   }
+  },
+  {
+   "id": "fct_bd:03_0034",
+   "source": "fct_bd_2013",
+   "sourceRef": "03_0034",
+   "sourceName": "Cabbage, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "boiled cabbage",
+    "cabbage"
+   ],
+   "preparations": [
+    "boiled",
+    "steamed"
+   ],
+   "per100g": {
+    "kcal": 27,
+    "proteinG": 1.7,
+    "carbsG": 2.9,
+    "fatG": 0.4,
+    "fiberG": 2.8,
+    "sugarG": null,
+    "sodiumMg": 9
+   },
+   "other": {
+    "calciumMg": 35.4,
+    "ironMg": 0.5,
+    "potassiumMg": 96.9,
+    "vitaminCMg": 7.3
+   }
+  },
+  {
+   "id": "fct_bd:03_0036",
+   "source": "fct_bd_2013",
+   "sourceRef": "03_0036",
+   "sourceName": "Cauliflower, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "boiled cauliflower",
+    "cauliflower"
+   ],
+   "preparations": [
+    "boiled",
+    "steamed"
+   ],
+   "per100g": {
+    "kcal": 28,
+    "proteinG": 2.7,
+    "carbsG": 2.7,
+    "fatG": 0.3,
+    "fiberG": 2.1,
+    "sugarG": null,
+    "sodiumMg": 18
+   },
+   "other": {
+    "calciumMg": 36.0,
+    "ironMg": 0.8,
+    "potassiumMg": 214.0,
+    "vitaminCMg": 46.6
+   }
+  },
+  {
+   "id": "fct_bd:03_0035",
+   "source": "fct_bd_2013",
+   "sourceRef": "03_0035",
+   "sourceName": "Carrot, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "boiled carrot",
+    "carrot"
+   ],
+   "preparations": [
+    "boiled",
+    "steamed"
+   ],
+   "per100g": {
+    "kcal": 43,
+    "proteinG": 1.1,
+    "carbsG": 7.3,
+    "fatG": 0.3,
+    "fiberG": 3.1,
+    "sugarG": null,
+    "sodiumMg": 40
+   },
+   "other": {
+    "calciumMg": 34.3,
+    "ironMg": 0.5,
+    "potassiumMg": 80.8,
+    "vitaminCMg": 0.7
+   }
+  },
+  {
+   "id": "fct_bd:03_0048",
+   "source": "fct_bd_2013",
+   "sourceRef": "03_0048",
+   "sourceName": "Gourd, bitter, fry",
+   "kind": "mixed_dish",
+   "aliases": [
+    "bitter gourd fry",
+    "fried bitter gourd",
+    "korola vaji",
+    "korola bhaji",
+    "করলা ভাজি"
+   ],
+   "preparations": [
+    "fried",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 130,
+    "proteinG": 3.1,
+    "carbsG": 7.1,
+    "fatG": 9.1,
+    "fiberG": 4.1,
+    "sugarG": null,
+    "sodiumMg": 469
+   },
+   "other": {
+    "calciumMg": 27.0,
+    "ironMg": 2.9,
+    "potassiumMg": 303.7,
+    "vitaminCMg": 103.2
+   }
+  },
+  {
+   "id": "fct_bd:03_0046",
+   "source": "fct_bd_2013",
+   "sourceRef": "03_0046",
+   "sourceName": "Lady's finger-tomato bhuna",
+   "kind": "mixed_dish",
+   "aliases": [
+    "okra tomato bhuna",
+    "ladies finger bhuna",
+    "dheros bhuna"
+   ],
+   "preparations": [
+    "curried",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 127,
+    "proteinG": 3.4,
+    "carbsG": 9.0,
+    "fatG": 7.4,
+    "fiberG": 5.0,
+    "sugarG": null,
+    "sodiumMg": 565
+   },
+   "other": {
+    "calciumMg": 128.0,
+    "ironMg": 1.4,
+    "potassiumMg": 319.4,
+    "vitaminCMg": 24.5
+   }
+  },
+  {
+   "id": "fct_bd:04_0032",
+   "source": "fct_bd_2013",
+   "sourceRef": "04_0032",
+   "sourceName": "Amaranth, leaves, red, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "red amaranth",
+    "lal shak",
+    "boiled red amaranth",
+    "লাল শাক"
+   ],
+   "preparations": [
+    "boiled",
+    "steamed"
+   ],
+   "per100g": {
+    "kcal": 37,
+    "proteinG": 5.3,
+    "carbsG": 0.6,
+    "fatG": 0.4,
+    "fiberG": 5.0,
+    "sugarG": null,
+    "sodiumMg": 53
+   },
+   "other": {
+    "calciumMg": 287.2,
+    "ironMg": 5.3,
+    "potassiumMg": 153.8,
+    "vitaminCMg": 19.8
+   }
+  },
+  {
+   "id": "fct_bd:04_0035",
+   "source": "fct_bd_2013",
+   "sourceRef": "04_0035",
+   "sourceName": "Spinach, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "boiled spinach",
+    "spinach",
+    "palong shak",
+    "পালং শাক"
+   ],
+   "preparations": [
+    "boiled",
+    "steamed"
+   ],
+   "per100g": {
+    "kcal": 47,
+    "proteinG": 5.4,
+    "carbsG": 1.6,
+    "fatG": 0.9,
+    "fiberG": 5.3,
+    "sugarG": null,
+    "sodiumMg": 235
+   },
+   "other": {
+    "calciumMg": 156.7,
+    "ironMg": 3.1,
+    "potassiumMg": 429.9,
+    "vitaminCMg": 15.5
+   }
+  },
+  {
+   "id": "fct_bd:05_0012",
+   "source": "fct_bd_2013",
+   "sourceRef": "05_0012",
+   "sourceName": "Potato, Diamond, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "boiled potato",
+    "potato",
+    "alu siddha"
+   ],
+   "preparations": [
+    "boiled",
+    "steamed"
+   ],
+   "per100g": {
+    "kcal": 67,
+    "proteinG": 1.2,
+    "carbsG": 14.2,
+    "fatG": 0.2,
+    "fiberG": 2.1,
+    "sugarG": null,
+    "sodiumMg": 15
+   },
+   "other": {
+    "calciumMg": 13.7,
+    "ironMg": 0.6,
+    "potassiumMg": 232.0,
+    "vitaminCMg": 13.5
+   }
+  },
+  {
+   "id": "fct_bd:05_0021",
+   "source": "fct_bd_2013",
+   "sourceRef": "05_0021",
+   "sourceName": "Potato Mash",
+   "kind": "mixed_dish",
+   "aliases": [
+    "mashed potato",
+    "potato mash"
+   ],
+   "preparations": [
+    "boiled",
+    "mixed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 84,
+    "proteinG": 1.4,
+    "carbsG": 16.6,
+    "fatG": 0.8,
+    "fiberG": 2.5,
+    "sugarG": null,
+    "sodiumMg": 310
+   },
+   "other": {
+    "calciumMg": 13.7,
+    "ironMg": 0.6,
+    "potassiumMg": 273.4,
+    "vitaminCMg": 16.5
+   }
+  },
+  {
+   "id": "fct_bd:05_0013",
+   "source": "fct_bd_2013",
+   "sourceRef": "05_0013",
+   "sourceName": "Sweet potato, pale-yellow flesh, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "boiled sweet potato",
+    "sweet potato",
+    "misti alu"
+   ],
+   "preparations": [
+    "boiled",
+    "steamed"
+   ],
+   "per100g": {
+    "kcal": 106,
+    "proteinG": 0.9,
+    "carbsG": 23.4,
+    "fatG": 0.3,
+    "fiberG": 3.0,
+    "sugarG": null,
+    "sodiumMg": 20
+   },
+   "other": {
+    "calciumMg": 26.8,
+    "ironMg": 1.1,
+    "potassiumMg": 177.4,
+    "vitaminCMg": 14.4
+   }
+  },
+  {
+   "id": "fct_bd:09_0071",
+   "source": "fct_bd_2013",
+   "sourceRef": "09_0071",
+   "sourceName": "Small fish fry",
+   "kind": "mixed_dish",
+   "aliases": [
+    "small fish fry",
+    "fried small fish",
+    "kachki mach vaja",
+    "kachki fry"
+   ],
+   "preparations": [
+    "fried",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 107,
+    "proteinG": 7.4,
+    "carbsG": 5.3,
+    "fatG": 6.1,
+    "fiberG": 0.9,
+    "sugarG": null,
+    "sodiumMg": 242
+   },
+   "other": {
+    "calciumMg": 215.3,
+    "ironMg": 1.3,
+    "potassiumMg": 148.0,
+    "vitaminCMg": 5.3
+   }
+  },
+  {
+   "id": "fct_bd:09_0072",
+   "source": "fct_bd_2013",
+   "sourceRef": "09_0072",
+   "sourceName": "Fish ball",
+   "kind": "mixed_dish",
+   "aliases": [
+    "fish ball",
+    "fish kofta",
+    "macher kopta",
+    "মাছের কোপ্তা"
+   ],
+   "preparations": [
+    "fried",
+    "curried",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 220,
+    "proteinG": 15.7,
+    "carbsG": 21.7,
+    "fatG": 6.7,
+    "fiberG": 5.0,
+    "sugarG": null,
+    "sodiumMg": 345
+   },
+   "other": {
+    "calciumMg": 47.7,
+    "ironMg": 2.5,
+    "potassiumMg": 295.7,
+    "vitaminCMg": 5.2
+   }
+  },
+  {
+   "id": "fct_bd:10_0016",
+   "source": "fct_bd_2013",
+   "sourceRef": "10_0016",
+   "sourceName": "Beef handi kabab",
+   "kind": "mixed_dish",
+   "aliases": [
+    "beef handi kabab",
+    "handi kabab",
+    "haaree kabab"
+   ],
+   "preparations": [
+    "curried",
+    "roasted",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 233,
+    "proteinG": 12.7,
+    "carbsG": 6.6,
+    "fatG": 16.9,
+    "fiberG": 1.8,
+    "sugarG": null,
+    "sodiumMg": 345
+   },
+   "other": {
+    "calciumMg": 25.2,
+    "ironMg": 2.0,
+    "potassiumMg": 219.7,
+    "vitaminCMg": 2.2
+   }
+  },
+  {
+   "id": "fct_bd:11_0005",
+   "source": "fct_bd_2013",
+   "sourceRef": "11_0005",
+   "sourceName": "Egg, chicken, farmed, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "boiled egg",
+    "hard boiled egg",
+    "egg boiled",
+    "siddha dim",
+    "সিদ্ধ ডিম"
+   ],
+   "preparations": [
+    "boiled"
+   ],
+   "per100g": {
+    "kcal": 158,
+    "proteinG": 16.5,
+    "carbsG": 0.0,
+    "fatG": 10.2,
+    "fiberG": 0.0,
+    "sugarG": null,
+    "sodiumMg": 128
+   },
+   "other": {
+    "ironMg": 1.8,
+    "potassiumMg": 119.5,
+    "vitaminCMg": 0.0
+   }
+  },
+  {
+   "id": "fct_bd:11_0006",
+   "source": "fct_bd_2013",
+   "sourceRef": "11_0006",
+   "sourceName": "Egg, chicken, native, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "boiled native egg",
+    "deshi egg boiled",
+    "deshi dim siddha"
+   ],
+   "preparations": [
+    "boiled"
+   ],
+   "per100g": {
+    "kcal": 179,
+    "proteinG": 15.1,
+    "carbsG": 0.0,
+    "fatG": 13.2,
+    "fiberG": 0.0,
+    "sugarG": null,
+    "sodiumMg": 148
+   },
+   "other": {
+    "calciumMg": 68.0,
+    "ironMg": 1.9,
+    "potassiumMg": 104.8,
+    "vitaminCMg": 0.0
+   }
+  },
+  {
+   "id": "fct_bd:11_0007",
+   "source": "fct_bd_2013",
+   "sourceRef": "11_0007",
+   "sourceName": "Egg, duck, whole, boiled (without salt)",
+   "kind": "single",
+   "aliases": [
+    "boiled duck egg",
+    "duck egg boiled",
+    "hasher dim siddha"
+   ],
+   "preparations": [
+    "boiled"
+   ],
+   "per100g": {
+    "kcal": 214,
+    "proteinG": 15.3,
+    "carbsG": 1.6,
+    "fatG": 16.2,
+    "fiberG": 0.0,
+    "sugarG": null,
+    "sodiumMg": 147
+   },
+   "other": {
+    "calciumMg": 73.4,
+    "ironMg": 2.7,
+    "potassiumMg": 239.9,
+    "vitaminCMg": 0.0
+   }
+  },
+  {
+   "id": "fct_bd:12_0013",
+   "source": "fct_bd_2013",
+   "sourceRef": "12_0013",
+   "sourceName": "Payesh",
+   "kind": "mixed_dish",
+   "aliases": [
+    "payesh",
+    "rice pudding",
+    "kheer",
+    "পায়েস"
+   ],
+   "preparations": [
+    "mixed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 205,
+    "proteinG": 4.3,
+    "carbsG": 36.2,
+    "fatG": 4.7,
+    "fiberG": 0.2,
+    "sugarG": null,
+    "sodiumMg": 65
+   },
+   "other": {
+    "calciumMg": 132.3,
+    "ironMg": 0.2,
+    "potassiumMg": 168.9,
+    "vitaminCMg": 1.7
+   }
+  },
+  {
+   "id": "fct_bd:12_0008",
+   "source": "fct_bd_2013",
+   "sourceRef": "12_0008",
+   "sourceName": "Milk, cow, whole fat (pasteurised, UTH)",
+   "kind": "single",
+   "aliases": [
+    "milk",
+    "whole milk",
+    "cow milk",
+    "দুধ"
+   ],
+   "preparations": [
+    "raw",
+    "boiled",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 63,
+    "proteinG": 3.1,
+    "carbsG": 4.3,
+    "fatG": 3.7,
+    "fiberG": 0.0,
+    "sugarG": 4.3,
+    "sodiumMg": 51
+   },
+   "other": {
+    "calciumMg": 103.0,
+    "ironMg": 0.1,
+    "potassiumMg": 131.2,
+    "vitaminCMg": 2.0
+   }
+  },
+  {
+   "id": "fct_bd:14_0007",
+   "source": "fct_bd_2013",
+   "sourceRef": "14_0007",
+   "sourceName": "Tea infusion (with sugar and milk powder, whole fat)",
+   "kind": "mixed_dish",
+   "aliases": [
+    "milk tea",
+    "tea with milk and sugar",
+    "doodh cha",
+    "dudh cha",
+    "দুধ চা"
+   ],
+   "preparations": [
+    "boiled",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 41,
+    "proteinG": 0.7,
+    "carbsG": 7.6,
+    "fatG": 0.8,
+    "fiberG": 0.2,
+    "sugarG": 5.9,
+    "sodiumMg": 14
+   },
+   "other": {
+    "calciumMg": 28.3,
+    "ironMg": 0.4,
+    "potassiumMg": 48.4,
+    "vitaminCMg": 0.3
+   }
+  },
+  {
+   "id": "fct_bd:08_0004",
+   "source": "fct_bd_2013",
+   "sourceRef": "08_0004",
+   "sourceName": "Banana, Sagar, ripe, raw",
+   "kind": "single",
+   "aliases": [
+    "banana",
+    "sagar banana",
+    "kola",
+    "কলা"
+   ],
+   "preparations": [
+    "raw",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 95,
+    "proteinG": 1.3,
+    "carbsG": 19.2,
+    "fatG": 0.8,
+    "fiberG": 2.6,
+    "sugarG": 12.2,
+    "sodiumMg": 10
+   },
+   "other": {
+    "calciumMg": 11.3,
+    "ironMg": 0.3,
+    "potassiumMg": 410.7,
+    "vitaminCMg": 1.0
+   }
+  },
+  {
+   "id": "fct_bd:08_0002",
+   "source": "fct_bd_2013",
+   "sourceRef": "08_0002",
+   "sourceName": "Apple, with skin, raw",
+   "kind": "single",
+   "aliases": [
+    "apple",
+    "apple with skin",
+    "আপেল"
+   ],
+   "preparations": [
+    "raw",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 62,
+    "proteinG": 0.3,
+    "carbsG": 13.5,
+    "fatG": 0.2,
+    "fiberG": 2.4,
+    "sugarG": 10.4,
+    "sodiumMg": 1
+   },
+   "other": {
+    "calciumMg": 6.0,
+    "ironMg": 0.1,
+    "potassiumMg": 107.0,
+    "vitaminCMg": 4.0
+   }
+  },
+  {
+   "id": "fct_bd:08_0025",
+   "source": "fct_bd_2013",
+   "sourceRef": "08_0025",
+   "sourceName": "Mango, Fazli, orange flesh, ripe, raw",
+   "kind": "single",
+   "aliases": [
+    "mango",
+    "ripe mango",
+    "aam",
+    "আম"
+   ],
+   "preparations": [
+    "raw",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 70,
+    "proteinG": 0.9,
+    "carbsG": 14.7,
+    "fatG": 0.5,
+    "fiberG": 1.6,
+    "sugarG": 13.7,
+    "sodiumMg": 1
+   },
+   "other": {
+    "calciumMg": 14.0,
+    "ironMg": 0.5,
+    "potassiumMg": 205.0,
+    "vitaminCMg": 34.7
+   }
+  },
+  {
+   "id": "fct_bd:08_0042",
+   "source": "fct_bd_2013",
+   "sourceRef": "08_0042",
+   "sourceName": "Watermelon, ripe, raw",
+   "kind": "single",
+   "aliases": [
+    "watermelon",
+    "tormuj",
+    "তরমুজ"
+   ],
+   "preparations": [
+    "raw",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 22,
+    "proteinG": 0.5,
+    "carbsG": 4.4,
+    "fatG": 0.2,
+    "fiberG": 0.4,
+    "sugarG": 4.2,
+    "sodiumMg": 17
+   },
+   "other": {
+    "calciumMg": 12.4,
+    "ironMg": 0.4,
+    "potassiumMg": 106.8,
+    "vitaminCMg": 23.9
+   }
+  },
+  {
+   "id": "usda_fdc:2707427",
+   "source": "usda_fdc",
+   "sourceRef": "2707427",
+   "sourceName": "Dal (Survey (FNDDS))",
+   "kind": "mixed_dish",
+   "aliases": [
+    "dal",
+    "daal",
+    "dal curry",
+    "lentil dal",
+    "masoor dal",
+    "mosur dal",
+    "ডাল"
+   ],
+   "preparations": [
+    "curried",
+    "boiled",
+    "stewed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 145,
+    "proteinG": 8.6,
+    "carbsG": 19.2,
+    "fatG": 4.3,
+    "fiberG": 7.5,
+    "sugarG": 1.7,
+    "sodiumMg": 309
+   },
+   "other": {}
+  },
+  {
+   "id": "usda_fdc:2707431",
+   "source": "usda_fdc",
+   "sourceRef": "2707431",
+   "sourceName": "Lentil curry (Survey (FNDDS))",
+   "kind": "mixed_dish",
+   "aliases": [
+    "lentil curry"
+   ],
+   "preparations": [
+    "curried",
+    "stewed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 111,
+    "proteinG": 3.7,
+    "carbsG": 12.3,
+    "fatG": 5.7,
+    "fiberG": 3.4,
+    "sugarG": 3.2,
+    "sodiumMg": 383
+   },
+   "other": {}
+  },
+  {
+   "id": "usda_fdc:2706460",
+   "source": "usda_fdc",
+   "sourceRef": "2706460",
+   "sourceName": "Fish curry (Survey (FNDDS))",
+   "kind": "mixed_dish",
+   "aliases": [
+    "fish curry",
+    "macher jhol",
+    "machher jhol",
+    "macher jhool",
+    "মাছের ঝোল",
+    "মাছের তরকারি"
+   ],
+   "preparations": [
+    "curried",
+    "stewed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 93,
+    "proteinG": 4.9,
+    "carbsG": 6.7,
+    "fatG": 5.4,
+    "fiberG": 1.4,
+    "sugarG": 2.6,
+    "sodiumMg": 351
+   },
+   "other": {}
+  },
+  {
+   "id": "usda_fdc:2706437",
+   "source": "usda_fdc",
+   "sourceRef": "2706437",
+   "sourceName": "Chicken curry (Survey (FNDDS))",
+   "kind": "mixed_dish",
+   "aliases": [
+    "chicken curry",
+    "murgir jhol",
+    "murgir torkari",
+    "মুরগির ঝোল",
+    "মুরগির তরকারি"
+   ],
+   "preparations": [
+    "curried",
+    "stewed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 107,
+    "proteinG": 6.5,
+    "carbsG": 6.5,
+    "fatG": 6.5,
+    "fiberG": 1.4,
+    "sugarG": 2.6,
+    "sodiumMg": 376
+   },
+   "other": {}
+  },
+  {
+   "id": "usda_fdc:2706388",
+   "source": "usda_fdc",
+   "sourceRef": "2706388",
+   "sourceName": "Beef curry (Survey (FNDDS))",
+   "kind": "mixed_dish",
+   "aliases": [
+    "beef curry",
+    "gorur mangsho",
+    "গরুর মাংস"
+   ],
+   "preparations": [
+    "curried",
+    "stewed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 113,
+    "proteinG": 7.6,
+    "carbsG": 6.5,
+    "fatG": 6.6,
+    "fiberG": 1.4,
+    "sugarG": 2.6,
+    "sodiumMg": 359
+   },
+   "other": {}
+  },
+  {
+   "id": "usda_fdc:2706538",
+   "source": "usda_fdc",
+   "sourceRef": "2706538",
+   "sourceName": "Biryani with chicken (Survey (FNDDS))",
+   "kind": "mixed_dish",
+   "aliases": [
+    "chicken biryani",
+    "biryani with chicken",
+    "morog biryani",
+    "মুরগির বিরিয়ানি"
+   ],
+   "preparations": [
+    "mixed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 104,
+    "proteinG": 7.2,
+    "carbsG": 13.6,
+    "fatG": 2.4,
+    "fiberG": 1.1,
+    "sugarG": 1.9,
+    "sodiumMg": 161
+   },
+   "other": {}
+  },
+  {
+   "id": "usda_fdc:2706490",
+   "source": "usda_fdc",
+   "sourceRef": "2706490",
+   "sourceName": "Biryani with meat (Survey (FNDDS))",
+   "kind": "mixed_dish",
+   "aliases": [
+    "biryani",
+    "beef biryani",
+    "mutton biryani",
+    "biryani with meat",
+    "বিরিয়ানি"
+   ],
+   "preparations": [
+    "mixed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 145,
+    "proteinG": 8.5,
+    "carbsG": 12.2,
+    "fatG": 6.8,
+    "fiberG": 1.0,
+    "sugarG": 1.7,
+    "sodiumMg": 98
+   },
+   "other": {}
+  },
+  {
+   "id": "usda_fdc:2708985",
+   "source": "usda_fdc",
+   "sourceRef": "2708985",
+   "sourceName": "Biryani with vegetables (Survey (FNDDS))",
+   "kind": "mixed_dish",
+   "aliases": [
+    "vegetable biryani",
+    "biryani with vegetables"
+   ],
+   "preparations": [
+    "mixed",
+    "unknown"
+   ],
+   "per100g": {
+    "kcal": 109,
+    "proteinG": 1.9,
+    "carbsG": 17.9,
+    "fatG": 3.2,
+    "fiberG": 1.2,
+    "sugarG": 1.2,
+    "sodiumMg": 177
+   },
+   "other": {}
+  },
+  {
+   "id": "usda_fdc:173423",
+   "source": "usda_fdc",
+   "sourceRef": "173423",
+   "sourceName": "Egg, whole, cooked, fried (SR Legacy)",
+   "kind": "single",
+   "aliases": [
+    "fried egg",
+    "egg fried",
+    "dim bhaji",
+    "dim poach",
+    "ডিম ভাজি"
+   ],
+   "preparations": [
+    "fried"
+   ],
+   "per100g": {
+    "kcal": 196,
+    "proteinG": 13.6,
+    "carbsG": 0.8,
+    "fatG": 14.8,
+    "fiberG": 0.0,
+    "sugarG": 0.4,
+    "sodiumMg": 207
+   },
+   "other": {}
+  }
+ ]
+}

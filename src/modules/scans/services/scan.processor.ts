@@ -1,18 +1,19 @@
 import { clock } from '../../../common/clock';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import type { Connection, Model } from 'mongoose';
-import { APP_CONFIG } from '../../../config/config.module';
-import type { AppConfig } from '../../../config/env';
 import { dayKeyFor } from '../../../domain/day-keys';
 import { isPlusActive, shouldChargeFreeScan } from '../../../domain/entitlements';
 import { normaliseAnalysis, parseModelOutput } from '../../../domain/nutrition-validator';
+import { FoodRecordsService } from '../../content/food-records.service';
 import { fillTemplate } from '../../content/content.loader';
+import { ERROR_CODES, type ScanOutcome } from '../../../shared';
 import { DEFAULT_LOCALE, parseLocale } from '../../../shared/locales';
 import { languageDirective } from '../../ai/language';
 import { ContentService } from '../../content/content.service';
-import { AiProvider } from '../../ai/ai.provider';
-import { AiService, AiUnavailableError } from '../../ai/ai.service';
+import { AiUnavailableError } from '../../ai/ai.service';
+import { FoodScanService } from '../../ai/food-scan.service';
+import { FoodVisionError } from '../../ai/providers/food-vision.provider';
 import type { ProfileDoc } from '../../onboarding/schemas/onboarding.schema';
 import { PlansService } from '../../plans/plans.service';
 import { DailyLogsService } from '../../tracking/services/daily-logs.service';
@@ -25,22 +26,16 @@ import { entitlementCacheKey } from '../../billing/entitlement-cache';
 
 export const AI_WAIT_LIMIT_MS = 2 * 60_000; // plan 8.10: queued up to 2 minutes, then failed
 export const STUCK_PROCESSING_MS = 3 * 60_000; // plan 8.10 stuck-job sweep
-const VISION_TIMEOUT_MS = 25_000;
-const DEFAULT_VISION_MODEL = 'gpt-5-mini'; // overridden by app_config ai.model.vision (plan 8.2)
 
-/** Resolves a short-lived URL the model can fetch (CDN signed URL, M4-T1/T8). */
-export abstract class ImageUrlResolver {
-  abstract urlFor(imageKey: string): Promise<string>;
-}
-/** Signed GET URL from the storage driver (valid 10 minutes, enough for one model call). */
-@Injectable()
-export class StorageImageUrlResolver extends ImageUrlResolver {
-  constructor(private readonly storage: StorageService) {
-    super();
-  }
-  async urlFor(imageKey: string): Promise<string> {
-    return this.storage.signedGetUrl(imageKey, 600);
-  }
+const REJECTIONS: Partial<Record<ScanOutcome, { code: string; message: string }>> = {
+  no_food: { code: ERROR_CODES.NO_FOOD_DETECTED, message: 'No food was found in this photo' },
+  unclear: { code: ERROR_CODES.IMAGE_UNCLEAR, message: 'This photo is too unclear to estimate' },
+};
+
+function failureOf(e: unknown): { code: string; message: string } {
+  if (e instanceof AiUnavailableError) return { code: e.code, message: e.message };
+  if (e instanceof FoodVisionError && e.kind === 'timeout') return { code: 'TIMEOUT', message: 'The analysis took too long' };
+  return { code: 'AI_FAILED', message: 'The analysis did not finish' };
 }
 
 /**
@@ -52,18 +47,17 @@ export class ScanProcessor {
   private readonly logger = new Logger('ScanProcessor');
 
   constructor(
-    @Inject(APP_CONFIG) private readonly config: AppConfig,
     @InjectConnection() private readonly conn: Connection,
     @InjectModel('Scan') private readonly scans: Model<ScanDoc>,
     @InjectModel('Profile') private readonly profiles: Model<ProfileDoc>,
     @InjectModel('ScanLedger') private readonly ledger: Model<ScanLedgerDoc>,
     private readonly users: UsersService,
-    private readonly ai: AiService,
-    private readonly provider: AiProvider,
+    private readonly foodScan: FoodScanService,
+    private readonly records: FoodRecordsService,
     private readonly content: ContentService,
     private readonly plans: PlansService,
     private readonly dailyLogs: DailyLogsService,
-    private readonly images: ImageUrlResolver,
+    private readonly storage: StorageService,
     private readonly kv: KvStore,
   ) {}
 
@@ -76,29 +70,24 @@ export class ScanProcessor {
       )
       .lean<ScanDoc>();
     if (!scan) return; // already done or claimed: retries never call the model twice
+    // The app gave up on this long ago (for example the worker was down): no model call, no charge.
+    if (now.getTime() - new Date(scan.queuedAt).getTime() >= AI_WAIT_LIMIT_MS) {
+      return this.finish(scan, 'failed', { error: { code: 'TIMEOUT', message: 'The analysis took too long' } });
+    }
     const user = await this.users.findById(scan.userId.toString());
     if (!user) return this.finish(scan, 'failed', { error: { code: 'USER_GONE', message: 'Account no longer active' } });
     try {
       const prompt = await this.content.activePrompt('meal-scan');
       const profile = await this.profiles.findOne({ userId: scan.userId }).lean<ProfileDoc>();
-      const model = prompt?.model || (await this.ai.modelFor('vision', DEFAULT_VISION_MODEL));
       const scanLocale = parseLocale(scan.locale) ?? parseLocale(user.locale) ?? DEFAULT_LOCALE;
-      const localTime = new Intl.DateTimeFormat('en-GB', { timeZone: scan.timezone, hour: '2-digit', minute: '2-digit' }).format(now);
-      const res = await this.ai.run('vision', async () =>
-        this.provider.analyseMeal({
-          model,
-          instructions: prompt?.staticPrefix ?? 'Analyse the meal photo and return JSON.',
-          context: languageDirective(scanLocale) + fillTemplate(prompt?.dynamicTemplate ?? '', {
-            category: scan.category ?? '',
-            dietPattern: profile?.dietPattern ?? '',
-            locale: user.locale,
-            localTime,
-          }),
-          imageUrl: await this.images.urlFor(scan.imageKey),
-          timeoutMs: VISION_TIMEOUT_MS,
-          maxOutputTokens: Number((prompt?.params as { maxOutputTokens?: number } | undefined)?.maxOutputTokens ?? 1200),
-        }),
-      );
+      const image = await this.storage.get(scan.imageKey);
+      if (!image) return this.finish(scan, 'failed', { error: { code: 'AI_FAILED', message: 'The photo is no longer available' } });
+      const res = await this.foodScan.analyse({
+        scanId,
+        instructions: prompt?.staticPrefix ?? 'List the foods in the photo and return JSON.',
+        context: languageDirective(scanLocale) + fillTemplate(prompt?.dynamicTemplate ?? '', { dietPattern: profile?.dietPattern ?? '' }),
+        image,
+      });
       const parsed = parseModelOutput(res.output);
       const meta = {
         model: res.model,
@@ -106,24 +95,26 @@ export class ScanProcessor {
         promptVersion: prompt?.version ?? null,
         rawOutput: res.output,
         usage: { ...res.usage, costUsd: res.costUsd },
+        providerAttempts: res.attempts,
+        modelLatencyMs: res.modelLatencyMs,
       };
       if (!parsed.ok) {
+        // Malformed or cut-off JSON is never repaired: nothing is shown, and the user is not charged.
         return this.finish(scan, 'failed', { ...meta, error: { code: 'MODEL_OUTPUT_INVALID', message: 'The analysis could not be read' } });
       }
       const reaction = await this.reactionInput(scan, user, profile, now);
-      const normalised = normaliseAnalysis(parsed.value, reaction ? { reaction } : {});
+      const normalised = normaliseAnalysis(parsed.value, { records: this.records.index, ...(reaction ? { reaction } : {}) });
       if (normalised.status === 'succeeded') await this.succeed(scan, user, { ...meta, result: normalised.analysis }, now);
-      else await this.finish(scan, normalised.status, { ...meta, result: normalised.analysis });
+      else await this.finish(scan, normalised.status, { ...meta, result: normalised.analysis, error: REJECTIONS[normalised.analysis.outcome] ?? null });
     } catch (e) {
-      if (e instanceof AiUnavailableError && now.getTime() - new Date(scan.queuedAt).getTime() < AI_WAIT_LIMIT_MS) {
+      const mayRecover = e instanceof AiUnavailableError && e.reason !== 'daily_cap' && e.reason !== 'not_configured';
+      if (mayRecover && now.getTime() - new Date(scan.queuedAt).getTime() < AI_WAIT_LIMIT_MS) {
         // Degraded mode: back to queued; the queue retries with backoff, the sweep fails it after 2 min.
         await this.scans.updateOne({ _id: scan._id, status: 'processing' }, { $set: { status: 'queued', error: { code: e.code, message: e.message } } });
         throw e;
       }
       this.logger.warn({ scanId, err: (e as Error).message }, 'scan failed');
-      await this.finish(scan, 'failed', {
-        error: e instanceof AiUnavailableError ? { code: e.code, message: e.message } : { code: 'AI_FAILED', message: 'The analysis did not finish' },
-      });
+      await this.finish(scan, 'failed', { error: failureOf(e) });
     }
   }
 
@@ -144,7 +135,7 @@ export class ScanProcessor {
     const finishedAt = new Date();
     await this.scans.updateOne(
       { _id: scan._id },
-      { $set: { ...fields, status, finishedAt, latencyMs: finishedAt.getTime() - new Date(scan.queuedAt).getTime(), ...(status === 'succeeded' ? { error: null } : {}) } },
+      { $set: { ...fields, status, finishedAt, inflightKey: null, latencyMs: finishedAt.getTime() - new Date(scan.queuedAt).getTime(), ...(status === 'succeeded' ? { error: null } : {}) } },
     );
   }
 
@@ -170,6 +161,7 @@ export class ScanProcessor {
             status: 'succeeded',
             error: null,
             finishedAt,
+            inflightKey: null,
             latencyMs: finishedAt.getTime() - new Date(scan.queuedAt).getTime(),
             chargedFreeScan: chargeable,
           },
@@ -192,7 +184,7 @@ export class ScanProcessor {
           { status: 'queued', queuedAt: { $lt: new Date(now.getTime() - AI_WAIT_LIMIT_MS) } },
         ],
       },
-      { $set: { status: 'failed', finishedAt: now, error: { code: 'TIMEOUT', message: 'The analysis took too long' } } },
+      { $set: { status: 'failed', finishedAt: now, inflightKey: null, error: { code: 'TIMEOUT', message: 'The analysis took too long' } } },
     );
     return stuck.modifiedCount;
   }

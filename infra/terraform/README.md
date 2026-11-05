@@ -16,8 +16,8 @@ No job scheduler is needed: the worker runs every schedule (reminders minute job
 2. Credentials in the shell only: `gcloud auth application-default login` (or a CI identity), `MONGODB_ATLAS_CLIENT_ID`/`MONGODB_ATLAS_CLIENT_SECRET`, `CLOUDFLARE_API_TOKEN` (Zone DNS/WAF/Rulesets + Account R2 edit).
 3. `terraform init -backend-config=backend.hcl && terraform plan -out plan.tfplan`. Review, then apply from the reviewed plan.
 4. Fill the external secrets listed in the `external_secrets_to_fill` output (never through Terraform):
-   `printf '%s' "$VALUE" | gcloud secrets versions add nouri-prod-OPENAI_API_KEY --data-file=-`
-   (OpenAI, Resend, RevenueCat API key and webhook secret, Turnstile, Firebase and Play Integrity service accounts, the R2 access key pair from an R2 API token, Sentry DSN).
+   `printf '%s' "$VALUE" | gcloud secrets versions add nouri-prod-GEMINI_API_KEY --data-file=-`
+   (Gemini, Resend, RevenueCat API key and webhook secret, Turnstile, Firebase and Play Integrity service accounts, the R2 access key pair from an R2 API token, Sentry DSN).
 5. Set GitHub environment variables from the outputs: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOY_SERVICE_ACCOUNT`, `API_BASE_URL`, `API_RUN_HOST`; give the `production` environment required reviewers.
 6. Cloudflare: SSL/TLS mode **Full (strict)**; the CDN Worker that checks `CDN_SIGNING_KEY` signatures in front of R2 is still to be written (handoff "Not built yet").
 

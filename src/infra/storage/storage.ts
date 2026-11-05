@@ -16,6 +16,8 @@ export abstract class StorageService {
   abstract signedGetUrl(key: string, expiresSec?: number): string;
   /** True when the object was uploaded (local driver checks the disk; S3 trusts the client for now). */
   abstract exists(key: string): Promise<boolean>;
+  /** Stored size in bytes, null when missing. Read this before `get`: a presigned S3 PUT does not enforce a size. */
+  abstract size(key: string): Promise<number | null>;
   abstract put(key: string, body: Buffer, contentType: string): Promise<void>;
   abstract get(key: string): Promise<Buffer | null>;
   /** Removes every object under a prefix (account purge). */
@@ -101,6 +103,14 @@ export class LocalStorageService extends StorageService {
     }
   }
 
+  async size(key: string): Promise<number | null> {
+    try {
+      return isSafeKey(key) ? statSync(this.path(key)).size : null;
+    } catch {
+      return null;
+    }
+  }
+
   async put(key: string, body: Buffer): Promise<void> {
     this.write(key, body);
   }
@@ -132,6 +142,16 @@ export class S3StorageService extends StorageService {
   signedGetUrl(key: string, expiresSec = 3600): string {
     if (this.cdn) return signCdnUrl(this.cdn.base, key, this.cdn.key, expiresSec);
     return presignS3(this.target, 'GET', key, expiresSec, new Date());
+  }
+  async size(key: string): Promise<number | null> {
+    if (!isSafeKey(key)) return null;
+    try {
+      const res = await fetch(presignS3(this.target, 'HEAD', key, 60, new Date()), { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+      const length = Number(res.headers.get('content-length'));
+      return res.ok && Number.isFinite(length) ? length : null;
+    } catch {
+      return null;
+    }
   }
   /** Round-4 gap: a presigned HEAD confirms the client really uploaded the object before a scan is queued. */
   async exists(key: string): Promise<boolean> {

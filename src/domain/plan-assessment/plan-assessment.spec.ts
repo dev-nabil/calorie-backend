@@ -1,7 +1,6 @@
 import { assessPlan, buildBasis, estimateTimeframe, humanDuration, noticeFor, retimeFrame, type AssessInputs } from './index';
 import { calculatePlan } from '../plan-calculator';
 
-const OK = { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false, eatingDisorderConcern: false };
 const adult = (over: Partial<AssessInputs> = {}): AssessInputs => ({
   ageYears: 34,
   calculationSex: 'female',
@@ -10,7 +9,7 @@ const adult = (over: Partial<AssessInputs> = {}): AssessInputs => ({
   activityLevel: 'light',
   goal: 'lose',
   targetWeightKg: 74,
-  attestation: OK,
+  lifeStage: 'none',
   allergies: ['none'],
   mealsPerDay: 'three',
   schedulePattern: 'fixed',
@@ -20,13 +19,13 @@ const adult = (over: Partial<AssessInputs> = {}): AssessInputs => ({
 });
 
 describe('assessPlan', () => {
-  it('ready when everything essential is present and the health check is clean', () => {
+  it('ready when everything essential is present', () => {
     const a = assessPlan(adult());
     expect(a.outcome).toBe('ready');
     expect(a.missing).toEqual([]);
     expect(a.issues).toEqual([]);
     expect(a.optionalUnanswered).toEqual([]);
-    expect(a.requiredForTargets).toEqual(['q06', 'q07', 'q08', 'q09', 'q10']);
+    expect(a.requiredForTargets).toEqual(['q06', 'q07', 'q38', 'q08', 'q09', 'q10']);
   });
 
   it('under 18 gets habits only, with no questions about numbers', () => {
@@ -47,33 +46,33 @@ describe('assessPlan', () => {
     expect(a.canContinueWithoutTargets).toBe(true);
   });
 
-  it('asks for the health check last, as a pseudo question', () => {
-    const a = assessPlan(adult({ attestation: null }));
+  it('only counts the life stage as needed when the sex input is female', () => {
+    expect(assessPlan(adult({ calculationSex: 'male', lifeStage: null })).requiredForTargets).toEqual(['q06', 'q07', 'q08', 'q09', 'q10']);
+    expect(assessPlan(adult({ calculationSex: 'male', lifeStage: null })).outcome).toBe('ready');
+    const a = assessPlan(adult({ lifeStage: null }));
     expect(a.outcome).toBe('needs_input');
-    expect(a.missing).toEqual([expect.objectContaining({ questionId: 'eligibility' })]);
+    expect(a.missing.map((m) => m.questionId)).toEqual(['q38']);
   });
 
-  it.each([
-    ['pregnantOrBreastfeeding', 'pregnant_or_breastfeeding'],
-    ['supervisedNutritionCondition', 'supervised_condition'],
-    ['eatingDisorderConcern', 'eating_disorder_concern'],
-  ] as const)('%s means professional guidance', (flag, reason) => {
-    const a = assessPlan(adult({ attestation: { ...OK, [flag]: true } }));
-    expect(a.outcome).toBe('professional_guidance');
-    expect(a.guidanceReasons).toEqual([reason]);
-    expect(noticeFor(a)?.kind).toBe('professional_guidance');
+  it('a declined life stage is the person\'s choice and does not block the goal', () => {
+    expect(assessPlan(adult({ lifeStage: 'declined' })).outcome).toBe('ready');
   });
 
-  it('puts the eating-disorder concern first when several apply', () => {
-    const a = assessPlan(adult({ attestation: { pregnantOrBreastfeeding: true, supervisedNutritionCondition: true, eatingDisorderConcern: true } }));
-    expect(a.guidanceReasons[0]).toBe('eating_disorder_concern');
-    expect(noticeFor(a)?.title).toBe('Support first, numbers later');
+  it.each(['pregnant', 'breastfeeding'])('%s gets a habits goal with no referral and nothing else to answer', (lifeStage) => {
+    const a = assessPlan(adult({ lifeStage, heightCm: null, weightKg: null, activityLevel: null }));
+    expect(a).toMatchObject({ outcome: 'habits_only', missing: [], guidanceReasons: ['pregnant_or_breastfeeding'] });
+    const n = noticeFor(a)!;
+    expect(n.kind).toBe('habits_only');
+    expect(`${n.title} ${n.body}`).not.toMatch(/GP|doctor|midwife|dietitian|professional|\d/i);
   });
 
-  it('refers an underweight person with a weight-loss goal to a professional, but not one who wants to gain', () => {
-    expect(assessPlan(adult({ weightKg: 50, targetWeightKg: null })).outcome).toBe('professional_guidance');
-    expect(assessPlan(adult({ weightKg: 50, targetWeightKg: null })).guidanceReasons).toEqual(['underweight_loss_goal']);
-    expect(assessPlan(adult({ weightKg: 50, goal: 'gain', targetWeightKg: 56 })).outcome).toBe('ready');
+  it('a weight-loss goal at an underweight BMI asks for another goal, with no referral; gaining is fine', () => {
+    const a = assessPlan(adult({ weightKg: 50, targetWeightKg: null }));
+    expect(a.outcome).toBe('needs_input');
+    expect(a.guidanceReasons).toEqual([]);
+    expect(a.issues).toEqual([expect.objectContaining({ code: 'loss_goal_underweight', severity: 'blocking', questionIds: ['q01', 'q09'] })]);
+    expect(a.issues[0]!.message).not.toMatch(/GP|doctor|dietitian|professional/i);
+    expect(assessPlan(adult({ weightKg: 50, goal: 'gain', targetWeightKg: null })).outcome).toBe('ready');
   });
 
   it('flags contradictions and implausible numbers as blocking', () => {
@@ -166,7 +165,7 @@ describe('buildBasis and noticeFor', () => {
   });
 
   it('has nothing to say when there are no numbers', () => {
-    expect(buildBasis(calculatePlan(adult({ attestation: null })), adult(), null)).toEqual([]);
+    expect(buildBasis(calculatePlan(adult({ lifeStage: null })), adult(), null)).toEqual([]);
   });
 
   it('needs_input and habits_only get static, number-free notices', () => {

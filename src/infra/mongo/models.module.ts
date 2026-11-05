@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { AiUsageDailySchema } from '../../modules/ai/schemas/ai.schema';
+import { AiUsageDailySchema, FoodScanUsageDailySchema } from '../../modules/ai/schemas/ai.schema';
 import { OtpCodeSchema, SessionSchema } from '../../modules/auth/schemas/auth.schema';
 import { AbuseEventSchema, ScanSchema } from '../../modules/scans/schemas/scans.schema';
 import { ConversationSchema, MessageSchema } from '../../modules/conversations/schemas/conversations.schema';
@@ -33,6 +33,7 @@ export const MODEL_DEFINITIONS = [
   { name: 'DailyLog', schema: DailyLogSchema },
   { name: 'WeightLog', schema: WeightLogSchema },
   { name: 'AiUsageDaily', schema: AiUsageDailySchema },
+  { name: 'FoodScanUsageDaily', schema: FoodScanUsageDailySchema },
   { name: 'Scan', schema: ScanSchema },
   { name: 'AbuseEvent', schema: AbuseEventSchema },
   { name: 'Conversation', schema: ConversationSchema },

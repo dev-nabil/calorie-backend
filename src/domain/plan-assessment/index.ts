@@ -1,8 +1,8 @@
 /**
  * Plan assessment (PLAN-GEN): decides, from validated profile values only, whether a calorie plan
- * can be made, what is missing, what contradicts itself and when a professional should guide the
- * plan instead. Pure and deterministic: the AI never sees an input that has not passed through here
- * and never fills a gap. Product wording is pending dietitian review (OQ-03).
+ * can be made, what is missing and what contradicts itself. Everyone ends with a goal: a calorie
+ * plan, or a habits goal. Pure and deterministic: the AI never sees an input that has not passed
+ * through here and never fills a gap. Product wording is pending dietitian review (OQ-03).
  */
 import {
   KCAL_PER_KG_BODY_WEIGHT,
@@ -17,10 +17,8 @@ import {
 import { assessEligibility, bmiOf, UNDERWEIGHT_BMI, type PlanInputs } from '../plan-calculator';
 import { tr as defaultTr, type Translator } from '../../shared/i18n';
 
-/** Questions a calorie plan needs, in asking order. */
-export const REQUIRED_FOR_TARGETS = ['q06', 'q07', 'q08', 'q09', 'q10'] as const;
-
-export const ELIGIBILITY_PSEUDO_QUESTION = 'eligibility';
+/** Questions a calorie plan needs, in asking order. q38 only counts when the sex input is female. */
+export const REQUIRED_FOR_TARGETS = ['q06', 'q07', 'q38', 'q08', 'q09', 'q10'] as const;
 
 /** BMI outside this range almost always means a typing slip (or a unit mix-up). */
 export const BMI_PLAUSIBLE = { min: 12, max: 70 } as const;
@@ -40,13 +38,13 @@ export interface AssessInputs extends PlanInputs {
 const missing = (tr: Translator): Record<string, PlanMissingItem> => ({
   age_unknown: { questionId: 'q06', field: 'ageYears', reason: tr('plan.missing.age') },
   sex_input_missing: { questionId: 'q07', field: 'calculationSex', reason: tr('plan.missing.sex') },
+  life_stage_missing: { questionId: 'q38', field: 'lifeStage', reason: tr('plan.missing.lifeStage') },
   height_missing: { questionId: 'q08', field: 'heightCm', reason: tr('plan.missing.height') },
   weight_missing: { questionId: 'q09', field: 'weightKg', reason: tr('plan.missing.weight') },
   activity_missing: { questionId: 'q10', field: 'activityLevel', reason: tr('plan.missing.activity') },
-  eligibility_unconfirmed: { questionId: ELIGIBILITY_PSEUDO_QUESTION, field: 'eligibility', reason: tr('plan.missing.eligibility') },
 });
 
-const GUIDANCE_PRIORITY = ['eating_disorder_concern', 'pregnant_or_breastfeeding', 'supervised_condition', 'underweight_loss_goal'] as const;
+const ESSENTIAL_REASONS = ['sex_input_missing', 'life_stage_missing', 'height_missing', 'weight_missing', 'activity_missing'];
 
 const issue = (code: string, severity: PlanIssue['severity'], message: string, questionIds: string[]): PlanIssue => ({ code, severity, message, questionIds });
 
@@ -59,6 +57,8 @@ export function consistencyIssues(i: AssessInputs, tr: Translator = defaultTr): 
     const bmi = bmiOf(w, h);
     if (bmi < BMI_PLAUSIBLE.min || bmi > BMI_PLAUSIBLE.max) {
       out.push(issue('bmi_implausible', 'blocking', tr('plan.issue.bmi_implausible'), ['q08', 'q09']));
+    } else if (i.goal === 'lose' && bmi < UNDERWEIGHT_BMI) {
+      out.push(issue('loss_goal_underweight', 'blocking', tr('plan.issue.loss_goal_underweight'), ['q01', 'q09']));
     }
   }
   const t = i.targetWeightKg;
@@ -102,7 +102,8 @@ export function assessPlan(i: AssessInputs, tr: Translator = defaultTr): PlanAss
   const elig = assessEligibility(i);
   const optional = optionalUnanswered(i);
   const MISSING = missing(tr);
-  const base = { requiredForTargets: [...REQUIRED_FOR_TARGETS], optionalUnanswered: optional };
+  const required = REQUIRED_FOR_TARGETS.filter((id) => id !== 'q38' || i.calculationSex === 'female');
+  const base = { requiredForTargets: required, optionalUnanswered: optional };
   const build = (outcome: PlanOutcome, extra: Partial<PlanAssessment>): PlanAssessment => ({
     outcome,
     missing: [],
@@ -120,20 +121,18 @@ export function assessPlan(i: AssessInputs, tr: Translator = defaultTr): PlanAss
     return build('needs_input', { missing: [MISSING.age_unknown!] });
   }
 
-  const essentials = elig.reasons.filter((r) => ['sex_input_missing', 'height_missing', 'weight_missing', 'activity_missing'].includes(r));
+  // Pregnant or breastfeeding: a habits goal needs no height, weight or activity, so nothing is missing.
+  if (elig.reasons.includes('pregnant_or_breastfeeding')) {
+    return build('habits_only', { guidanceReasons: ['pregnant_or_breastfeeding'] });
+  }
+
+  const essentials = elig.reasons.filter((r) => ESSENTIAL_REASONS.includes(r));
   if (essentials.length) {
     return build('needs_input', { missing: essentials.map((r) => MISSING[r]!), issues: consistencyIssues(i, tr).filter((x) => x.severity === 'warning') });
   }
 
   const issues = consistencyIssues(i, tr);
   if (issues.some((x) => x.severity === 'blocking')) return build('needs_input', { issues });
-
-  if (elig.reasons.includes('eligibility_unconfirmed')) {
-    return build('needs_input', { missing: [MISSING.eligibility_unconfirmed!], issues });
-  }
-
-  const guidance = GUIDANCE_PRIORITY.filter((r) => elig.reasons.includes(r));
-  if (guidance.length) return build('professional_guidance', { guidanceReasons: [...guidance], issues });
 
   return build('ready', { issues });
 }
@@ -277,12 +276,9 @@ export function buildBasis(preview: PlanPreview, i: AssessInputs, timeframe: Pla
 }
 
 export function noticeFor(assessment: PlanAssessment, tr: Translator = defaultTr): PlanNotice | null {
-  if (assessment.outcome === 'professional_guidance') {
-    const first = (assessment.guidanceReasons[0] ?? 'supervised_condition') as 'eating_disorder_concern' | 'pregnant_or_breastfeeding' | 'supervised_condition' | 'underweight_loss_goal';
-    return { kind: 'professional_guidance', title: tr(`plan.notice.${first}.title`), body: tr(`plan.notice.${first}.body`), reasons: assessment.guidanceReasons };
-  }
   if (assessment.outcome === 'habits_only') {
-    return { kind: 'habits_only', title: tr('plan.notice.habits_only.title'), body: tr('plan.notice.habits_only.body'), reasons: assessment.guidanceReasons };
+    const key = assessment.guidanceReasons.includes('pregnant_or_breastfeeding') ? 'life_stage' : 'habits_only';
+    return { kind: 'habits_only', title: tr(`plan.notice.${key}.title`), body: tr(`plan.notice.${key}.body`), reasons: assessment.guidanceReasons };
   }
   if (assessment.outcome === 'needs_input') {
     const blocking = assessment.issues.some((x) => x.severity === 'blocking');

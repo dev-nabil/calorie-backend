@@ -11,7 +11,6 @@ import {
   QuestionIdSchema,
   SetRouteRequestSchema,
   type BulkAnswersRequest,
-  type CompleteOnboardingRequest,
   type CompleteOnboardingResponse,
   type OnboardingState,
   type PutAnswerRequest,
@@ -84,7 +83,7 @@ export class OnboardingController {
   @HttpCode(200)
   @ZResponse(200, CompleteOnboardingResponseSchema, 'Profile and plan preview; unasked questions become deferred')
   @ApiErrors(400, 401, 422)
-  complete(@CurrentUser() u: AuthUser, @ZBody(CompleteOnboardingRequestSchema) body: CompleteOnboardingRequest): Promise<CompleteOnboardingResponse> {
-    return this.onboarding.complete(u.id, body.eligibility);
+  complete(@CurrentUser() u: AuthUser, @ZBody(CompleteOnboardingRequestSchema) _body: unknown): Promise<CompleteOnboardingResponse> {
+    return this.onboarding.complete(u.id);
   }
 }

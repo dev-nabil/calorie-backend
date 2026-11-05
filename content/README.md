@@ -10,8 +10,9 @@ Owner: product. Only product edits files here; other projects request changes in
 |---|---|---|
 | `onboarding/questions.v1.json` | The question bank: 34 questions plus optional `target_weight`, field keys, option IDs, types, limits, Milo lines, hints, stages, routes (basic, detailed, conversation), declarative branching rules, review sections and copy, value formats | nouri-backend `domain/onboarding-engine` (TypeScript), validation of `PUT /onboarding/answers`; nouri-mobile local engine (Dart) for local-first setup (DEC-18) via the API; nouri-frontend admin content editor |
 | `onboarding/questions.schema.json` | JSON Schema (2020-12) for the question bank | Validator, admin editor, CI |
-| `onboarding/conversation.v1.json` | The conversation subset: 9 turn groups, canonical Milo lines, `askOne` follow-ups, chips with direct answers, skip conditions, provisional handling, confirmation step, synonyms, unit words and the FINAL line | nouri-backend turn handler and extraction context; nouri-mobile conversation screen and chips; audio pre-render job |
+| `onboarding/conversation.v2.json` | The conversation subset (v1 kept for history): 15 turn groups, canonical Milo lines, `askOne` follow-ups, chips with direct answers, skip conditions, provisional handling, confirmation step, synonyms, unit words and the FINAL line | nouri-backend turn handler and extraction context; nouri-mobile conversation screen and chips; audio pre-render job |
 | `milo/lines.v1.json` | Every keyed Milo and UI line: welcome, setup, plan reveal, building and analysing steps, Today, water, streak, empty states, toasts, safety, permissions, paywall per trigger, scan reactions (rule-based, R-10), Today nudges with conditions, degraded-mode messages, coach quick-action templates (`coach.quickActions`: full, habits-only and degraded variants), the eligibility step and the camera permission explainer | nouri-mobile strings; nouri-backend for nudge and reaction selection and pre-rendered audio; nouri-frontend admin editor |
+| `food-records/food-records.vN.json` | Published nutrition values per 100 g, each with its source and reference; the scanner prefers them to model estimates. See `food-records/README.md` | nouri-backend `FoodRecordsService` |
 | `prompts/*.v1.md` | AI prompts: `meal-scan`, `meal-parse`, `onboarding-extract`, `coach`, and the shared `safety-rules` include. Each has front matter (key, model config key, kill switch, limits), a static prefix (persona, rules, output schema) and a dynamic context section after the marker | nouri-backend `modules/ai` prompt registry, seeded into `ai_prompts` (M5-T6) |
 | `*.<lang>.json` (for example `questions.v2.bn.json`, `conversation.v1.bn.json`, `lines.v2.bn.json`) | Translations of the files above, one per language, same structure and ids, only the text changed. See Languages below | Same consumers as the English base, served by `?locale=` / `Accept-Language` (ADR 0007) |
 | `scripts/validate.mjs` | Dependency-free validator | Run locally and in CI |
@@ -46,11 +47,13 @@ English (`en-GB`) is the source of structure and copy. Another language is one t
   {{placeholders}} filled per request
 ```
 
-The registry replaces `[[include safety-rules.v1]]` with the body of `safety-rules.v1.md` (everything after its front matter) and fills `{{placeholders}}` only below the marker, so the prefix is byte-identical across users and OpenAI prompt caching applies (S-18).
+A prompt change needs a new `<key>.vN.md` file: a seeded version is never overwritten. On boot the newest file becomes active, unless an admin wrote or activated the active version.
+
+The registry replaces `[[include safety-rules.v1]]` with the body of `safety-rules.v1.md` (everything after its front matter) and fills `{{placeholders}}` only below the marker, so the prefix is byte-identical across users and Gemini implicit caching applies (S-18).
 
 ## Placeholders in copy
 
-`{name}`-style placeholders in `lines.v1.json` and `questions.v1.json` are listed in each file's `placeholders` block. Lines with `{name}` always have a `NoName` twin (or `miloLineNoName`). Lines without placeholders are canonical and pre-rendered as audio under `tts/{version}/{lineId}.mp3`.
+`{name}`-style placeholders in `lines.v1.json` and `questions.v1.json` are listed in each file's `placeholders` block. Lines with `{name}` always have a `NoName` twin (or `miloLineNoName`). Lines without placeholders are canonical and pre-rendered as audio under `tts/{version}/{lineId}.wav`.
 
 ## Versioning rules
 

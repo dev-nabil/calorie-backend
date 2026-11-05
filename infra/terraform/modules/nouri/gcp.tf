@@ -11,7 +11,7 @@ locals {
     S3_BUCKET        = cloudflare_r2_bucket.media.name
     CDN_BASE_URL     = var.cdn_base_url
     EMAIL_DRIVER     = "resend"
-    AI_PROVIDER      = "openai"
+    AI_PROVIDER      = "gemini"
     INTEGRITY_DRIVER = "device"
     TRUST_PROXY      = "2"
     CORS_ORIGINS     = join(",", var.cors_origins)

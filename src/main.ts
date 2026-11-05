@@ -14,7 +14,7 @@ import { configureApp } from './app.setup';
 import { loadConfig } from './config/env';
 import { WorkerModule } from './worker.module';
 
-/** One codebase, two deployables (DEC-02): ROLE=api serves HTTP, ROLE=worker runs BullMQ processors. */
+/** One codebase, two deployables (DEC-02): ROLE=api serves HTTP, ROLE=worker runs BullMQ processors; ROLE=all does both in one process (development). */
 async function main(): Promise<void> {
   if (existsSync('.env')) process.loadEnvFile('.env');
   const config = loadConfig();

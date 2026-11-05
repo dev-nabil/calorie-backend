@@ -129,7 +129,7 @@ export class AdminUsersController {
       ? await this.messages.countDocuments({ userId: u._id, conversationId: { $in: coachConvs.map((c) => c._id) }, role: 'user', createdAt: { $gte: since30 } })
       : 0;
     const activity = [
-      ...recentMeals.map((m) => ({ at: new Date(m.loggedAt).toISOString(), kind: 'meal_logged', summary: `${m.category}: ${m.name} (${Math.round(m.totals.kcal)} kcal)` })),
+      ...recentMeals.map((m) => ({ at: new Date(m.loggedAt).toISOString(), kind: 'meal_logged', summary: `${m.category}: ${m.name} (${Math.round(m.totals.kcal ?? 0)} kcal)` })),
       ...recentScans.map((s) => ({ at: new Date(s.queuedAt).toISOString(), kind: 'scan', summary: `Scan ${s.status}` })),
     ].sort((a, b) => b.at.localeCompare(a.at));
     return {
@@ -220,7 +220,7 @@ export class AdminUsersController {
     await this.audit.log(admin, req, { action: 'user.view_meals', targetType: 'user', targetId: id });
     const docs = await this.meals.find({ userId: new Types.ObjectId(id) }).sort({ loggedAt: -1 }).limit(100).lean<MealDoc[]>();
     return {
-      items: docs.map((m) => ({ id: m._id.toString(), loggedAt: new Date(m.loggedAt).toISOString(), dayKey: m.date, category: m.category, name: m.name, kcal: Math.round(m.totals.kcal), source: m.source === 'photo' ? 'scan' : m.source === 'voice' ? 'text' : m.source })),
+      items: docs.map((m) => ({ id: m._id.toString(), loggedAt: new Date(m.loggedAt).toISOString(), dayKey: m.date, category: m.category, name: m.name, kcal: Math.round(m.totals.kcal ?? 0), source: m.source === 'photo' ? 'scan' : m.source === 'voice' ? 'text' : m.source })),
       nextCursor: null,
     };
   }

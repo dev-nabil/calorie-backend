@@ -87,7 +87,7 @@ export class ConversationsController {
     return undefined;
   }
 
-  /** Realtime voice (OpenAI Realtime over WebRTC): a short-lived secret that lets the app talk to the model directly. */
+  /** Realtime voice (Gemini Live over a WebSocket): a short-lived token that lets the app talk to the model directly. */
   @Post(':id/realtime')
   @HttpCode(200)
   @RequireIntegrity()

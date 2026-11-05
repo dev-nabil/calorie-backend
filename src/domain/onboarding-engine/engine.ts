@@ -132,7 +132,8 @@ export function deferredQuestions(set: QuestionSet, answers: AnswerMap, ctx: Eng
 /**
  * Finish later / Skip to my plan / completion: every question applicable on the detailed
  * route that is unset (no record or a leftover not_applicable) is stored as deferred
- * (engine.finishLater).
+ * (engine.finishLater). A question the rules hide and nothing was recorded for is stored as
+ * not_applicable, so it counts as dealt with and never blocks completion.
  */
 export function deferUnanswered(
   set: QuestionSet,
@@ -146,6 +147,9 @@ export function deferUnanswered(
     if (!isUnset(rec)) continue;
     next[id] = { ...(rec?.inputMethod ? { inputMethod: rec.inputMethod } : {}), value: null, status: 'deferred', detail: null };
     deferred.push(id);
+  }
+  for (const q of set.questions) {
+    if (!next[q.id] && !rulesPass(set, q.id, answers, detailedCtx(ctx))) next[q.id] = { value: null, status: 'not_applicable', detail: null };
   }
   return { answers: next, deferred };
 }

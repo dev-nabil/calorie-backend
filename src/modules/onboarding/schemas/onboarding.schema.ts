@@ -92,6 +92,8 @@ export const ProfileSchema = new Schema<ProfileDoc>(
     trackingExperience: { type: String, default: null },
     routineBarriers: { type: [String], default: [] },
     eatingCues: { type: [String], default: [] },
+    lifeStage: { type: String, default: null },
+    movementActions: { type: [String], default: [] },
     mode: { type: String, enum: PROFILE_MODES, default: 'habits_only' },
     eligibility: {
       adult: { type: Boolean, default: false },

@@ -57,6 +57,7 @@ export const PLAN_METHODS = ['mifflin_st_jeor_v1'] as const;
 export type PlanMethod = (typeof PLAN_METHODS)[number];
 
 /** Result of the plan assessment (plan section 10, PLAN-GEN): what the user can be offered right now. */
+/** `professional_guidance` is no longer produced; it stays so older stored drafts still parse. */
 export const PLAN_OUTCOMES = ['ready', 'needs_input', 'professional_guidance', 'habits_only'] as const;
 export type PlanOutcome = (typeof PLAN_OUTCOMES)[number];
 
@@ -66,6 +67,35 @@ export type PlanAiStatus = (typeof PLAN_AI_STATUSES)[number];
 
 export const SCAN_STATUSES = ['queued', 'processing', 'succeeded', 'failed', 'rejected'] as const;
 export type ScanStatus = (typeof SCAN_STATUSES)[number];
+
+/** How a food was cooked, when the photo shows it. `unknown` never matches a record that needs a specific method. */
+export const FOOD_PREPARATIONS = ['boiled', 'steamed', 'fried', 'deep_fried', 'grilled', 'roasted', 'baked', 'curried', 'stewed', 'raw', 'mixed', 'unknown'] as const;
+export type FoodPreparation = (typeof FOOD_PREPARATIONS)[number];
+
+/** `mixed_dish` already contains its ingredients; a `component` belongs to one and is not counted again. */
+export const FOOD_ROLES = ['single', 'mixed_dish', 'component'] as const;
+export type FoodRole = (typeof FOOD_ROLES)[number];
+
+/** `adjusted_estimate`: the user renamed the food and no record matched, so the earlier values were kept. */
+export const NUTRITION_SOURCE_TYPES = ['verified_record', 'ai_estimate', 'adjusted_estimate', 'user_entered'] as const;
+export type NutritionSourceType = (typeof NUTRITION_SOURCE_TYPES)[number];
+
+/** Nutrients on every item. Anything else appears only when a credible record supplies it. */
+export const NUTRIENT_KEYS = ['kcal', 'proteinG', 'carbsG', 'fatG', 'fiberG', 'sugarG', 'sodiumMg'] as const;
+export type NutrientKey = (typeof NUTRIENT_KEYS)[number];
+
+export const OTHER_NUTRIENT_KEYS = ['calciumMg', 'ironMg', 'potassiumMg', 'vitaminCMg'] as const;
+export type OtherNutrientKey = (typeof OTHER_NUTRIENT_KEYS)[number];
+
+/** What a photo produced. `unclear` asks for another photo instead of guessing. */
+export const SCAN_OUTCOMES = ['ok', 'no_food', 'unclear'] as const;
+export type ScanOutcome = (typeof SCAN_OUTCOMES)[number];
+
+export const RETAKE_REASONS = ['blurry', 'too_dark', 'too_far', 'obstructed'] as const;
+export type RetakeReason = (typeof RETAKE_REASONS)[number];
+
+export const SCAN_IMAGE_REJECTIONS = ['unsupported_type', 'corrupt', 'too_large', 'too_small', 'too_many_pixels', 'hash_mismatch'] as const;
+export type ScanImageRejection = (typeof SCAN_IMAGE_REJECTIONS)[number];
 
 export const WEIGHT_SOURCES = ['onboarding', 'manual'] as const;
 export type WeightSource = (typeof WEIGHT_SOURCES)[number];

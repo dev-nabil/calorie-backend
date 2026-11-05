@@ -13,7 +13,7 @@ source: PLAN §8.3, R-06, S-18
 
 # Static prefix
 
-Everything above the dynamic marker is identical for every request so OpenAI prompt caching applies (S-18). Do not add per-user values here.
+Everything above the dynamic marker is identical for every request so prompt caching applies (S-18). Do not add per-user values here.
 
 ## Persona
 

@@ -31,8 +31,8 @@ describe('config (M0-T3)', () => {
       LEDGER_PEPPER: s + 'l',
       REDIS_URL: 'redis://r:6379',
       EMAIL_DRIVER: 'resend',
-      AI_PROVIDER: 'openai',
-      OPENAI_API_KEY: 'sk-test',
+      AI_PROVIDER: 'gemini',
+      GEMINI_API_KEY: 'test-key',
       TURNSTILE_SECRET: 't',
       STORAGE_DRIVER: 's3',
       INTEGRITY_DRIVER: 'device',
@@ -51,10 +51,10 @@ describe('config (M0-T3)', () => {
   });
 
   it('treats empty values (`KEY=` in .env) as unset', () => {
-    const c = loadConfig({ MONGODB_URI: DB, JWT_ACCESS_SECRET: '', OTP_PEPPER: '  ', INTEGRITY_ENFORCE: '', SWAGGER_ENABLED: '', OPENAI_MONTHLY_BUDGET_USD: '', REDIS_URL: '' });
+    const c = loadConfig({ MONGODB_URI: DB, JWT_ACCESS_SECRET: '', OTP_PEPPER: '  ', INTEGRITY_ENFORCE: '', SWAGGER_ENABLED: '', AI_MONTHLY_BUDGET_USD: '', REDIS_URL: '' });
     expect(c).toMatchObject({ integrityEnforced: false, swaggerEnabled: true });
     expect(c.REDIS_URL).toBeUndefined();
-    expect(c.OPENAI_MONTHLY_BUDGET_USD).toBeUndefined();
+    expect(c.AI_MONTHLY_BUDGET_USD).toBeUndefined();
     expect(c.JWT_ACCESS_SECRET.length).toBeGreaterThanOrEqual(32);
     expect(() => loadConfig({ MONGODB_URI: DB, NODE_ENV: 'production', JWT_ACCESS_SECRET: '' })).toThrow(/JWT_ACCESS_SECRET/);
   });
@@ -65,9 +65,20 @@ describe('config (M0-T3)', () => {
     expect(() => loadConfig({ MONGODB_URI: DB, NODE_ENV: 'production', ADMIN_TOTP_REQUIRED: 'false' })).toThrow(/ADMIN_TOTP_REQUIRED/);
   });
 
+  it('lets dev fix the sign-in code to six digits, never in production or with real email', () => {
+    expect(loadConfig({ MONGODB_URI: DB }).DEV_FIXED_OTP).toBeUndefined();
+    expect(loadConfig({ MONGODB_URI: DB, DEV_FIXED_OTP: '' }).DEV_FIXED_OTP).toBeUndefined();
+    expect(loadConfig({ MONGODB_URI: DB, DEV_FIXED_OTP: '000000' }).DEV_FIXED_OTP).toBe('000000');
+    expect(() => loadConfig({ MONGODB_URI: DB, DEV_FIXED_OTP: '0000' })).toThrow(/DEV_FIXED_OTP/);
+    expect(() => loadConfig({ MONGODB_URI: DB, DEV_FIXED_OTP: 'abcdef' })).toThrow(/DEV_FIXED_OTP/);
+    expect(() => loadConfig({ MONGODB_URI: DB, NODE_ENV: 'production', DEV_FIXED_OTP: '000000' })).toThrow(/DEV_FIXED_OTP/);
+    expect(() => loadConfig({ MONGODB_URI: DB, EMAIL_DRIVER: 'resend', EMAIL_API_KEY: 'k', DEV_FIXED_OTP: '000000' })).toThrow(/DEV_FIXED_OTP/);
+  });
+
   it('rejects invalid values', () => {
     expect(() => loadConfig({ MONGODB_URI: DB, PORT: 'abc' })).toThrow(/PORT/);
     expect(() => loadConfig({ MONGODB_URI: DB, ROLE: 'cron' })).toThrow(/ROLE/);
+    expect(loadConfig({ MONGODB_URI: DB, ROLE: 'all' }).ROLE).toBe('all');
     expect(() => loadConfig({})).toThrow(/MONGODB_URI/);
   });
 });
@@ -85,5 +96,22 @@ describe('MemoryKvStore', () => {
     await kv.del('c');
     expect(await kv.get('c')).toBeNull();
     expect(await kv.ping()).toBe(true);
+  });
+
+  describe('Gemini food scanner', () => {
+    const dev = { NODE_ENV: 'development', MONGODB_URI: 'mongodb://x/y' };
+    it('defaults to the cheap Flash-Lite model at the lowest thinking level, with caps on', () => {
+      expect(loadConfig(dev)).toMatchObject({
+        GEMINI_FOOD_MODEL: 'gemini-3.5-flash-lite',
+        GEMINI_FOOD_THINKING_LEVEL: 'minimal',
+        GEMINI_FOOD_MOCK: false,
+        GEMINI_FOOD_DAILY_REQUEST_CAP: 500,
+        GEMINI_FOOD_DAILY_SPEND_USD: 1,
+      });
+    });
+    it('refuses a model it cannot price, because the spending cap would not work', () => {
+      expect(() => loadConfig({ ...dev, GEMINI_API_KEY: 'k', GEMINI_FOOD_MODEL: 'gemini-9-ultra' })).toThrow(/GEMINI_FOOD_MODEL/);
+      expect(loadConfig({ ...dev, GEMINI_API_KEY: 'k', GEMINI_FOOD_MODEL: 'gemini-9-ultra', GEMINI_FOOD_INPUT_USD_PER_M: '1', GEMINI_FOOD_OUTPUT_USD_PER_M: '2' }).GEMINI_FOOD_MODEL).toBe('gemini-9-ultra');
+    });
   });
 });

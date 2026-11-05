@@ -8,7 +8,6 @@ import {
   PLAN_MODEL_ATTEMPTS_PER_DAY,
   WATER_DEFAULT_TARGET_ML,
   type ConfirmPlanRequest,
-  type EligibilityAttestation,
   type GeneratePlanRequest,
   type Plan,
   type PlanAiInfo,
@@ -18,7 +17,7 @@ import {
   type PlanReadiness,
 } from '../../shared';
 import { DomainError } from '../../domain/errors';
-import { assessEligibility, calculatePlan, validateTargets, type PlanInputs } from '../../domain/plan-calculator';
+import { calculatePlan, validateTargets, type PlanInputs } from '../../domain/plan-calculator';
 import { assessPlan, buildBasis, estimateTimeframe, noticeFor, retimeFrame, type AssessInputs } from '../../domain/plan-assessment';
 import { buildNarrativeContext, makeLabeler, planInputHash } from '../../domain/plan-narrative';
 import { isVerifiedAccount } from '../../domain/entitlements';
@@ -35,7 +34,7 @@ import { UsersService } from '../users/users.service';
 import { PLAN_NARRATIVE_BUDGET_MS, PLAN_NARRATIVE_JOB, type PlanNarrativeJob, type PlanNarrativeResult } from './plan-narrative.handler';
 import type { PlanDraftDoc, PlanDoc } from './schemas/plans.schema';
 
-export function planInputsFrom(profile: ProfileDoc | null, attestation?: EligibilityAttestation | null): PlanInputs {
+export function planInputsFrom(profile: ProfileDoc | null): PlanInputs {
   return {
     ageYears: profile?.ageYears ?? null,
     calculationSex: profile?.calculationSex ?? null,
@@ -44,14 +43,14 @@ export function planInputsFrom(profile: ProfileDoc | null, attestation?: Eligibi
     activityLevel: profile?.activityLevel ?? null,
     goal: profile?.primaryGoal ?? null,
     targetWeightKg: profile?.targetWeightKg ?? null,
-    attestation: attestation ?? profile?.attestation ?? null,
+    lifeStage: profile?.lifeStage ?? null,
     waterMl: WATER_DEFAULT_TARGET_ML,
   };
 }
 
-export function assessInputsFrom(profile: ProfileDoc | null, attestation?: EligibilityAttestation | null): AssessInputs {
+export function assessInputsFrom(profile: ProfileDoc | null): AssessInputs {
   return {
-    ...planInputsFrom(profile, attestation),
+    ...planInputsFrom(profile),
     weightIsEstimate: Boolean(profile?.weightIsEstimate),
     allergies: (profile?.allergies as string[] | null | undefined) ?? null,
     mealsPerDay: profile?.mealsPerDay ?? null,
@@ -63,7 +62,6 @@ export function assessInputsFrom(profile: ProfileDoc | null, attestation?: Eligi
 
 const DRAFT_TTL_DAYS = 30;
 const LOCK_SEC = Math.ceil(PLAN_NARRATIVE_BUDGET_MS / 1000) + 15;
-const ESSENTIAL_REASONS = ['sex_input_missing', 'height_missing', 'weight_missing', 'activity_missing'];
 
 /** The preview with every number removed: used when the outcome is anything but `ready`. */
 function withoutNumbers(p: PlanPreview, reasons: string[]): PlanPreview {
@@ -111,12 +109,9 @@ export class PlansService {
     private readonly users: UsersService,
   ) {}
 
-  async preview(userId: string, attestation?: EligibilityAttestation): Promise<PlanPreview> {
-    if (attestation) {
-      await this.profiles.updateOne({ userId: new Types.ObjectId(userId) }, { $set: { attestation } }, { upsert: true });
-    }
+  async preview(userId: string): Promise<PlanPreview> {
     const profile = await this.profiles.findOne({ userId: new Types.ObjectId(userId) }).lean<ProfileDoc>();
-    const inputs = assessInputsFrom(profile, attestation);
+    const inputs = assessInputsFrom(profile);
     const numbers = calculatePlan(inputs);
     // Contradictory answers (implausible BMI, target on the wrong side of the weight) get no numbers here either.
     const assessment = assessPlan(inputs);
@@ -133,18 +128,15 @@ export class PlansService {
   /** What a plan could be made from right now, without calling any model. */
   async readiness(userId: string): Promise<PlanReadiness> {
     const profile = await this.profileOf(userId);
-    const attestation = profile?.attestation ?? null;
-    const inputs = assessInputsFrom(profile, attestation);
+    const inputs = assessInputsFrom(profile);
     const assessment = assessPlan(inputs, translatorFor(requestLocale()));
-    const hash = planInputHash(profile ?? {}, attestation);
-    const e = assessEligibility(inputs);
-    const essentialsMissing = e.reasons.some((r) => ESSENTIAL_REASONS.includes(r));
+    const hash = planInputHash(profile ?? {});
     const latest = await this.drafts.findOne({ userId: new Types.ObjectId(userId) }).sort({ createdAt: -1 }).lean<PlanDraftDoc>();
     return {
       ...assessment,
       inputHash: hash,
-      attestationOnFile: !e.reasons.includes('eligibility_unconfirmed'),
-      attestationNeeded: e.reasons.includes('eligibility_unconfirmed') && e.adult && !essentialsMissing,
+      attestationOnFile: false,
+      attestationNeeded: false,
       latestDraftId: latest ? latest._id.toString() : null,
       latestDraftCurrent: latest ? latest.inputHash === hash : false,
     };
@@ -155,13 +147,9 @@ export class PlansService {
   async generate(userId: string, req: GeneratePlanRequest): Promise<PlanDraft> {
     const user = await this.users.requireActive(userId);
     const uid = new Types.ObjectId(userId);
-    if (req.eligibility) {
-      await this.profiles.updateOne({ userId: uid }, { $set: { attestation: req.eligibility } }, { upsert: true });
-    }
     const profile = await this.profileOf(userId);
-    const attestation = req.eligibility ?? profile?.attestation ?? null;
-    const inputs = assessInputsFrom(profile, attestation);
-    const hash = planInputHash(profile ?? {}, attestation);
+    const inputs = assessInputsFrom(profile);
+    const hash = planInputHash(profile ?? {});
     const locale = requestLocale();
     const tr = translatorFor(locale);
     const assessment = assessPlan(inputs, tr);
@@ -200,8 +188,8 @@ export class PlansService {
       }
       const final: PlanAssessment = { ...assessment, issues };
       const ready = final.outcome === 'ready';
-      // A declaration made after a plan was confirmed (pregnancy, eating-disorder concern, ...) ends the calorie plan (BR-18).
-      if (final.outcome === 'professional_guidance' || final.outcome === 'habits_only') await this.enforceHabitsOnly(userId);
+      // An answer changed after a plan was confirmed (under 18, pregnant or breastfeeding): the calorie plan ends (BR-18).
+      if (final.outcome === 'habits_only') await this.enforceHabitsOnly(userId);
       const preview = ready ? numbers : withoutNumbers(numbers, reasonsOf(final));
 
       let ai: PlanAiInfo = { status: 'skipped', message: null, retryable: false, model: null };
@@ -280,7 +268,7 @@ export class PlansService {
 
   async latestDraft(userId: string): Promise<PlanDraft> {
     const profile = await this.profileOf(userId);
-    const hash = planInputHash(profile ?? {}, profile?.attestation ?? null);
+    const hash = planInputHash(profile ?? {});
     const doc = await this.drafts.findOne({ userId: new Types.ObjectId(userId) }).sort({ createdAt: -1 }).lean<PlanDraftDoc>();
     if (!doc) throw ApiError.notFound(ERROR_CODES.PLAN_DRAFT_NOT_FOUND, 'No plan has been prepared yet');
     return this.toDraft(doc, doc.inputHash !== hash);
@@ -322,7 +310,7 @@ export class PlansService {
     const draft = await this.drafts.findOne({ _id: new Types.ObjectId(draftId), userId: uid }).lean<PlanDraftDoc>();
     if (!draft) throw ApiError.notFound(ERROR_CODES.PLAN_DRAFT_NOT_FOUND, 'That plan could not be found. Prepare it again.');
     const profile = await this.profileOf(userId);
-    if (draft.inputHash !== planInputHash(profile ?? {}, profile?.attestation ?? null)) {
+    if (draft.inputHash !== planInputHash(profile ?? {})) {
       throw ApiError.conflict(ERROR_CODES.PLAN_DRAFT_STALE, 'Your answers changed after this plan was prepared. Prepare it again before confirming.');
     }
     const active = await this.active(userId);
@@ -348,7 +336,7 @@ export class PlansService {
     const trDraft = translatorFor(draftLocale);
     const timeframe = t && draft.timeframe && preview.tdeeKcal !== null ? retimeFrame(draft.timeframe, preview.tdeeKcal, t.energyKcal, trDraft) : null;
     // Adjusted targets: the stored basis describes what the user confirmed, in the language the draft was made in.
-    const basis = t ? (req.source === 'calculated' ? draft.basis : buildBasis(preview, assessInputsFrom(profile, profile?.attestation), timeframe, trDraft, t.energyKcal)) : [];
+    const basis = t ? (req.source === 'calculated' ? draft.basis : buildBasis(preview, assessInputsFrom(profile), timeframe, trDraft, t.energyKcal)) : [];
 
     const doc = await this.activate(userId, {
       source: req.source,

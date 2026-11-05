@@ -7,7 +7,7 @@ ERROR_CODES, type Conversation, type MiloReply, type TurnRequest
 } from '../../../shared';
 import { ApiError } from '../../../common/errors/api-error';
 import { UsersService } from '../../users/users.service';
-import { CoachService } from './coach.service';
+import { CoachService, quickActionOf } from './coach.service';
 import type { ConversationDoc, MessageDoc } from '../schemas/conversations.schema';
 import { OnboardingTurnsService } from './onboarding-turns.service';
 import { SUMMARY_EVERY, SUMMARY_JOB } from './conversation-summaries.service';
@@ -39,7 +39,9 @@ export class ConversationsService {
 
   async turn(userId: string, id: string, req: TurnRequest, onDelta?: (t: string) => void): Promise<MiloReply> {
     const conv = await this.find(userId, id);
-    await this.record(conv, 'user', req.text ?? (req.quickAction ? `[${req.quickAction}]` : `[chip ${req.chipIndex}]`), req.inputMethod, req.quickAction ?? null);
+    // A tapped coach chip is stored as the quick action it stands for, so the coach reads its history as "asked for X".
+    const asked = conv.type === 'coach' ? quickActionOf(req) : (req.quickAction ?? null);
+    await this.record(conv, 'user', req.text ?? (asked ? `[${asked}]` : `[chip ${req.chipIndex}]`), req.inputMethod, asked);
     const reply = conv.type === 'onboarding' ? await this.onboarding.turn(conv, req) : await this.coach.turn(conv, req, onDelta);
     const messageId = await this.record(conv, 'assistant', reply.reply, null, reply.quickAction, reply.extracted.length ? reply.extracted : null);
     return { ...reply, conversationId: id, messageId };

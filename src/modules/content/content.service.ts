@@ -45,7 +45,7 @@ export class ContentService implements OnApplicationBootstrap {
     await this.seed();
   }
 
-  /** Inserts file content as published versions when missing; never overwrites (admin edits win). */
+  /** Inserts file content as published versions when missing. A seeded row follows its file; an admin edit is its own version and is never touched. */
   async seed(): Promise<void> {
     const now = new Date();
     const entries: Array<[string, unknown]> = [
@@ -65,6 +65,7 @@ export class ContentService implements OnApplicationBootstrap {
         { $setOnInsert: { kind, version, data, publishedAt: now, source: 'seed' } },
         { upsert: true },
       );
+      await this.versions.updateOne({ kind, version, source: 'seed' }, { $set: { data } });
     }
     for (const p of this.bundle.prompts) await this.seedPrompt(p);
     this.logger.log(`content seeded: ${entries.filter((e) => e[1]).length} kinds, ${this.bundle.prompts.length} prompts`);
@@ -88,9 +89,18 @@ export class ContentService implements OnApplicationBootstrap {
       },
       { upsert: true },
     );
-    if (!(await this.prompts.exists({ key: p.key, active: true }))) {
+    await this.prompts.updateOne(
+      { key: p.key, version: p.version, createdBy: 'seed' },
+      { $set: { content: p.raw, staticPrefix: p.staticPrefix, dynamicTemplate: p.dynamicTemplate, meta: p.meta } },
+    );
+    const active = await this.prompts.findOne({ key: p.key, active: true }).lean();
+    if (!active) {
       const latest = await this.prompts.findOne({ key: p.key }).sort({ version: -1 });
       if (latest) await this.prompts.updateOne({ _id: latest._id }, { $set: { active: true } });
+    } else if (active.version < p.version && active.createdBy === 'seed' && !active.activatedAt) {
+      // A newer file replaces a seeded version nobody chose. A version an admin wrote or activated stays (admin edits win).
+      await this.prompts.updateOne({ _id: active._id }, { $set: { active: false } });
+      await this.prompts.updateOne({ key: p.key, version: p.version }, { $set: { active: true } });
     }
   }
 

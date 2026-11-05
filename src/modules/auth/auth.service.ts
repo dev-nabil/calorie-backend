@@ -47,7 +47,9 @@ export class AuthService {
     private readonly email: EmailSender,
     private readonly google: GoogleTokenVerifier,
     private readonly apple: AppleTokenVerifier,
-  ) {}
+  ) {
+    if (config.DEV_FIXED_OTP) this.logger.warn(`DEV_FIXED_OTP is set: every email sign-in code is ${config.DEV_FIXED_OTP}. Development only.`);
+  }
 
   private otpHash(email: string, code: string): string {
     return createHmac('sha256', this.config.OTP_PEPPER).update(`${email}:${code}`).digest('hex');
@@ -66,7 +68,7 @@ export class AuthService {
     if (!(await this.kv.setIfAbsent(`otp:cooldown:${email}`, '1', cooldown))) {
       throw ApiError.rateLimited(cooldown);
     }
-    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const code = this.config.DEV_FIXED_OTP ?? randomInt(0, 1_000_000).toString().padStart(6, '0');
     await this.otps.updateOne(
       { email },
       { $set: { codeHash: this.otpHash(email, code), attempts: 0, expiresAt: new Date(clock.now().getTime() + OTP_TTL_SECONDS * 1000) } },

@@ -18,7 +18,7 @@ describe('Admin M7 rest: AI settings, prompts, scans, usage, SLOs, conversations
   it('AI settings round-trip and feed limits and the budget guard', async () => {
     const admin = await login('admin');
     const got = await t.http().get('/v1/admin/ai/settings').set(admin).expect(200);
-    expect(got.body).toMatchObject({ models: { vision: 'gpt-5-mini', moderation: 'omni-moderation-latest' }, limits: { free: { describePerDay: 3, scansLifetime: 1 }, plus: { scans: 30 } }, budget: { alertPct: 80, downgradePct: 95 } });
+    expect(got.body).toMatchObject({ models: { vision: 'gemini-3.5-flash-lite', moderation: 'gemini-3.5-flash-lite' }, limits: { free: { describePerDay: 3, scansLifetime: 1 }, plus: { scans: 30 } }, budget: { alertPct: 80, downgradePct: 95 } });
     expect(got.body.killSwitches).toHaveLength(4);
     const body = { models: got.body.models, limits: { ...got.body.limits, free: { ...got.body.limits.free, describePerDay: 5 } }, budget: { monthlyLimitUsd: 0.000001, alertPct: 80, downgradePct: 95 }, reason: 'tune limits' };
     const put = await t.http().put('/v1/admin/ai/settings').set(admin).send(body).expect(200);
@@ -27,12 +27,12 @@ describe('Admin M7 rest: AI settings, prompts, scans, usage, SLOs, conversations
     await t.http().put('/v1/admin/ai/settings').set(hAnalyst1).send(body).expect(403);
     // Budget guard (plan 8.9): once month-to-date spend passes downgradePct of the budget, calls stop.
     const coachPrompt = (await t.http().get('/v1/admin/prompts').query({ key: 'coach' }).set(admin).expect(200)).body[0].id;
-    await t.get<AppConfigService>(AppConfigService).set('ai.price.gpt-5-mini', { inputPerM: 1, cachedPerM: 1, outputPerM: 1 });
+    await t.get<AppConfigService>(AppConfigService).set('ai.price.gemini-3.5-flash-lite', { inputPerM: 1, cachedPerM: 1, outputPerM: 1 });
     await t.http().post('/v1/admin/prompts/test').set(admin).send({ promptId: coachPrompt, input: 'hi' }).expect(200);
     const over = await t.http().post('/v1/admin/prompts/test').set(admin).send({ promptId: coachPrompt, input: 'hi' }).expect(503);
     expect(over.body.error).toMatchObject({ code: 'AI_UNAVAILABLE', details: { reason: 'budget' } });
     await t.http().put('/v1/admin/ai/settings').set(admin).send({ ...body, budget: { monthlyLimitUsd: 0, alertPct: 80, downgradePct: 95 } }).expect(200);
-    await t.get<AppConfigService>(AppConfigService).set('ai.price.gpt-5-mini', null);
+    await t.get<AppConfigService>(AppConfigService).set('ai.price.gemini-3.5-flash-lite', null);
   });
 
   it('prompts: list, create a version, edit the draft, activate and roll back, test in the playground', async () => {

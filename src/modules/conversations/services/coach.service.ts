@@ -7,11 +7,15 @@ import { dayKeyFor } from '../../../domain/day-keys';
 import { isPlusActive } from '../../../domain/entitlements';
 import { DailyQuota } from '../../../common/rate-limit/daily-quota';
 import { AiProvider } from '../../ai/ai.provider';
+import { DEFAULT_TEXT_MODEL } from '../../ai/ai-models';
 import { AiService, AiUnavailableError } from '../../ai/ai.service';
 import { AppConfigService } from '../../content/app-config.service';
 import { requestLocale } from '../../../common/http/request-context';
-import { languageDirective } from '../../ai/language';
-import { fillSingle, fillTemplate } from '../../content/content.loader';
+import { coachLanguageDirective, languageDirective } from '../../ai/language';
+import { localeInfo } from '../../../shared/locales';
+import { buildCoachContext } from '../../../domain/coach-context';
+import { COACH_TIMEOUT_MS, coachUserMessage, FALLBACK_INSTRUCTIONS, REPHRASE_MAX_TOKENS } from './coach-prompt';
+import { fillSingle } from '../../content/content.loader';
 import { inWindow, type NudgeContent } from '../../../domain/nudges';
 import { localMinutes } from '../../../domain/nudges';
 import type { OnboardingAnswerDoc } from '../../onboarding/schemas/onboarding.schema';
@@ -30,6 +34,24 @@ const fmt = (n: number) => Math.round(n).toLocaleString('en-GB');
  * see calorie numbers (plan 8.8 rule 3). Copy is a proposal pending product review.
  */
 export type QuickAction = 'explain_macros' | 'review_day' | 'suggest_snack';
+
+/** The chips of the opening reply, in order (`chipIndex` of a turn). */
+export const CHIP_ACTIONS: readonly QuickAction[] = ['explain_macros', 'suggest_snack', 'review_day'];
+
+/** How a quick action reads in the history the model sees (the stored text is a bracketed placeholder). */
+const QUICK_ACTION_ASKED: Record<QuickAction, string> = {
+  explain_macros: 'Explain my macros',
+  suggest_snack: 'Suggest a snack',
+  review_day: 'Review my day',
+};
+
+/** Older messages the model sees as chat turns; the rolling summary covers the rest. */
+const HISTORY_MESSAGES = 20;
+const HISTORY_MESSAGE_CHARS = 1500;
+/** The quick action a turn asks for: the explicit one, else the chip that was tapped. */
+export function quickActionOf(req: Pick<TurnRequest, 'quickAction' | 'chipIndex'>): QuickAction | null {
+  return req.quickAction ?? (req.chipIndex !== undefined ? (CHIP_ACTIONS[req.chipIndex] ?? null) : null);
+}
 
 interface Variant {
   id: string;
@@ -192,10 +214,11 @@ export class CoachService {
     const limit = plus ? limits.plus.coachPerDay : limits.free.coachPerDay;
     await this.quota.assertAvailable('coach', userId, user.timezone, limit, plus, 'You have reached today’s coach messages.');
 
-    const quickAction = req.quickAction ?? (req.chipIndex !== undefined ? (['explain_macros', 'suggest_snack', 'review_day'] as const)[req.chipIndex] : undefined) ?? null;
+    const quickAction = quickActionOf(req);
     const now = clock.now();
     const today = dayKeyFor(now, user.timezone);
     const day = await this.days.day(userId, today, now);
+    const week = await this.days.progress(userId, 'week', today, now).catch(() => null);
     const profile = await this.profiles.findOne({ userId: user._id }).lean<ProfileDoc>();
     const habitsOnly = (profile?.mode ?? 'habits_only') === 'habits_only';
     const data = await this.lines();
@@ -206,54 +229,58 @@ export class CoachService {
     const deterministic = quickAction === 'explain_macros' || quickAction === 'review_day';
 
     const prompt = await this.content.activePrompt('coach');
-    const recent = (await this.messages.find({ conversationId: conv._id }).sort({ createdAt: -1 }).limit(20).lean<MessageDoc[]>()).reverse();
-    const model = prompt?.model || (await this.ai.modelFor('chat', 'gpt-5-mini'));
+    const history = await this.history(conv);
+    const model = prompt?.model || (await this.ai.modelFor('chat', DEFAULT_TEXT_MODEL));
     const text = req.text ?? (quickAction ? quickAction.replace('_', ' ') : '');
     if (req.text && !quickAction) {
       const refusal = await this.moderate(req.text, data);
       if (refusal) return { ...opening, reply: refusal, miloState: 'idle', moderation: 'flagged' } as Reply;
     }
+    const locale = requestLocale();
+    const context = buildCoachContext({ name: user.displayName ?? profile?.displayName ?? null, mode: profile?.mode ?? 'habits_only', units: user.units, profile, day, week });
+    // Chips and quick actions come in the app language (their template is written in it); free text is answered in the
+    // language the person wrote in.
+    const directive = quickAction ? languageDirective(locale) : coachLanguageDirective(locale, history.findLast((m) => m.role === 'assistant')?.content);
+    let streamed = false;
     try {
-      const res = await this.ai.runOrUnavailable('chat', () =>
-        this.provider.streamChat(
-          {
-            model,
-            instructions: prompt?.staticPrefix ?? 'You are Milo, a warm, brief nutrition companion.',
-            messages: [
-              ...recent.map((m) => ({ role: m.role, content: m.text })),
-              {
-                role: 'user' as const,
-                content: languageDirective(requestLocale()) + fillTemplate(prompt?.dynamicTemplate ?? '{{text}}', {
-                  todayDate: today,
-                  localTime: new Intl.DateTimeFormat('en-GB', { timeZone: user.timezone, hour: '2-digit', minute: '2-digit' }).format(now),
-                  plan: plus ? 'plus' : 'free',
-                  quickAction: quickAction ?? 'null',
-                  templateText: template,
-                  userSummaryJson: JSON.stringify({
-                    name: user.displayName,
-                    mode: profile?.mode ?? 'habits_only',
-                    goal: profile?.primaryGoal ?? null,
-                    targets: habitsOnly ? null : day.targets,
-                    today: { totals: habitsOnly ? null : day.totals, meals: day.meals.map((m) => ({ name: m.name, category: m.category, kcal: habitsOnly ? undefined : m.totals.kcal })) },
-                    waterMl: day.water.totalMl,
-                    dietPattern: profile?.dietPattern ?? null,
-                    nutritionFamiliarity: profile?.nutritionFamiliarity ?? null,
-                    startingMood: profile?.startingMood ?? null,
-                    habitPriorities: profile?.habitPriorities ?? [],
-                    units: user.units,
+      const res = await this.ai.runOrUnavailable('chat', async () => {
+        try {
+          return await this.provider.streamChat(
+            {
+              model,
+              instructions: prompt?.staticPrefix ?? FALLBACK_INSTRUCTIONS,
+              messages: [
+                ...history,
+                {
+                  role: 'user' as const,
+                  content: coachUserMessage(prompt?.dynamicTemplate, directive, {
+                    todayDate: today,
+                    localTime: new Intl.DateTimeFormat('en-GB', { timeZone: user.timezone, hour: '2-digit', minute: '2-digit' }).format(now),
+                    plan: plus ? 'plus' : 'free',
+                    appLanguage: quickAction ? localeInfo(locale).aiName : 'not used for this message',
+                    quickAction: quickAction ?? 'null',
+                    templateText: template,
+                    userSummaryJson: JSON.stringify(context),
+                    conversationSummary: conv.summary || 'None',
+                    recentMessages: '',
+                    text,
                   }),
-                  conversationSummary: conv.summary || 'None',
-                  recentMessages: '',
-                  text,
-                }),
-              },
-            ],
-            timeoutMs: 15_000,
-            maxOutputTokens: deterministic ? 150 : plus ? 400 : 300,
-          },
-          (d) => onDelta?.(d),
-        ),
-      );
+                },
+              ],
+              timeoutMs: COACH_TIMEOUT_MS,
+              maxOutputTokens: deterministic ? REPHRASE_MAX_TOKENS : (plus ? limits.plus : limits.free).maxReplyTokens,
+            },
+            (d) => {
+              streamed = true;
+              onDelta?.(d);
+            },
+          );
+        } catch (e) {
+          // Words already went to the phone: a retry would stream the answer a second time, so the failure stands.
+          if (streamed) throw Object.assign(new Error('Coach stream interrupted'), { status: 499 });
+          throw e;
+        }
+      });
       await this.quota.consume('coach', userId, user.timezone); // successful answers only (OQ-38)
       return { ...opening, reply: deterministic ? keepNumbers(template, String(res.output)) : String(res.output), quickAction };
     } catch (e) {
@@ -270,6 +297,20 @@ export class CoachService {
   }
 
   /**
+   * The conversation so far as chat turns, oldest first. `ConversationsService` has already stored the turn being answered; it
+   * goes last in the prompt with the context, so it is left out here (the model must not see it twice).
+   */
+  private async history(conv: ConversationDoc): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
+    const rows = (await this.messages.find({ conversationId: conv._id }).sort({ createdAt: -1 }).limit(HISTORY_MESSAGES + 1).lean<MessageDoc[]>()).reverse();
+    if (rows.at(-1)?.role === 'user') rows.pop();
+    return rows.map((m) => ({
+      role: m.role,
+      // A chip tap is stored as a bracketed placeholder (`[review_day]`); the model reads what it stood for.
+      content: (m.role === 'user' && m.quickAction && m.text.startsWith('[') ? (QUICK_ACTION_ASKED[m.quickAction as QuickAction] ?? m.text) : m.text).slice(0, HISTORY_MESSAGE_CHARS),
+    }));
+  }
+
+  /**
    * Plan 8.8 rules 5–6: user text passes moderation first. Flagged input gets a refusal (or, for
    * self-harm, the caring support line) from content, with no chat model call.
    */
@@ -277,7 +318,7 @@ export class CoachService {
     await this.ai.assertAvailable('chat');
     let result;
     try {
-      result = await this.provider.moderate(text, await this.ai.modelFor('moderation', 'omni-moderation-latest'));
+      result = await this.provider.moderate(text, await this.ai.modelFor('moderation', DEFAULT_TEXT_MODEL));
     } catch {
       throw new AiUnavailableError('circuit_open', 30);
     }

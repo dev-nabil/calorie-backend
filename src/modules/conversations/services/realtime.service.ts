@@ -9,7 +9,9 @@ import { localeInfo } from '../../../shared/locales';
 import { requestLocale } from '../../../common/http/request-context';
 import { DailyQuota } from '../../../common/rate-limit/daily-quota';
 import { ApiError } from '../../../common/errors/api-error';
-import { AiProvider } from '../../ai/ai.provider';
+import { DEFAULT_REALTIME_MODEL } from '../../ai/ai-models';
+import { AiProvider, type RealtimeToolDeclaration } from '../../ai/ai.provider';
+import { DEFAULT_VOICE, voiceOrDefault } from '../../ai/providers/gemini.provider';
 import { AiService, AiUnavailableError } from '../../ai/ai.service';
 import { CONFIG_DEFAULTS } from '../../app-config/app-config.defaults';
 import { AppConfigService } from '../../content/app-config.service';
@@ -20,20 +22,24 @@ import { schemaFromPrompt } from '../extraction.handler';
 import type { ConversationDoc } from '../schemas/conversations.schema';
 import { OnboardingTurnsService } from './onboarding-turns.service';
 
-/** The default Realtime model; `OPENAI_REALTIME_MODEL` or the admin setting `ai.model.realtime` win. */
-export const DEFAULT_REALTIME_MODEL = 'gpt-realtime-2.1';
-const DEFAULT_VOICE = 'marin';
-const DEFAULT_TRANSCRIPTION_MODEL = 'gpt-4o-transcribe';
-/** The app must open the call within this long after the secret is minted. */
+/** The app must open the call within this long after the token is minted. */
 const SECRET_TTL_SEC = 120;
 /** The app ends a session after this long (onboarding takes about three minutes). */
 export const REALTIME_MAX_SECONDS = 600;
-const REALTIME_MAX_OUTPUT_TOKENS = 800;
+/** A hard stop per response, about 25 seconds of speech. Length is set by the prompt; a large `record_answers` call must still fit. */
+export const REALTIME_MAX_OUTPUT_TOKENS = 500;
+/** Silence that ends the user's turn (owner decision, ADR 0008). */
+export const REALTIME_SILENCE_MS = 3000;
+/** The token outlives the app's own timer by this much, so Google never closes a call the app still counts as open. */
+const SESSION_GRACE_SEC = 60;
 const SECRET_TIMEOUT_MS = 10_000;
 /** Sessions a person may open per local day (a reconnect after a dropped call counts). */
 export const REALTIME_SESSIONS_PER_DAY = 8;
 
-/** USD per million tokens (OpenAI pricing, July 2026). An estimate for the budget guard, not an invoice. */
+/**
+ * USD per million tokens (Google's Live API prices for gemini-3.8-live and its extended-thinking variant, read 4 Nov 2026).
+ * An estimate for the budget guard, not an invoice. Google lists no cached rate for Live, so cached tokens count at the text rate.
+ */
 interface RealtimePrice {
   audioIn: number;
   textIn: number;
@@ -41,9 +47,10 @@ interface RealtimePrice {
   audioOut: number;
   textOut: number;
 }
+const LIVE_PRICE: RealtimePrice = { audioIn: 3, textIn: 0.75, cachedIn: 0.75, audioOut: 12, textOut: 4.5 };
 const REALTIME_PRICES: Record<string, RealtimePrice> = {
-  'gpt-realtime-2.1': { audioIn: 32, textIn: 4, cachedIn: 0.4, audioOut: 64, textOut: 24 },
-  'gpt-realtime-2.1-mini': { audioIn: 10, textIn: 0.6, cachedIn: 0.3, audioOut: 20, textOut: 2.4 },
+  'gemini-3.8-live': LIVE_PRICE,
+  'gemini-3.8-live-extended-thinking': LIVE_PRICE,
 };
 
 const RecordAnswersArgs = z.object({
@@ -53,11 +60,9 @@ const RecordAnswersArgs = z.object({
 });
 const ConfirmAnswersArgs = z.object({ accept: z.boolean() });
 
-type ToolDef = { type: 'function'; name: string; description: string; parameters: Record<string, unknown> };
-
 /**
- * Realtime voice for the Milo conversation. The app opens a WebRTC call straight to OpenAI with a secret
- * minted here (the OpenAI key never reaches the phone). The model hears and speaks; every answer goes through
+ * Realtime voice for the Milo conversation. The app opens a Gemini Live WebSocket straight to Google with an ephemeral
+ * token minted here (the Gemini key never reaches the phone). The model hears and speaks; every answer goes through
  * the same server engine as a typed reply (`record_answers` / `confirm_answers`), so validation, the
  * under-18 rules and saving stay on the server.
  */
@@ -112,9 +117,9 @@ export class RealtimeService {
       synonymsJson: start.synonymsJson,
     })}`;
 
-    const model = await this.ai.modelFor('realtime', this.config.OPENAI_REALTIME_MODEL || DEFAULT_REALTIME_MODEL);
-    const voice = await this.appConfig.get<string>('ai.realtime.voice', DEFAULT_VOICE);
-    const transcriptionModel = await this.appConfig.get<string>('ai.realtime.transcription', DEFAULT_TRANSCRIPTION_MODEL);
+    const model = await this.ai.modelFor('realtime', this.config.GEMINI_REALTIME_MODEL || DEFAULT_REALTIME_MODEL);
+    // A voice setting left over from before Gemini (a name from before Gemini) is not a Gemini voice: the default is used instead.
+    const voice = voiceOrDefault(await this.appConfig.get<string>('ai.realtime.voice', DEFAULT_VOICE));
     const breaker = this.ai.breaker('realtime');
     if (!breaker.allow()) throw new AiUnavailableError('circuit_open', breaker.retryAfterSec() || 30);
 
@@ -125,10 +130,10 @@ export class RealtimeService {
         voice,
         instructions,
         tools: await this.tools(),
-        transcriptionModel,
-        transcriptionLanguage: lang.code,
         expiresAfterSec: SECRET_TTL_SEC,
+        sessionSec: REALTIME_MAX_SECONDS + SESSION_GRACE_SEC,
         maxOutputTokens: REALTIME_MAX_OUTPUT_TOKENS,
+        silenceMs: REALTIME_SILENCE_MS,
         timeoutMs: SECRET_TIMEOUT_MS,
       });
     } catch {
@@ -171,8 +176,8 @@ export class RealtimeService {
   /** The app reports the tokens of a finished session so the monthly budget guard sees the cost. */
   async usage(userId: string, conversationId: string, u: RealtimeUsageRequest): Promise<void> {
     await this.find(userId, conversationId);
-    const model = await this.ai.modelFor('realtime', this.config.OPENAI_REALTIME_MODEL || DEFAULT_REALTIME_MODEL);
-    const p = REALTIME_PRICES[model] ?? REALTIME_PRICES[DEFAULT_REALTIME_MODEL]!;
+    const model = await this.ai.modelFor('realtime', this.config.GEMINI_REALTIME_MODEL || DEFAULT_REALTIME_MODEL);
+    const p = REALTIME_PRICES[model] ?? LIVE_PRICE;
     const freshAudioIn = Math.max(0, u.inputAudioTokens - u.cachedInputTokens);
     const cost = (freshAudioIn * p.audioIn + u.inputTextTokens * p.textIn + u.cachedInputTokens * p.cachedIn + u.outputAudioTokens * p.audioOut + u.outputTextTokens * p.textOut) / 1_000_000;
     await this.ai.recordUsage(
@@ -184,20 +189,18 @@ export class RealtimeService {
   }
 
   /** Tool definitions: the answer shape is the one the extraction prompt already defines, so both readers agree. */
-  private async tools(): Promise<ToolDef[]> {
+  private async tools(): Promise<RealtimeToolDeclaration[]> {
     const extract = await this.content.activePrompt('onboarding-extract');
     const schema = extract ? schemaFromPrompt(extract.content) : undefined;
     const answers = (schema?.properties as Record<string, unknown> | undefined)?.answers ?? { type: 'array', items: { type: 'object' } };
     return [
       {
-        type: 'function',
         name: 'record_answers',
         description:
           'Save what the user just said as answers to the OPEN questions. Call it as soon as the reply answers any open question, before you speak. Never guess; never record age, sex, height or weight unless the user stated it explicitly.',
         parameters: { type: 'object', additionalProperties: false, required: ['answers'], properties: { answers } },
       },
       {
-        type: 'function',
         name: 'confirm_answers',
         description: 'After a needs_confirmation result and the user’s spoken yes or no: accept true saves the noted answers, false discards them.',
         parameters: { type: 'object', additionalProperties: false, required: ['accept'], properties: { accept: { type: 'boolean' } } },

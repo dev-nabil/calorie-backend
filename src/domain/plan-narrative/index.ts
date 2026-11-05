@@ -3,7 +3,7 @@
  * user could take as a target. Everything it returns is checked here before it is shown or stored.
  */
 import { createHash } from 'node:crypto';
-import type { EligibilityAttestation, PlanNarrative, PlanPreview, PlanTimeframe } from '../../shared';
+import type { PlanNarrative, PlanPreview, PlanTimeframe } from '../../shared';
 import type { ProfileFields } from '../onboarding-engine';
 import type { QuestionSet } from '../onboarding-engine';
 import { DEFAULT_LOCALE, type LocaleCode } from '../../shared/locales';
@@ -14,10 +14,10 @@ import type { PlanAssessment } from '../../shared';
 
 /** Profile fields that feed the calculation or the personalisation. A change to any of them makes a draft stale. */
 const HASHED_FIELDS = [
-  'primaryGoal', 'supportingGoals', 'personalMotivation', 'ageYears', 'calculationSex', 'heightCm', 'weightKg', 'weightIsEstimate',
+  'primaryGoal', 'supportingGoals', 'personalMotivation', 'ageYears', 'calculationSex', 'lifeStage', 'heightCm', 'weightKg', 'weightIsEstimate',
   'targetWeightKg', 'activityLevel', 'dietPattern', 'dietPatternOther', 'mealSource', 'nutritionFamiliarity', 'startingMood',
   'habitPriorities', 'timeframeWeeks', 'allergies', 'allergyOther', 'mealsPerDay', 'schedulePattern', 'higherIntakePattern',
-  'trackingExperience', 'routineBarriers', 'eatingCues',
+  'trackingExperience', 'routineBarriers', 'eatingCues', 'movementActions',
 ] as const satisfies ReadonlyArray<keyof ProfileFields>;
 
 function stable(v: unknown): string {
@@ -29,16 +29,9 @@ function stable(v: unknown): string {
   return JSON.stringify(v ?? null);
 }
 
-export function planInputHash(profile: Partial<ProfileFields>, attestation: EligibilityAttestation | null | undefined): string {
+export function planInputHash(profile: Partial<ProfileFields>): string {
   const picked: Record<string, unknown> = {};
   for (const k of HASHED_FIELDS) picked[k] = profile[k] ?? null;
-  picked.attestation = attestation
-    ? {
-        pregnantOrBreastfeeding: attestation.pregnantOrBreastfeeding,
-        supervisedNutritionCondition: attestation.supervisedNutritionCondition,
-        eatingDisorderConcern: attestation.eatingDisorderConcern,
-      }
-    : null;
   return createHash('sha256').update(stable(picked)).digest('hex').slice(0, 32);
 }
 
@@ -143,6 +136,7 @@ export function buildNarrativeContext(i: NarrativeInputs): NarrativeFacts {
       whatGetsInTheWay: labels('routine_barriers', p.routineBarriers),
       eatingCues: labels('eating_cues', p.eatingCues),
       firstHabits: labels('habit_priorities', p.habitPriorities),
+      movementThatFits: labels('movement_actions', p.movementActions),
     },
     experience: {
       nutritionKnowledge: L('nutrition_familiarity', p.nutritionFamiliarity),

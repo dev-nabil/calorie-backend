@@ -6,7 +6,7 @@ modelConfigKey: ai.model.realtime
 killSwitch: ai.kill.realtime
 timeoutSec: 600
 maxOutputTokens: 800
-transport: OpenAI Realtime API over WebRTC; the client secret is minted by POST /conversations/{id}/realtime
+transport: Gemini Live API over a WebSocket; the ephemeral token is minted by POST /conversations/{id}/realtime
 tools: [record_answers, confirm_answers]
 includes: [safety-rules.v1]
 source: PLAN §8.5, §8.7, §11; content/prompts/onboarding-extract.v1.md; owner decision 4 Nov 2026 (realtime voice replaces on-device voice for the Milo conversation)

@@ -16,7 +16,7 @@ describe('GET /v1/config and billing', () => {
       experiments: {},
       minAppVersion: { ios: '1.0.0', android: '1.0.0' },
       killSwitches: { vision: false, chat: false, extract: false, tts: false },
-      contentVersions: { onboardingQuestions: 2 },
+      contentVersions: { onboardingQuestions: 3 },
     });
     expect(res.headers['cache-control']).toBe('public, max-age=60');
     await t.http().get('/v1/config').set('If-None-Match', String(res.headers.etag)).expect(304);

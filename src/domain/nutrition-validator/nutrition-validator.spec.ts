@@ -1,4 +1,4 @@
-import { computeTotals, editItemGrams, kcalFromMacros, normaliseAnalysis, normaliseItem, parseModelOutput, scaleItem } from './index';
+import { computeTotals, editItemGrams, kcalFromMacros, normaliseAnalysis, normaliseItem, parseModelOutput, scaleItem, type ParsedItemInput } from './index';
 import { chooseReactionLine } from './reactions';
 import { PLAN_EXAMPLE_ANALYSIS } from './fixtures';
 import type { MealAnalysisOutput } from '../../shared';
@@ -12,7 +12,7 @@ const lines = JSON.parse(readFileSync(resolve(__dirname, '../../../content/milo/
 const content = lines.scanReactions;
 
 const example = (): MealAnalysisOutput => JSON.parse(JSON.stringify(PLAN_EXAMPLE_ANALYSIS));
-const item = (over: Partial<MealAnalysisOutput['items'][number]> = {}): MealAnalysisOutput['items'][number] => ({
+const item = (over: Partial<ParsedItemInput> = {}): ParsedItemInput => ({
   name: 'Thing',
   portion: null,
   grams: 100,
@@ -50,13 +50,14 @@ describe('nutrition-validator (plan 8.3)', () => {
     expect(r.status).toBe('succeeded');
     expect(r.analysis.items).toHaveLength(3);
     expect(r.analysis.items.every((i) => !i.kcalRecomputed)).toBe(true);
-    expect(r.analysis.totals).toEqual({ kcal: 501, proteinG: 50.8, carbsG: 45, fatG: 10.9 });
+    expect(r.analysis.totals).toEqual({ kcal: 501, proteinG: 50.8, carbsG: 45, fatG: 10.9, fiberG: 0.6, sugarG: 0.2, sodiumMg: 113, incomplete: [] });
+    expect(r.analysis).toMatchObject({ isEstimate: true, outcome: 'ok', assumptions: ['Oil is not visible; the estimate may be low.'] });
     expect(r.analysis.items[2]?.point).toBeNull();
     expect(r.analysis.reactionLineId).toBeNull();
   });
 
   it('rule 2: not food is rejected with empty items', () => {
-    const r = normaliseAnalysis({ ...example(), isFood: false, notes: 'A cat' });
+    const r = normaliseAnalysis({ ...example(), status: 'no_food', items: [], question: 'A cat' });
     expect(r.status).toBe('rejected');
     expect(r.analysis).toMatchObject({ isFood: false, items: [], totals: { kcal: 0 }, reactionLineId: null, notes: 'A cat' });
   });
@@ -76,7 +77,8 @@ describe('nutrition-validator (plan 8.3)', () => {
       expect(zero.proteinG).toBe(5);
     });
     it('keeps at most 15 items', () => {
-      const out = { ...example(), items: Array.from({ length: 20 }, (_, i) => item({ name: `Item ${i}` })) };
+      const one = example().items[0]!;
+      const out = { ...example(), items: Array.from({ length: 20 }, (_, i) => ({ ...one, name: `Item ${i}` })) };
       expect(normaliseAnalysis(out).analysis.items).toHaveLength(15);
     });
     it('clamps confidence and drops points outside the photo', () => {

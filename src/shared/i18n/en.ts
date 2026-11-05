@@ -10,11 +10,12 @@ export const en = {
   // ── Plan: what is missing / contradictory ──
   'plan.missing.age': 'Your age tells us which features are right for you. Add it, or continue with habits only.',
   'plan.missing.sex': 'The calorie equation needs a sex input. Add it, or continue with habits only.',
+  'plan.missing.lifeStage': 'Tell me whether you are pregnant or breastfeeding, so your goal fits you.',
   'plan.missing.height': 'Your height is needed for the calorie equation.',
   'plan.missing.weight': 'Your current weight is needed for the calorie equation.',
   'plan.missing.activity': 'Pick the movement level closest to a normal week. "Not sure" cannot be used for an estimate.',
-  'plan.missing.eligibility': 'A short health check comes before any calorie estimate.',
   'plan.issue.bmi_implausible': 'That height and weight look unlikely together. Please check both, including the unit.',
+  'plan.issue.loss_goal_underweight': 'At this height and weight I cannot set a weight-loss goal. Pick a different main goal, or correct your weight if it is wrong.',
   'plan.issue.target_equals_current': 'Your target is the same as your current weight. Choose a different target, or leave it blank.',
   'plan.issue.target_above_current': 'Your target is above your current weight, but your goal is weight loss. Change the target or the goal.',
   'plan.issue.target_below_current': 'Your target is below your current weight, but your goal is weight gain. Change the target or the goal.',
@@ -23,21 +24,12 @@ export const en = {
   'plan.issue.allergies_unknown': 'You have not told us about food allergies or intolerances, so ideas are not filtered for them. You can add them now.',
   'plan.issue.weight_is_estimate': 'Your weight is an estimate, so your targets are too. Update it when you can.',
   // ── Plan: notices for outcomes without a calorie plan ──
-  'plan.notice.eating_disorder_concern.title': 'Support first, numbers later',
-  'plan.notice.eating_disorder_concern.body':
-    'Counting food and weight is not always helpful, so I will not set calorie or weight targets. If eating feels hard right now, talking to your GP or an eating disorder support service can really help. I can still help with meals, water and routine.',
-  'plan.notice.pregnant_or_breastfeeding.title': 'A professional is the best guide here',
-  'plan.notice.pregnant_or_breastfeeding.body':
-    'Your energy needs change during pregnancy and while breastfeeding, so I will not set a calorie target. Your midwife, GP or a registered dietitian can set one safely. I can still help with meals, water and routine.',
-  'plan.notice.supervised_condition.title': 'A professional is the best guide here',
-  'plan.notice.supervised_condition.body':
-    'When a health professional guides what you eat, any calorie target should come from them, so I will not set one. I can still help with meals, water and routine.',
-  'plan.notice.underweight_loss_goal.title': 'Let us check this together',
-  'plan.notice.underweight_loss_goal.body':
-    'Based on the height and weight you gave, losing weight may not be right for you, so I will not set a weight-loss plan. A GP or dietitian can look at this with you. If a number is wrong, you can edit your answers. I can still help with meals, water and routine.',
+  'plan.notice.life_stage.title': 'A goal for this stage of life',
+  'plan.notice.life_stage.body':
+    'Your energy needs change during pregnancy and while breastfeeding, so your goal for now is steady meals, water and routine, without calorie or weight targets. You can change this answer any time.',
   'plan.notice.habits_only.title': 'Let us focus on habits',
   'plan.notice.habits_only.body':
-    'At your age, Nouri focuses on regular meals, water and routine rather than calorie numbers. A parent, carer or health professional can help with anything beyond that.',
+    'At your age, Nouri focuses on regular meals, water and routine rather than calorie numbers. A parent or carer can help with anything beyond that.',
   'plan.notice.needs_input.blocking.title': 'Something needs a second look',
   'plan.notice.needs_input.blocking.body':
     'Some of your answers do not fit together. I will not guess which one is right, so please check them. You can also continue with habits only.',
@@ -141,6 +133,9 @@ export const enErrors: Record<ErrorCode, ErrMsg> = {
   SCAN_NOT_FOUND: 'We could not find that scan.',
   SCAN_CONFLICT: 'That scan is already being processed.',
   AI_UNAVAILABLE: 'Milo is resting. Try again soon.',
+  IMAGE_INVALID: 'That photo could not be used. Try another one.',
+  NO_FOOD_DETECTED: 'Milo could not find any food in this photo.',
+  IMAGE_UNCLEAR: 'This photo is too unclear to estimate. Try another one.',
   AI_LIMIT_REACHED: 'Daily limit reached. Try again tomorrow.',
   CONVERSATION_NOT_FOUND: 'We could not find that conversation.',
   NOTHING_TO_CONFIRM: 'There is nothing to confirm.',

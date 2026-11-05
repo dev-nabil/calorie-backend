@@ -1,41 +1,64 @@
 import { z } from 'zod';
-import { MEAL_CATEGORIES, SCAN_STATUSES } from '../enums';
+import { MAX_MEAL_ITEMS, PORTION_MULTIPLIER_MAX, PORTION_MULTIPLIER_MIN } from '../constants';
+import { FOOD_PREPARATIONS, FOOD_ROLES, MEAL_CATEGORIES, RETAKE_REASONS, SCAN_OUTCOMES, SCAN_STATUSES } from '../enums';
 import { IsoDateTimeSchema, UuidSchema } from './common';
-import { NutrientTotalsSchema, PointSchema } from './meals';
+import { MealTotalsSchema, NutrientTotalsSchema, NutrientValuesSchema, NutritionSourceSchema, OtherNutrientSchema, Per100gInputSchema, PointSchema } from './meals';
 
-/** Raw model output for meal photo analysis (plan 8.3). Unknown fields are rejected. */
+const per100 = z.number().min(0).nullable();
+
+/** One food in the model's reply. Keys are short because every one is billed as output on every item. */
 export const MealAnalysisItemOutputSchema = z.strictObject({
-  name: z.string().min(1).max(120),
-  portion: z.string().max(60).nullable(),
-  grams: z.number(),
-  kcal: z.number().min(0),
-  proteinG: z.number().min(0),
-  carbsG: z.number().min(0),
-  fatG: z.number().min(0),
-  fiberG: z.number().min(0).nullable(),
-  confidence: z.number(),
-  point: z.strictObject({ x: z.number(), y: z.number() }).nullable(),
+  name: z.string().min(1).describe('Display name in the requested language'),
+  en: z.string().min(1).describe('Plain lowercase English name, for example "white rice"'),
+  g: z.number().describe('Estimated edible weight as served, in grams'),
+  prep: z.enum(FOOD_PREPARATIONS),
+  role: z.enum(FOOD_ROLES),
+  of: z.number().int().nullable().describe('For a component: index of its mixed dish in items'),
+  n: z
+    .strictObject({ kcal: per100, p: per100, c: per100, f: per100, fib: per100, sug: per100, na: per100 })
+    .describe('Per 100 g: kcal; protein, carbs, fat, fibre, sugar in g; sodium in mg. null when unknown, never 0 as a guess'),
+  conf: z.number().describe('0 to 1 for identity and portion together'),
+  pt: z.strictObject({ x: z.number(), y: z.number() }).nullable().describe('Item centre, 0 to 1; null when not visible'),
+  note: z.string().nullable().describe('Main assumption for this item, or null'),
 });
 
+/**
+ * Raw model output for a meal photo (content/prompts/meal-scan.v3.md). Unknown fields are rejected. This also
+ * generates the schema sent to Gemini, which refuses `maxItems` here ("too many states") and ignores string
+ * lengths, so sizes are enforced by normaliseAnalysis instead: an over-long reply is trimmed, not failed.
+ */
 export const MealAnalysisOutputSchema = z.strictObject({
-  isFood: z.boolean(),
-  mealName: z.string().max(120).nullable(),
+  status: z.enum(SCAN_OUTCOMES),
+  mealName: z.string().nullable(),
   items: z.array(MealAnalysisItemOutputSchema),
-  notes: z.string().max(500).nullable(),
-  clarifyingQuestion: z.string().max(200).nullable(),
+  assumptions: z.array(z.string()),
+  question: z.string().nullable().describe('One short clarification, or what is wrong with the photo'),
+  retake: z.enum(RETAKE_REASONS).nullable(),
 });
 export type MealAnalysisOutput = z.infer<typeof MealAnalysisOutputSchema>;
 
 export const AnalysedItemSchema = z
   .object({
+    id: z.string().describe('Stable within one scan; send it back as scanItemId'),
     name: z.string(),
+    canonicalName: z.string().nullable().describe('English name used to look up records'),
     portion: z.string().nullable(),
     grams: z.number(),
-    kcal: z.number(),
-    proteinG: z.number(),
-    carbsG: z.number(),
-    fatG: z.number(),
+    kcal: z.number().nullable(),
+    proteinG: z.number().nullable(),
+    carbsG: z.number().nullable(),
+    fatG: z.number().nullable(),
     fiberG: z.number().nullable(),
+    sugarG: z.number().nullable(),
+    sodiumMg: z.number().nullable(),
+    per100g: NutrientValuesSchema.describe('Basis for every value on this item; portion changes recalculate from it'),
+    source: NutritionSourceSchema,
+    otherNutrients: z.array(OtherNutrientSchema),
+    preparation: z.enum(FOOD_PREPARATIONS).nullable(),
+    role: z.enum(FOOD_ROLES),
+    excluded: z.boolean().describe('Left out of totals, for example an ingredient of a mixed dish'),
+    countedIn: z.string().nullable().describe('id of the mixed dish that already contains this item'),
+    assumption: z.string().nullable(),
     confidence: z.number(),
     point: PointSchema.nullable(),
     kcalRecomputed: z.boolean().describe('kcal recomputed from macros (rule 4)'),
@@ -45,12 +68,16 @@ export type AnalysedItem = z.infer<typeof AnalysedItemSchema>;
 
 export const MealAnalysisSchema = z
   .object({
+    outcome: z.enum(SCAN_OUTCOMES),
     isFood: z.boolean(),
+    isEstimate: z.literal(true).describe('A photo cannot establish weight, ingredients or hidden oil'),
     mealName: z.string().nullable(),
     items: z.array(AnalysedItemSchema),
-    totals: NutrientTotalsSchema,
+    totals: MealTotalsSchema,
+    assumptions: z.array(z.string()),
     notes: z.string().nullable(),
     clarifyingQuestion: z.string().nullable(),
+    retakeReason: z.enum(RETAKE_REASONS).nullable(),
     reactionLineId: z.string().nullable().describe('Rule-based Milo reaction (R-10)'),
   })
   .meta({ id: 'MealAnalysis' });
@@ -80,6 +107,41 @@ export const ScanSchema = z
   })
   .meta({ id: 'Scan' });
 export type Scan = z.infer<typeof ScanSchema>;
+
+/** Portion or name corrections on a finished scan. Never calls a model. */
+export const RecalculateScanRequestSchema = z
+  .strictObject({
+    portionMultiplier: z.number().min(PORTION_MULTIPLIER_MIN).max(PORTION_MULTIPLIER_MAX).optional(),
+    items: z
+      .array(
+        z.strictObject({
+          id: z.string().max(16),
+          name: z.string().trim().min(1).max(120).optional(),
+          grams: z.number().min(1).max(2000).optional(),
+          preparation: z.enum(FOOD_PREPARATIONS).optional(),
+          excluded: z.boolean().optional(),
+        }),
+      )
+      .max(MAX_MEAL_ITEMS)
+      .optional(),
+    addedItems: z
+      .array(z.strictObject({ name: z.string().trim().min(1).max(120), grams: z.number().min(1).max(2000), per100g: Per100gInputSchema, excluded: z.boolean().optional() }))
+      .max(MAX_MEAL_ITEMS)
+      .optional()
+      .describe('Foods added by text after the scan'),
+  })
+  .meta({ id: 'RecalculateScanRequest' });
+export type RecalculateScanRequest = z.infer<typeof RecalculateScanRequestSchema>;
+
+export const RecalculatedScanSchema = z
+  .object({
+    portionMultiplier: z.number(),
+    items: z.array(AnalysedItemSchema).describe('Values at the base portion (1×)'),
+    totals: MealTotalsSchema.describe('Counted items after the portion multiplier'),
+    staleItems: z.array(z.string()).describe('Renamed items with no matching record: their nutrition is still the earlier estimate'),
+  })
+  .meta({ id: 'RecalculatedScan', description: 'Not saved; review then POST /meals' });
+export type RecalculatedScan = z.infer<typeof RecalculatedScanSchema>;
 
 /** Raw model output for POST /meals/parse (content/prompts/meal-parse.v1.md). */
 export const MealParseOutputSchema = z.strictObject({

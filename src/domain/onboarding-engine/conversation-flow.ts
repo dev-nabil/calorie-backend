@@ -1,8 +1,8 @@
 /**
- * Conversation walk with provisional questions (content/onboarding/conversation.v1.json rules):
- * turns run in order; a turn is asked while it has open questions; q08/q09 are asked before q07
- * (provisional), held without saving, and committed once the branching rules show them, or dropped
- * when they can no longer apply (under 18, age declined, q07 unsure/none). Pure functions.
+ * Conversation walk (content/onboarding/conversation.v2.json rules): turns run in order; a turn is
+ * asked while it has open questions. An answer whose branching rule is not true yet (q09 given with
+ * q08, or a later question the user volunteered) is held without saving and committed once the rules
+ * show it, or dropped when it can no longer apply (under 18, age declined, q07 unsure/none). Pure functions.
  */
 import { evaluateCondition, hasValue } from './conditions';
 import { isSettled, rulesPass } from './engine';
@@ -49,23 +49,41 @@ export function loadFlowTurns(set: QuestionSet, json: unknown): FlowTurn[] {
   });
 }
 
+/** Always asked in their own turn, however much the user volunteers (rules.sensitive). */
+const ALWAYS_ASKED: ReadonlySet<string> = new Set(['q07', 'q38']);
+
 /**
- * A provisional question (q08/q09) can still apply unless age is settled and not adult (or
- * declined) or the sex input was answered with something other than female/male.
+ * A held or provisional question can still apply unless age is settled and not adult (or declined),
+ * the sex input was answered with something other than female/male, or (q09) the height was declined.
  */
-export function provisionalViable(set: QuestionSet, answers: AnswerMap, ctx: EngineContext): boolean {
+export function provisionalViable(set: QuestionSet, answers: AnswerMap, ctx: EngineContext, questionId?: string): boolean {
   const ageId = set.ageQuestionId;
   if (ageId && isSettled(answers[ageId]) && !evaluateCondition({ age: { gte: 18 } } as Condition, answers, ctx, set)) return false;
   const sex = answers.q07;
   if (sex && isSettled(sex) && sex.value !== 'female' && sex.value !== 'male') return false;
+  if (questionId === 'q09' && answers.q08?.status === 'skipped') return false;
   return true;
 }
 
+/**
+ * Later questions the user may answer ahead of time, so nothing they already said is asked again.
+ * Not yet asked, not held, and still able to apply; q07 and q38 always wait for their own turn.
+ */
+export function volunteerableQuestions(set: QuestionSet, turns: FlowTurn[], answers: AnswerMap, held: Record<string, unknown>, ctx: EngineContext, open: string[]): string[] {
+  const seen = new Set(open);
+  const out: string[] = [];
+  for (const id of turns.flatMap((t) => t.questionIds)) {
+    if (seen.has(id) || ALWAYS_ASKED.has(id) || id in held || isSettled(answers[id])) continue;
+    seen.add(id);
+    if (rulesPass(set, id, answers, ctx) || provisionalViable(set, answers, ctx, id)) out.push(id);
+  }
+  return out;
+}
+
 export function openQuestions(set: QuestionSet, turn: FlowTurn, answers: AnswerMap, held: Record<string, unknown>, ctx: EngineContext): string[] {
-  const viable = provisionalViable(set, answers, ctx);
   return turn.questionIds.filter((id) => {
-    if (isSettled(answers[id])) return false;
-    if (turn.provisional.includes(id) && !rulesPass(set, id, answers, ctx)) return viable && !(id in held);
+    if (isSettled(answers[id]) || id in held) return false;
+    if (turn.provisional.includes(id) && !rulesPass(set, id, answers, ctx)) return provisionalViable(set, answers, ctx, id);
     return rulesPass(set, id, answers, ctx);
   });
 }
@@ -94,7 +112,6 @@ export function settleProvisional(
   held: Record<string, AnswerValue>,
   ctx: EngineContext,
 ): { commit: AnswerUpdate[]; drop: string[]; keep: Record<string, AnswerValue> } {
-  const viable = provisionalViable(set, answers, ctx);
   const commit: AnswerUpdate[] = [];
   const drop: string[] = [];
   const keep: Record<string, AnswerValue> = {};
@@ -104,7 +121,7 @@ export function settleProvisional(
     if (rulesPass(set, id, trial, ctx)) {
       commit.push({ questionId: id, status: 'answered', value: held[id]!, inputMethod: 'voice' });
       trial[id] = { value: held[id]!, status: 'answered' };
-    } else if (!viable) drop.push(id);
+    } else if (!provisionalViable(set, answers, ctx, id)) drop.push(id);
     else keep[id] = held[id]!;
   }
   return { commit, drop, keep };

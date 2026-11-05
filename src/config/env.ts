@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { knownGeminiPrice } from '../modules/ai/gemini-pricing';
 
 const csv = z
   .string()
@@ -33,7 +34,8 @@ export const EnvSchema = z
     CDN_BASE_URL: z.string().optional(),
     CDN_SIGNING_KEY: z.string().optional(),
     ADMIN_APP_URL: z.string().default('http://localhost:3002'),
-    ROLE: z.enum(['api', 'worker']).default('api'),
+    /** api = HTTP only, worker = queue processors only (production), all = both in one process (local development). */
+    ROLE: z.enum(['api', 'worker', 'all']).default('api'),
     APP_VERSION: z.string().default('0.1.0'),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
     MONGODB_URI: z.string().min(1, 'is required: set it in .env'),
@@ -48,6 +50,9 @@ export const EnvSchema = z
     EMAIL_DRIVER: z.enum(['console', 'memory', 'resend']).default('console'),
     EMAIL_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().default('Nouri <hello@example.com>'),
+    /** Development only: every email sign-in code is this value (for example 000000) instead of a random one.
+     * Refused in production and together with EMAIL_DRIVER=resend (a known code must never reach real mail). */
+    DEV_FIXED_OTP: z.string().regex(/^\d{6}$/, 'must be exactly 6 digits').optional(),
     GOOGLE_CLIENT_IDS: csv,
     APPLE_BUNDLE_ID: z.string().optional(),
     APPLE_SERVICE_ID: z.string().optional(),
@@ -58,13 +63,33 @@ export const EnvSchema = z
     PLAY_INTEGRITY_PACKAGE: z.string().optional(),
     PLAY_INTEGRITY_SERVICE_ACCOUNT_JSON: z.string().optional(),
     INTEGRITY_ENFORCE: z.enum(['true', 'false', '1', '0']).optional(),
-    AI_PROVIDER: z.enum(['fake', 'openai']).default('fake'),
-    OPENAI_API_KEY: z.string().optional(),
-    OPENAI_MONTHLY_BUDGET_USD: z.coerce.number().positive().optional(),
-    /** Model for plan personalisation. Empty = gpt-5-mini; the admin setting ai.model.plan wins over it. */
-    OPENAI_PLAN_MODEL: z.string().optional(),
-    /** Model for the Realtime voice conversation. Empty = gpt-realtime-2.1; the admin setting ai.model.realtime wins over it. */
-    OPENAI_REALTIME_MODEL: z.string().optional(),
+    AI_PROVIDER: z.enum(['fake', 'gemini']).default('fake'),
+    /** Monthly spend limit for every AI feature except food photo scans (those have their own daily caps below). */
+    AI_MONTHLY_BUDGET_USD: z.coerce.number().positive().optional(),
+    /** Model for plan personalisation. Empty = gemini-3.5-flash-lite; the admin setting ai.model.plan wins over it. */
+    GEMINI_PLAN_MODEL: z.string().optional(),
+    /** Model for the Live voice conversation. Empty = gemini-3.8-live; the admin setting ai.model.realtime wins over it. */
+    GEMINI_REALTIME_MODEL: z.string().optional(),
+    /** The one Google key for every AI feature. Empty = AI features run on the fake provider and food scans answer AI_UNAVAILABLE (not_configured). */
+    GEMINI_API_KEY: z.string().optional(),
+    GEMINI_FOOD_MODEL: z.string().default('gemini-3.5-flash-lite'),
+    GEMINI_FOOD_THINKING_LEVEL: z.enum(['minimal', 'low', 'medium', 'high']).default('minimal'),
+    /** Sets the image token charge on Gemini 3 (about 280 / 560 / 1120), whatever the file size. */
+    GEMINI_FOOD_IMAGE_RESOLUTION: z.enum(['low', 'medium', 'high']).default('high'),
+    GEMINI_FOOD_IMAGE_MAX_EDGE: z.coerce.number().int().min(512).max(2048).default(1024),
+    /** Includes thinking tokens. Measured at about 110 tokens per item, 200 if the model pretty-prints: this fits 15 items either way. */
+    GEMINI_FOOD_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(512).max(16384).default(4096),
+    GEMINI_FOOD_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(20_000),
+    /** Tries per scan, first one included, inside a 38 s budget (the app stops polling at 40 s). */
+    GEMINI_FOOD_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(5).default(3),
+    /** Whole-service limits per UTC day. The app_config key limits.foodScan wins. */
+    GEMINI_FOOD_DAILY_REQUEST_CAP: z.coerce.number().int().min(0).default(500),
+    GEMINI_FOOD_DAILY_SPEND_USD: z.coerce.number().min(0).default(1),
+    /** Prices per million tokens. Needed only for a model not in src/modules/ai/gemini-pricing.ts. */
+    GEMINI_FOOD_INPUT_USD_PER_M: z.coerce.number().positive().optional(),
+    GEMINI_FOOD_OUTPUT_USD_PER_M: z.coerce.number().positive().optional(),
+    /** Development only: canned scan results instead of Gemini, to walk the flow before the key exists. */
+    GEMINI_FOOD_MOCK: bool(false),
     FREE_SCANS: z.coerce.number().int().min(0).max(100).default(1),
     CORS_ORIGINS: csv,
     TURNSTILE_SECRET: z.string().optional(),
@@ -82,7 +107,15 @@ export const EnvSchema = z
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   })
   .superRefine((env, ctx) => {
+    if (env.DEV_FIXED_OTP !== undefined) {
+      if (env.NODE_ENV === 'production') ctx.addIssue({ code: 'custom', path: ['DEV_FIXED_OTP'], message: 'not allowed in production' });
+      else if (env.EMAIL_DRIVER === 'resend') ctx.addIssue({ code: 'custom', path: ['DEV_FIXED_OTP'], message: 'only with EMAIL_DRIVER=console or memory' });
+    }
+    if (env.GEMINI_API_KEY && !knownGeminiPrice(env.GEMINI_FOOD_MODEL) && !(env.GEMINI_FOOD_INPUT_USD_PER_M && env.GEMINI_FOOD_OUTPUT_USD_PER_M)) {
+      ctx.addIssue({ code: 'custom', path: ['GEMINI_FOOD_MODEL'], message: 'unknown price: set GEMINI_FOOD_INPUT_USD_PER_M and GEMINI_FOOD_OUTPUT_USD_PER_M, or the spending cap cannot work' });
+    }
     if (env.NODE_ENV !== 'production') return;
+    if (env.GEMINI_FOOD_MOCK) ctx.addIssue({ code: 'custom', path: ['GEMINI_FOOD_MOCK'], message: 'not allowed in production' });
     for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'OTP_PEPPER', 'LEDGER_PEPPER'] as const) {
       if (env[key].startsWith(DEV_SECRET)) ctx.addIssue({ code: 'custom', path: [key], message: 'required in production' });
     }
@@ -96,7 +129,7 @@ export const EnvSchema = z
     if (env.EMAIL_DRIVER !== 'resend') ctx.addIssue({ code: 'custom', path: ['EMAIL_DRIVER'], message: 'must be resend in production' });
     if (!env.TURNSTILE_SECRET) ctx.addIssue({ code: 'custom', path: ['TURNSTILE_SECRET'], message: 'required in production' });
     if (env.AI_PROVIDER === 'fake') ctx.addIssue({ code: 'custom', path: ['AI_PROVIDER'], message: 'fake provider not allowed in production' });
-    if (env.AI_PROVIDER === 'openai' && !env.OPENAI_API_KEY) ctx.addIssue({ code: 'custom', path: ['OPENAI_API_KEY'], message: 'required for openai' });
+    if (env.AI_PROVIDER === 'gemini' && !env.GEMINI_API_KEY) ctx.addIssue({ code: 'custom', path: ['GEMINI_API_KEY'], message: 'required for gemini' });
   })
   .transform((env) => ({
     ...env,

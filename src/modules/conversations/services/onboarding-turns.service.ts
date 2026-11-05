@@ -11,6 +11,7 @@ import {
   settleProvisional,
   toStoredValue,
   validateAnswer,
+  volunteerableQuestions,
   type AnswerMap,
   type EngineContext,
   type FlowTurn,
@@ -51,7 +52,8 @@ export interface RealtimeStart {
 
 /**
  * Onboarding conversation turns (M5-T3): server-driven walk over the turn groups, model extraction
- * in the worker, confirmation for multi-answer or low-confidence turns, provisional q08/q09.
+ * in the worker, confirmation for multi-answer or low-confidence turns. A reply may also answer later
+ * questions; those are saved (or held until their rules show them), so Milo never asks them again.
  */
 @Injectable()
 export class OnboardingTurnsService {
@@ -83,7 +85,7 @@ export class OnboardingTurnsService {
       miloState,
       turnId: turn?.id ?? null,
       questionIds,
-      chips: (turn?.chips ?? []).map((c, index) => ({ index, label: c.label })),
+      chips: chipsFor(turn, questionIds),
       extracted: [],
       needsConfirmation: false,
       done: false,
@@ -111,9 +113,12 @@ export class OnboardingTurnsService {
     if (req.chipIndex !== undefined) {
       const chip = turn.chips[req.chipIndex];
       if (!chip) throw new ApiError(ERROR_CODES.VALIDATION_FAILED, 'Unknown chip');
-      const answers: PendingAnswer[] = Object.entries(chip.sets ?? {}).map(([questionId, value]) => ({ questionId, value, confidence: 1, held: false }));
-      await this.apply(conv, snap.set, snap.ctx, answers, chip.skips ?? [], 'chip');
-      return this.advance(conv, turns, raw, await this.onboarding.snapshot(conv.userId.toString(), 'conversation'), '');
+      // Only what is still open: a chip never overwrites an answer the user already gave.
+      const answers: PendingAnswer[] = Object.entries(chip.sets ?? {})
+        .filter(([questionId]) => open.includes(questionId))
+        .map(([questionId, value]) => ({ questionId, value, confidence: 1, held: false }));
+      const saved = await this.apply(conv, snap.set, snap.ctx, answers, (chip.skips ?? []).filter((id) => open.includes(id)), 'chip');
+      return { ...(await this.advance(conv, turns, raw, await this.onboarding.snapshot(conv.userId.toString(), 'conversation'), '')), ...saved };
     }
 
     const recent = await this.messages.find({ conversationId: conv._id }).sort({ createdAt: -1 }).skip(1).limit(2).lean<MessageDoc[]>(); // skip the reply being handled
@@ -128,7 +133,7 @@ export class OnboardingTurnsService {
           knownName: typeof snap.answers.q05?.value === 'string' ? snap.answers.q05.value : '',
           inputMethod: req.inputMethod,
           locale: requestLocale(),
-          openQuestionsJson: JSON.stringify(open.map((id) => openQuestionView(snap.set, id))),
+          openQuestionsJson: JSON.stringify(listeningViews(snap.set, open, volunteerableQuestions(snap.set, turns, snap.answers, conv.held ?? {}, snap.ctx, open))),
           synonymsJson: JSON.stringify(Object.fromEntries(open.filter((id) => raw.synonyms?.[id]).map((id) => [id, raw.synonyms![id]]))),
           recentMessages: recent.reverse().map((m) => `${m.role === 'assistant' ? 'Milo' : 'User'}: ${m.text}`).join('\n'),
           text: req.text ?? '',
@@ -158,7 +163,8 @@ export class OnboardingTurnsService {
     confirmMultiple: boolean,
   ): Promise<{ reply: Reply; outcome: 'clarify' | 'confirm' | 'saved' }> {
     const ack = out.ack;
-    const { answers, declined } = this.postProcess(snap.set, snap.answers, snap.ctx, open, out);
+    const listening = [...open, ...volunteerableQuestions(snap.set, turns, snap.answers, conv.held ?? {}, snap.ctx, open)];
+    const { answers, declined } = this.postProcess(snap.set, snap.answers, snap.ctx, listening, out);
     if (out.userQuestion || (!answers.length && !declined.length)) {
       const line = out.clarify ?? (open[0] ? (turn.askOne[open[0]] ?? turn.miloLine) : turn.miloLine);
       return { reply: this.reply(join(ack, line), turn, open, 'speaking'), outcome: 'clarify' };
@@ -180,9 +186,9 @@ export class OnboardingTurnsService {
         outcome: 'confirm',
       };
     }
-    await this.apply(conv, snap.set, snap.ctx, answers, declined, inputMethod);
+    const saved = await this.apply(conv, snap.set, snap.ctx, answers, declined, inputMethod);
     const next = await this.advance(conv, turns, raw, await this.onboarding.snapshot(conv.userId.toString(), 'conversation'), ack);
-    return { reply: { ...next, extracted: answers }, outcome: 'saved' };
+    return { reply: { ...next, ...saved }, outcome: 'saved' };
   }
 
   async confirm(conv: ConversationDoc, accept: boolean): Promise<Reply> {
@@ -196,11 +202,11 @@ export class OnboardingTurnsService {
       return this.reply(raw.confirm?.onChange ?? 'No problem. What should I change?', turn, turn?.questionIds ?? [], 'listening');
     }
     // QA B15: confirmed answers keep the input method of the reply they came from.
-    await this.apply(conv, snap.set, snap.ctx, pending.answers, pending.declined, pending.inputMethod ?? 'typed');
-    return { ...(await this.advance(conv, turns, raw, await this.onboarding.snapshot(conv.userId.toString(), 'conversation'), '')), extracted: pending.answers };
+    const saved = await this.apply(conv, snap.set, snap.ctx, pending.answers, pending.declined, pending.inputMethod ?? 'typed');
+    return { ...(await this.advance(conv, turns, raw, await this.onboarding.snapshot(conv.userId.toString(), 'conversation'), '')), ...saved };
   }
 
-  // ---- Realtime voice (OpenAI Realtime over WebRTC) ---------------------------------------------
+  // ---- Realtime voice (Gemini Live over a WebSocket) ---------------------------------------------
 
   /**
    * What the Realtime model needs at the start of a session: whether this is a fresh start or a resume,
@@ -218,14 +224,14 @@ export class OnboardingTurnsService {
     const line = partial ? (step.turn.askOne[step.open[0]!] ?? step.turn.miloLine) : step.turn.miloLine;
     const intro = (await this.opening()).reply;
     const firstInstruction = resume
-      ? `The conversation was already under way. Welcome the user back in one short sentence, then ask this question in your own words: "${line}"`
-      : `Greet the user warmly with this opening, in your own words: "${intro}" Then, in the same breath, ask this question: "${line}"`;
+      ? `The conversation was already under way. Welcome the user back in a few words, then ask this question in your own words: "${line}"`
+      : `Greet the user warmly in one short sentence that carries the idea of this opening: "${intro}" Then, in the same breath, ask this question in your own words: "${line}" Do not ask if they are ready.`;
     return {
       sessionKind: resume ? 'resume' : 'start',
       turnId: step.turn.id,
       firstInstruction,
       knownName: typeof snap.answers.q05?.value === 'string' ? snap.answers.q05.value : '',
-      openQuestionsJson: JSON.stringify(step.open.map((id) => openQuestionView(snap.set, id))),
+      openQuestionsJson: JSON.stringify(listeningViews(snap.set, step.open, volunteerableQuestions(snap.set, turns, snap.answers, conv.held ?? {}, snap.ctx, step.open))),
       synonymsJson: JSON.stringify(Object.fromEntries(step.open.filter((id) => raw.synonyms?.[id]).map((id) => [id, raw.synonyms![id]]))),
     };
   }
@@ -249,9 +255,9 @@ export class OnboardingTurnsService {
   /** The JSON the model gets back from a tool: what happened and what to say next. */
   async realtimeToolOutput(conv: ConversationDoc, reply: Reply, outcome: 'clarify' | 'confirm' | 'saved' | 'discarded'): Promise<Record<string, unknown>> {
     if (reply.done) {
-      return { status: 'complete', say: reply.reply, guidance: 'Everything needed is saved. Say this warmly in one or two sentences, in the reply language, and stop. Ask nothing else and call no more tools.' };
+      return { status: 'complete', say: reply.reply, guidance: 'Everything needed is saved. Say this warmly in one or two short sentences, in the reply language, and stop. Ask nothing else and call no more tools.' };
     }
-    const { raw } = await this.conv();
+    const { turns, raw } = await this.conv();
     const snap = await this.onboarding.snapshot(conv.userId.toString(), 'conversation');
     const noted = reply.extracted.map((a) => `${String(snap.set.byId[a.questionId]?.reviewLabel ?? a.questionId)}: ${valueLabel(snap.set, a.questionId, a.value)}`);
     if (reply.needsConfirmation) {
@@ -259,26 +265,25 @@ export class OnboardingTurnsService {
         status: 'needs_confirmation',
         noted,
         say: reply.reply,
-        guidance: 'These answers are not saved yet. Read them back naturally, in the reply language, and ask if that is right. If yes, call confirm_answers with accept true. If the user wants to change something, call it with accept false and ask what to change.',
+        guidance: 'These answers are not saved yet. Read them back in one short sentence, in the reply language, and ask if that is right. If yes, call confirm_answers with accept true. If the user wants to change something, call it with accept false and ask what to change.',
       };
     }
     const next = {
       say: reply.reply,
-      chips: reply.chips.map((c) => c.label),
-      questions: reply.questionIds.map((id) => openQuestionView(snap.set, id)),
+      questions: listeningViews(snap.set, reply.questionIds, volunteerableQuestions(snap.set, turns, snap.answers, conv.held ?? {}, snap.ctx, reply.questionIds)),
       synonyms: Object.fromEntries(reply.questionIds.filter((id) => raw.synonyms?.[id]).map((id) => [id, raw.synonyms![id]])),
     };
     if (outcome === 'discarded') {
-      return { status: 'discarded', next, guidance: 'Those answers were dropped. Say "no problem" in your own words and ask what they would like to change, then record the corrected answer.' };
+      return { status: 'discarded', next, guidance: 'Those answers were dropped. Say "no problem" in your own words and ask what to change, in one short sentence, then record the corrected answer.' };
     }
     if (outcome === 'clarify') {
-      return { status: 'nothing_saved', next, guidance: 'Nothing valid was recorded. Do not mention an error. Ask the question again more simply, in your own words, perhaps with an example.' };
+      return { status: 'nothing_saved', next, guidance: 'Nothing valid was recorded. Do not mention an error. Ask once more, more simply, in one short sentence. If you already asked this twice, say they can type it instead, and wait.' };
     }
     return {
       status: 'saved',
       saved: noted,
       next,
-      guidance: 'Acknowledge in a few words without judging, then ask next.say in your own words. Use next.questions for the option IDs when you record the answer.',
+      guidance: 'Acknowledge in at most three words, or not at all, without judging or repeating the answer. Then ask next.say in your own words and stop. Use next.questions for the option IDs when you record the answer.',
     };
   }
 
@@ -297,13 +302,14 @@ export class OnboardingTurnsService {
       }
       const v = validateAnswer(set, a.questionId, value, undefined, ctx.today);
       if (!v.ok) continue;
-      const held = !rulesPass(set, a.questionId, answers, ctx) && ['q08', 'q09'].includes(a.questionId);
+      const held = !rulesPass(set, a.questionId, answers, ctx);
       result.push({ questionId: a.questionId, value: v.value as AnswerValue, confidence: Math.max(0, Math.min(1, a.confidence)), held });
     }
     return { answers: result, declined };
   }
 
-  private async apply(conv: ConversationDoc, set: QuestionSet, ctx: EngineContext, answers: PendingAnswer[], declined: string[], inputMethod: 'typed' | 'voice' | 'chip'): Promise<void> {
+  /** Saves a turn and returns what changed, so the app can mirror every saved answer (chips and committed held ones too). */
+  private async apply(conv: ConversationDoc, set: QuestionSet, ctx: EngineContext, answers: PendingAnswer[], declined: string[], inputMethod: 'typed' | 'voice' | 'chip'): Promise<{ extracted: PendingAnswer[]; skipped: string[] }> {
     const method = inputMethod === 'chip' ? 'chip' : inputMethod;
     const held: Record<string, AnswerValue> = { ...(conv.held ?? {}) };
     const inputs: AnswerInput[] = [];
@@ -324,6 +330,10 @@ export class OnboardingTurnsService {
     }
     await this.conversations.updateOne({ _id: conv._id }, { $set: { held: settled.keep } });
     conv.held = settled.keep;
+    const extracted = new Map(answers.map((a) => [a.questionId, a]));
+    for (const c of settled.commit) extracted.set(c.questionId, { questionId: c.questionId, value: c.value as AnswerValue, confidence: 1, held: false });
+    for (const id of settled.drop) extracted.delete(id);
+    return { extracted: [...extracted.values()], skipped: declined };
   }
 
   private async advance(conv: ConversationDoc, turns: FlowTurn[], raw: ConvContent['raw'], snap: Awaited<ReturnType<OnboardingService['snapshot']>>, ack: string): Promise<Reply> {
@@ -332,7 +342,9 @@ export class OnboardingTurnsService {
     const sameTurn = conv.turnId === step.turn.id;
     await this.conversations.updateOne({ _id: conv._id }, { $set: { turnId: step.turn.id } });
     conv.turnId = step.turn.id;
-    const line = sameTurn ? (step.turn.askOne[step.open[0]!] ?? step.turn.miloLine) : step.turn.miloLine;
+    // Part of a turn is already answered (a volunteered answer): ask only what is left.
+    const partial = sameTurn || step.open.length < step.turn.questionIds.length;
+    const line = partial ? (step.turn.askOne[step.open[0]!] ?? step.turn.miloLine) : step.turn.miloLine;
     return this.reply(join(ack, line), step.turn, step.open, 'speaking');
   }
 
@@ -350,9 +362,26 @@ function join(ack: string, line: string): string {
   return [ack.trim(), line.trim()].filter(Boolean).join(' ');
 }
 
-function openQuestionView(set: QuestionSet, id: string) {
+/** Chips for the questions still open, keeping their index in the turn; a chip that sets nothing (the intro) always shows. */
+function chipsFor(turn: FlowTurn | null, open: string[]): { index: number; label: string }[] {
+  const out: { index: number; label: string }[] = [];
+  (turn?.chips ?? []).forEach((c, index) => {
+    const targets = [...Object.keys(c.sets ?? {}), ...(c.skips ?? [])];
+    if (!targets.length || targets.some((id) => open.includes(id))) out.push({ index, label: c.label });
+  });
+  return out;
+}
+
+/** Options that need a number (q35 custom) stay on the form: a spoken or typed reply cannot carry that detail. */
+function openQuestionView(set: QuestionSet, id: string, askNow = true) {
   const q = set.byId[id]!;
-  return { id, type: q.type, max: q.max, exclusive: q.exclusive, options: q.options.map((o) => ({ id: o.id, label: (o as { label?: string }).label })), limits: q.limits };
+  const options = q.options.filter((o) => !o.input).map((o) => ({ id: o.id, label: (o as { label?: string }).label }));
+  return { id, askNow, type: q.type, max: q.max, exclusive: q.exclusive, options, limits: q.limits };
+}
+
+/** What the model listens for: the open questions (askNow) and the later ones the user may answer ahead of time. */
+function listeningViews(set: QuestionSet, open: string[], later: string[]) {
+  return [...open.map((id) => openQuestionView(set, id)), ...later.map((id) => openQuestionView(set, id, false))];
 }
 
 function valueLabel(set: QuestionSet, id: string, value: AnswerValue): string {

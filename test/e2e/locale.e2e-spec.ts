@@ -4,12 +4,12 @@ import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, signIn } from '../setup/helpers';
 
 const BENGALI = /[ঀ-৿]/;
-const OK = { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false, eatingDisorderConcern: false };
 const answer = (questionId: string, value: unknown, detail?: unknown) => ({ questionId, value, ...(detail ? { detail } : {}), status: 'answered', inputMethod: 'form' });
 const LOSE = [
   answer('q01', 'lose'),
   answer('q06', { mode: 'age', age: 34 }),
   answer('q07', 'female'),
+  answer('q38', 'none'),
   answer('q08', { cm: 168, unit: 'cm' }),
   answer('q09', { kg: 82, unit: 'kg', isEstimate: false }),
   answer('q10', 'light'),
@@ -99,10 +99,10 @@ describe('Languages (decision 0007)', () => {
       const s = await signIn(t);
       const h = bearer(s.accessToken);
       await t.http().put('/v1/onboarding/answers').set(h).send({ route: 'detailed', answers: LOSE }).expect(200);
-      await t.http().post('/v1/onboarding/complete').set(h).send({ eligibility: OK }).expect(200);
+      await t.http().post('/v1/onboarding/complete').set(h).send({}).expect(200);
       return h;
     }
-    const generate = (h: Record<string, string>, extra: Record<string, string> = {}, body: object = { eligibility: OK }) =>
+    const generate = (h: Record<string, string>, extra: Record<string, string> = {}, body: object = {}) =>
       t.http().post('/v1/plan/generate').set(h).set(extra).set(idem()).send(body);
 
     it('every server-written text is in Bangla, with ASCII digits for the app to localise', async () => {
@@ -150,10 +150,11 @@ describe('Languages (decision 0007)', () => {
       expect(plan.timeframe.message).toMatch(BENGALI);
     });
 
-    it('professional-guidance notices are Bangla too, with no numbers', async () => {
+    it('the life stage notice is Bangla too, with no numbers', async () => {
       const h = await user();
-      const d = (await generate(h, BN, { eligibility: { ...OK, eatingDisorderConcern: true } }).expect(200)).body;
-      expect(d.status).toBe('professional_guidance');
+      await t.http().put('/v1/onboarding/answers/q38').set(h).send({ value: 'pregnant', status: 'answered', inputMethod: 'form' }).expect(200);
+      const d = (await generate(h, BN).expect(200)).body;
+      expect(d.status).toBe('habits_only');
       expect(d.notice.title).toMatch(BENGALI);
       expect(d.notice.body).toMatch(BENGALI);
       expect(`${d.notice.title} ${d.notice.body}`).not.toMatch(/\d/);

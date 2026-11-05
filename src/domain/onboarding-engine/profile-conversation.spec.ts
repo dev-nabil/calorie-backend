@@ -73,6 +73,8 @@ describe('profileFromAnswers', () => {
       trackingExperience: null,
       routineBarriers: [],
       eatingCues: [],
+      lifeStage: null,
+      movementActions: [],
     });
   });
 

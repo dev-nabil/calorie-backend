@@ -40,7 +40,7 @@ export class VoiceController {
   @Post('voice/speech')
   @HttpCode(200)
   @RequireIntegrity()
-  @ZResponse(200, SpeechResponseSchema, 'MP3 URL, valid 1 hour; cached per message')
+  @ZResponse(200, SpeechResponseSchema, 'WAV URL, valid 1 hour; cached per message')
   @ApiErrors(400, 401, 402, 403, 404, 429, 503)
   async speech(@CurrentUser() u: AuthUser, @ZBody(SpeechRequestSchema) body: { messageId: string }) {
     const user = await this.users.requireActive(u.id);

@@ -211,3 +211,22 @@ describe('Integrity enforcement (DEC-19, M1-T8)', () => {
     await t.http().post('/v1/auth/email/start').set(INTEGRITY).send({ email: 'i@example.com' }).expect(200);
   });
 });
+
+describe('DEV_FIXED_OTP (development sign-in code)', () => {
+  let t: TestApp;
+  beforeAll(async () => {
+    t = await createTestApp({ DEV_FIXED_OTP: '000000' });
+  });
+  afterAll(() => t.close());
+
+  it('sends 000000 and signs in with it; a wrong code still fails', async () => {
+    const email = 'fixed@example.com';
+    await t.http().post('/v1/auth/email/start').set(INTEGRITY).send({ email }).expect(200);
+    expect((t.get<EmailSender>(EmailSender) as MemoryEmailSender).outbox.get(email)).toBe('000000');
+    const device = { deviceId: 'dev-fixed', platform: 'ios', appVersion: '1.0.0' };
+    const bad = await t.http().post('/v1/auth/email/verify').send({ email, code: '123456', device }).expect(401);
+    expect(bad.body.error.code).toBe('OTP_INVALID');
+    const ok = await t.http().post('/v1/auth/email/verify').send({ email, code: '000000', device }).expect(200);
+    expect(ok.body).toMatchObject({ isNewUser: true, provider: 'email', user: { email } });
+  });
+});

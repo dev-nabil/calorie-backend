@@ -85,12 +85,12 @@ describe('Scans (M4-T3)', () => {
 
   it('does not charge a rejected (not food) scan', async () => {
     const h = bearer((await signIn(t)).accessToken);
-    fake.enqueue({ isFood: false, mealName: '', items: [], notes: 'That looks like a cat.', clarifyingQuestion: null });
+    fake.enqueue({ status: 'no_food', mealName: null, items: [], assumptions: [], question: 'That looks like a cat.', retake: null });
     const body = await scanBody(h);
     await post(h, body).expect(202);
     await drain();
     const res = await poll(h, body.scanId);
-    expect(res.body).toMatchObject({ status: 'rejected', chargedFreeScan: false, result: { isFood: false, items: [] } });
+    expect(res.body).toMatchObject({ status: 'rejected', chargedFreeScan: false, error: { code: 'NO_FOOD_DETECTED' }, result: { outcome: 'no_food', isFood: false, items: [] } });
     expect((await t.http().get('/v1/me').set(h)).body.freeScans.remaining).toBe(1);
   });
 
@@ -101,7 +101,7 @@ describe('Scans (M4-T3)', () => {
     await post(h, a).expect(202);
     await drain();
     expect((await poll(h, a.scanId)).body).toMatchObject({ status: 'failed', chargedFreeScan: false, error: { code: 'AI_FAILED' } });
-    fake.enqueue({ isFood: true, unexpected: 'field' });
+    fake.enqueue({ status: 'ok', unexpected: 'field' });
     const b = await scanBody(h);
     await post(h, b).expect(202);
     await drain();

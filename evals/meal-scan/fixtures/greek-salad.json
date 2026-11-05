@@ -1,16 +1,102 @@
 {
   "id": "greek-salad",
   "category": "lunch",
-  "expected": { "isFood": true, "kcal": 320, "items": [{ "name": "salad", "match": ["salad", "lettuce", "tomato", "cucumber"] }, { "name": "feta", "match": ["feta", "cheese"] }, { "name": "olive oil", "match": ["oil", "dressing"] }] },
-  "fakeOutput": {
+  "expected": {
     "isFood": true,
+    "kcal": 320,
+    "items": [
+      {
+        "name": "salad",
+        "match": [
+          "salad",
+          "lettuce",
+          "tomato",
+          "cucumber"
+        ]
+      },
+      {
+        "name": "feta",
+        "match": [
+          "feta",
+          "cheese"
+        ]
+      },
+      {
+        "name": "olive oil",
+        "match": [
+          "oil",
+          "dressing"
+        ]
+      }
+    ]
+  },
+  "fakeOutput": {
+    "status": "ok",
     "mealName": "Greek salad",
     "items": [
-      { "name": "Tomato and cucumber salad", "portion": "1 bowl", "grams": 200, "kcal": 40, "proteinG": 2, "carbsG": 8, "fatG": 0.4, "fiberG": 2.4, "confidence": 0.8, "point": null },
-      { "name": "Feta cheese", "portion": "40 g", "grams": 40, "kcal": 105, "proteinG": 5.7, "carbsG": 1.6, "fatG": 8.5, "fiberG": 0, "confidence": 0.7, "point": null },
-      { "name": "Olive oil dressing", "portion": "1 tbsp", "grams": 14, "kcal": 124, "proteinG": 0, "carbsG": 0, "fatG": 14, "fiberG": 0, "confidence": 0.5, "point": null }
+      {
+        "name": "Tomato and cucumber salad",
+        "en": "tomato cucumber salad",
+        "g": 200,
+        "prep": "raw",
+        "role": "single",
+        "of": null,
+        "n": {
+          "kcal": 20,
+          "p": 1,
+          "c": 4,
+          "f": 0.2,
+          "fib": 1.2,
+          "sug": null,
+          "na": null
+        },
+        "conf": 0.8,
+        "pt": null,
+        "note": null
+      },
+      {
+        "name": "Feta cheese",
+        "en": "feta cheese",
+        "g": 40,
+        "prep": "raw",
+        "role": "single",
+        "of": null,
+        "n": {
+          "kcal": 263,
+          "p": 14.3,
+          "c": 4,
+          "f": 21.3,
+          "fib": 0,
+          "sug": null,
+          "na": null
+        },
+        "conf": 0.7,
+        "pt": null,
+        "note": null
+      },
+      {
+        "name": "Olive oil dressing",
+        "en": "olive oil dressing",
+        "g": 14,
+        "prep": "raw",
+        "role": "single",
+        "of": null,
+        "n": {
+          "kcal": 886,
+          "p": 0,
+          "c": 0,
+          "f": 100,
+          "fib": 0,
+          "sug": null,
+          "na": null
+        },
+        "conf": 0.5,
+        "pt": null,
+        "note": null
+      }
     ],
-    "notes": null,
-    "clarifyingQuestion": null
+    "assumptions": [],
+    "question": null,
+    "retake": null
   }
 }

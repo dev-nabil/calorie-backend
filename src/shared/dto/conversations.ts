@@ -39,7 +39,8 @@ export const MiloReplySchema = z
     turnId: z.string().nullable(),
     questionIds: z.array(z.string()).describe('Open questions of this turn (onboarding)'),
     chips: z.array(z.object({ index: z.number().int(), label: z.string() })),
-    extracted: z.array(ExtractedAnswerSchema),
+    extracted: z.array(ExtractedAnswerSchema).describe('Answers this turn saved or held, chips included; the app mirrors them'),
+    skipped: z.array(z.string()).optional().describe('Questions this turn saved as skipped (onboarding)'),
     needsConfirmation: z.boolean(),
     done: z.boolean().describe('Onboarding walk finished: open Review, then POST /onboarding/complete'),
     quickAction: z.enum(QUICK_ACTIONS).nullable(),
@@ -67,14 +68,14 @@ export const MessageSchema = z
 
 export const MessageListSchema = z.object({ items: z.array(MessageSchema), nextCursor: z.string().nullable() }).meta({ id: 'MessageList' });
 
-/** Realtime voice (OpenAI Realtime over WebRTC): the app talks to OpenAI directly with this short-lived secret. */
+/** Realtime voice (Gemini Live API over a WebSocket): the app talks to Google directly with this short-lived token. */
 export const RealtimeSessionSchema = z
   .object({
-    clientSecret: z.string().describe('Ephemeral OpenAI client secret (ek_...). Valid only to open the call; never store it'),
-    expiresAt: IsoDateTimeSchema.describe('Open the WebRTC call before this time'),
+    clientSecret: z.string().describe('Ephemeral Gemini auth token (auth_tokens/...). One use, valid only to open the call; never store it'),
+    expiresAt: IsoDateTimeSchema.describe('Open the Live WebSocket before this time'),
     model: z.string(),
     voice: z.string(),
-    callsUrl: z.string().describe('SDP exchange endpoint: POST the offer with Content-Type application/sdp and Authorization: Bearer clientSecret'),
+    callsUrl: z.string().describe('Live API WebSocket endpoint: connect to callsUrl + "?access_token=" + clientSecret, then send {"setup":{"model":"models/<model>"}}. Instructions, tools, voice and turn detection are locked into the token'),
     maxSeconds: z.number().int().describe('The app ends the session after this long'),
     sessionKind: z.enum(['start', 'resume']).describe('resume: the conversation was already under way'),
   })
@@ -83,7 +84,7 @@ export type RealtimeSession = z.infer<typeof RealtimeSessionSchema>;
 
 export const REALTIME_TOOLS = ['record_answers', 'confirm_answers'] as const;
 
-/** A tool call the Realtime model made, forwarded by the app. `callId` is the idempotency key of the call. */
+/** A tool call the live model made, forwarded by the app. `callId` is the idempotency key of the call. */
 export const RealtimeToolRequestSchema = z
   .strictObject({
     callId: z.string().trim().min(1).max(100),
@@ -95,14 +96,14 @@ export type RealtimeToolRequest = z.infer<typeof RealtimeToolRequestSchema>;
 
 export const RealtimeToolResultSchema = z
   .object({
-    output: z.string().describe('JSON text to return to the model as the function_call_output'),
+    output: z.string().describe('JSON text to return to the model as the function response'),
     reply: MiloReplySchema.describe('The same state as a normal turn: saved answers to mirror, chips, confirmation, done. Its `reply` text is a hint; the model speaks in its own words'),
   })
   .meta({ id: 'RealtimeToolResult' });
 export type RealtimeToolResult = z.infer<typeof RealtimeToolResultSchema>;
 
 const TokenCount = z.number().int().min(0).max(5_000_000);
-/** Token counts the app read from the `response.done` events of a session (the call does not pass through the server). */
+/** Token counts the app read from the `usageMetadata` messages of a session (the call does not pass through the server). */
 export const RealtimeUsageRequestSchema = z
   .strictObject({
     inputAudioTokens: TokenCount,
@@ -128,5 +129,5 @@ export const SpeechRequestSchema = z
   .meta({ id: 'SpeechRequest' });
 export const SpeechResponseSchema = z.object({ url: z.string(), cached: z.boolean() }).meta({ id: 'SpeechResponse' });
 export const AudioManifestSchema = z
-  .object({ version: z.number().int().nullable(), locale: z.string().describe('Language of the audio (en, bn). Empty `lines` = none pre-rendered in this language: speak on the device'), lines: z.record(z.string(), z.string()).describe('lineId → signed URL of tts/[<lang>/]{version}/{lineId}.mp3') })
+  .object({ version: z.number().int().nullable(), locale: z.string().describe('Language of the audio (en, bn). Empty `lines` = none pre-rendered in this language: speak on the device'), lines: z.record(z.string(), z.string()).describe('lineId → signed URL of tts/[<lang>/]{version}/{lineId}.wav') })
   .meta({ id: 'AudioManifest' });

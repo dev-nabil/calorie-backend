@@ -86,7 +86,7 @@ export type PlanIssue = z.infer<typeof PlanIssueSchema>;
 
 export const PlanMissingItemSchema = z
   .object({
-    questionId: z.string().describe('Question to answer; "eligibility" for the health check step'),
+    questionId: z.string().describe('Question to answer'),
     field: z.string(),
     reason: z.string().describe('Plain-language text, shown as is'),
   })
@@ -98,7 +98,7 @@ export const PlanAssessmentSchema = z
     outcome: z.enum(PLAN_OUTCOMES),
     missing: z.array(PlanMissingItemSchema).describe('Essentials for calorie targets that are absent. The AI never guesses these'),
     issues: z.array(PlanIssueSchema),
-    guidanceReasons: z.array(z.string()).describe('Why a professional should guide this plan (professional_guidance)'),
+    guidanceReasons: z.array(z.string()).describe('Why this is a habits goal without calorie targets (habits_only): under_18, pregnant_or_breastfeeding'),
     optionalUnanswered: z.array(z.string()).describe('Optional questions that would sharpen the plan'),
     requiredForTargets: z.array(z.string()).describe('Questions a calorie plan needs, in order'),
     canContinueWithoutTargets: z.boolean().describe('Habits-only is available (POST /plan {source:"none"})'),
@@ -108,8 +108,8 @@ export type PlanAssessment = z.infer<typeof PlanAssessmentSchema>;
 
 export const PlanReadinessSchema = PlanAssessmentSchema.extend({
   inputHash: z.string(),
-  attestationOnFile: z.boolean().describe('The health check was answered; do not ask again'),
-  attestationNeeded: z.boolean().describe('An estimate is otherwise possible, so the health check step must be shown'),
+  attestationOnFile: z.boolean().describe('Deprecated: always false, the health check is gone'),
+  attestationNeeded: z.boolean().describe('Deprecated: always false, the health check is gone'),
   latestDraftId: z.string().nullable(),
   latestDraftCurrent: z.boolean().describe('The latest draft was made from the current answers'),
 }).meta({ id: 'PlanReadiness' });

@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import sharp from 'sharp';
 import { EmailSender, MemoryEmailSender } from '../../src/modules/auth/providers';
 import type { AuthSession } from '../../src/shared';
 import type { TestApp } from './test-app';
@@ -19,9 +20,18 @@ export async function signIn(t: TestApp, email = `user-${randomUUID().slice(0, 8
   return res.body as AuthSession;
 }
 
+/** A real JPEG, different for each seed: scans decode the file and hash its bytes. */
+export function samplePhoto(seed: string): Promise<Buffer> {
+  const [r, g, b] = createHash('sha256').update(seed).digest();
+  return sharp({ create: { width: 320, height: 240, channels: 3, background: { r: r!, g: g!, b: b! } } })
+    .withExif({ IFD0: { ImageDescription: seed } })
+    .jpeg()
+    .toBuffer();
+}
+
 /** Presigns and uploads a small JPEG through the local storage driver; returns its key and SHA-256. */
 export async function uploadPhoto(t: TestApp, auth: Record<string, string>, seed: string = randomUUID(), raw?: Buffer): Promise<{ key: string; hash: string }> {
-  const bytes = raw ?? Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.from(seed)]);
+  const bytes = raw ?? (await samplePhoto(seed));
   const p = await t.http().post('/v1/uploads/presign').set(auth).send({ kind: 'meal_photo', contentType: 'image/jpeg', bytes: bytes.length }).expect(200);
   const url = new URL(p.body.uploadUrl);
   await t.http().put(url.pathname + url.search).set(p.body.headers).send(bytes).expect(200);

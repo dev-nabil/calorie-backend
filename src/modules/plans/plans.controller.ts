@@ -14,7 +14,6 @@ import {
   type Plan,
   type PlanDraft,
   type PlanPreview,
-  type PlanPreviewRequest,
   type PlanReadiness,
 } from '../../shared';
 import { CurrentUser, type AuthUser } from '../../common/auth/auth.decorators';
@@ -37,13 +36,13 @@ export class PlansController {
   @HttpCode(200)
   @ZResponse(200, PlanPreviewSchema, 'Proposed targets, not saved (BR-04/05/06)')
   @ApiErrors(400, 401)
-  async preview(@CurrentUser() u: AuthUser, @ZBody(PlanPreviewRequestSchema) body: PlanPreviewRequest): Promise<PlanPreview> {
+  async preview(@CurrentUser() u: AuthUser, @ZBody(PlanPreviewRequestSchema) _body: unknown): Promise<PlanPreview> {
     await this.users.requireActive(u.id);
-    return this.plans.preview(u.id, body.eligibility);
+    return this.plans.preview(u.id);
   }
 
   @Get('readiness')
-  @ZResponse(200, PlanReadinessSchema, 'What a plan can be made from right now: missing essentials, contradictions, professional-guidance reasons. No model call')
+  @ZResponse(200, PlanReadinessSchema, 'What a plan can be made from right now: missing essentials and contradictions. No model call')
   @ApiErrors(401)
   async readiness(@CurrentUser() u: AuthUser, @Res({ passthrough: true }) res: Response): Promise<PlanReadiness> {
     noStore(res);

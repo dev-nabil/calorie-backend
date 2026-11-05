@@ -12,6 +12,8 @@ export interface ProfileFields {
   ageYears: number | null;
   birthDate: string | null;
   calculationSex: 'female' | 'male' | null;
+  /** q38 option id, 'declined' when the person skipped it, null when it was never asked or does not apply. */
+  lifeStage: string | null;
   heightCm: number | null;
   weightKg: number | null;
   weightIsEstimate: boolean;
@@ -36,6 +38,8 @@ export interface ProfileFields {
   trackingExperience: string | null;
   routineBarriers: string[];
   eatingCues: string[];
+  /** q27: ways of moving that fit; [] = not answered. */
+  movementActions: string[];
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
@@ -62,6 +66,7 @@ export function profileFromAnswers(set: QuestionSet, answers: AnswerMap, today: 
   const age = byField.birth_date_or_age;
   const weight = byField.current_weight_kg;
   const sex = byField.calculation_sex;
+  const lifeStageSkipped = set.questions.some((q) => q.fieldKey === 'life_stage' && answers[q.id]?.status === 'skipped');
   return {
     primaryGoal: str(byField.primary_goal),
     supportingGoals: arr(byField.supporting_goals),
@@ -71,6 +76,7 @@ export function profileFromAnswers(set: QuestionSet, answers: AnswerMap, today: 
     ageYears: ageFromAnswer(age, today),
     birthDate: isObject(age) && age.mode === 'dob' && typeof age.dob === 'string' ? age.dob : null,
     calculationSex: sex === 'female' || sex === 'male' ? sex : null,
+    lifeStage: lifeStageSkipped ? 'declined' : str(byField.life_stage),
     heightCm: objNum(byField.height_cm, 'cm'),
     weightKg: objNum(weight, 'kg'),
     weightIsEstimate: isObject(weight) && weight.isEstimate === true,
@@ -92,6 +98,7 @@ export function profileFromAnswers(set: QuestionSet, answers: AnswerMap, today: 
     trackingExperience: str(byField.tracking_experience),
     routineBarriers: arr(byField.routine_barriers),
     eatingCues: arr(byField.eating_cues),
+    movementActions: arr(byField.movement_actions),
   };
 }
 

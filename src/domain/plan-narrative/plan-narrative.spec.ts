@@ -15,6 +15,7 @@ const profile = (over: Partial<ProfileFields> = {}): ProfileFields => ({
   activityLevel: 'light', dietPattern: 'veg', mealSource: 'home', nutritionFamiliarity: 'some', startingMood: 'ready',
   habitPriorities: [], loggingMethods: [], timeframeWeeks: 26, allergies: ['peanuts'], allergyOther: null, dietPatternOther: null,
   mealsPerDay: 'three', schedulePattern: 'shifts', higherIntakePattern: null, trackingExperience: null, routineBarriers: ['busy'], eatingCues: [],
+  lifeStage: 'none', movementActions: ['walk'],
   ...over,
 });
 
@@ -244,24 +245,21 @@ describe('checkNarrative: Bangla', () => {
 
 describe('planInputHash', () => {
   it('is stable, ignores fields that do not feed the plan and changes with the ones that do', () => {
-    const att = { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false, eatingDisorderConcern: false };
-    const h = planInputHash(profile(), att);
-    expect(planInputHash(profile(), att)).toBe(h);
-    expect(planInputHash(profile({ displayName: 'Someone else', loggingMethods: ['photo'] }), att)).toBe(h);
-    expect(planInputHash(profile({ weightKg: 81 }), att)).not.toBe(h);
-    expect(planInputHash(profile({ allergies: ['peanuts', 'milk'] }), att)).not.toBe(h);
-    expect(planInputHash(profile(), { ...att, eatingDisorderConcern: true })).not.toBe(h);
-    expect(planInputHash(profile(), null)).not.toBe(h);
-    expect(planInputHash(profile(), { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false, eatingDisorderConcern: false })).toBe(h);
+    const h = planInputHash(profile());
+    expect(planInputHash(profile())).toBe(h);
+    expect(planInputHash(profile({ displayName: 'Someone else', loggingMethods: ['photo'] }))).toBe(h);
+    expect(planInputHash(profile({ weightKg: 81 }))).not.toBe(h);
+    expect(planInputHash(profile({ allergies: ['peanuts', 'milk'] }))).not.toBe(h);
+    expect(planInputHash(profile({ lifeStage: 'pregnant' }))).not.toBe(h);
+    expect(planInputHash(profile({ movementActions: ['steps'] }))).not.toBe(h);
   });
 });
 
 describe('buildNarrativeContext', () => {
   const set = loadQuestionSet(loadContentJson('questions.v2.json'));
   const p = profile({ dietPattern: 'other', dietPatternOther: 'mostly plant based', allergies: ['peanuts', 'other'], allergyOther: 'kiwi' });
-  const att = { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false, eatingDisorderConcern: false };
-  const preview = calculatePlan({ ageYears: 34, calculationSex: 'female', heightCm: 168, weightKg: 82, activityLevel: 'light', goal: 'lose', targetWeightKg: 74, attestation: att });
-  const ctx = buildNarrativeContext({ profile: p, preview, timeframe: null, assessment: assessPlan({ ...planInputs(p), attestation: att }), label: makeLabeler(set) });
+  const preview = calculatePlan({ ageYears: 34, calculationSex: 'female', heightCm: 168, weightKg: 82, activityLevel: 'light', goal: 'lose', targetWeightKg: 74, lifeStage: 'none' });
+  const ctx = buildNarrativeContext({ profile: p, preview, timeframe: null, assessment: assessPlan({ ...planInputs(p), lifeStage: 'none' }), label: makeLabeler(set) });
 
   function planInputs(x: ProfileFields) {
     return { ageYears: x.ageYears, calculationSex: x.calculationSex, heightCm: x.heightCm, weightKg: x.weightKg, activityLevel: x.activityLevel, goal: x.primaryGoal, targetWeightKg: x.targetWeightKg };
@@ -271,12 +269,13 @@ describe('buildNarrativeContext', () => {
     expect(ctx.context).not.toMatch(/Alex|Private|1991/);
     expect(ctx.context).toMatch(/Peanuts/);
     expect(ctx.context).toMatch(/Changing or rotating shifts/);
+    expect(ctx.context).toMatch(/Walk for suitable short trips/);
     expect(ctx.context).toMatch(/other \(user text\): kiwi/);
     expect(ctx.avoidTerms).toEqual(expect.arrayContaining(['peanut', 'kiwi']));
   });
 
   it('says "not provided" for unanswered allergies instead of assuming none', () => {
-    const c = buildNarrativeContext({ profile: profile({ allergies: null }), preview, timeframe: null, assessment: assessPlan({ ...planInputs(p), attestation: att }), label: makeLabeler(set) });
+    const c = buildNarrativeContext({ profile: profile({ allergies: null }), preview, timeframe: null, assessment: assessPlan({ ...planInputs(p), lifeStage: 'none' }), label: makeLabeler(set) });
     expect(c.context).toMatch(/"allergiesAndIntolerances": "not provided"/);
   });
 });

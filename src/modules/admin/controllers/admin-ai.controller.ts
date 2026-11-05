@@ -25,6 +25,7 @@ import { ApiError } from '../../../common/errors/api-error';
 import { percentile, requestMetrics } from '../../../common/metrics/request-metrics';
 import { ApiErrors, ZBody, ZParam, ZQuery, ZResponse } from '../../../common/zod/decorators';
 import { AiProvider, type AiTask } from '../../ai/ai.provider';
+import { DEFAULT_TEXT_MODEL, DEFAULT_TTS_MODEL } from '../../ai/ai-models';
 import { AiService } from '../../ai/ai.service';
 import type { AiUsageDailyDoc } from '../../ai/schemas/ai.schema';
 import { AppConfigService } from '../../content/app-config.service';
@@ -39,7 +40,7 @@ import { type AdminSessionData } from '../security/admin-session.types';
 
 type PromptDoc = AiPromptDoc & { _id: Types.ObjectId; createdAt: Date; notes?: string; activatedAt?: Date | null };
 const FEATURES = ['vision', 'extract', 'chat', 'stt', 'tts', 'moderation'] as const;
-const MODEL_DEFAULTS: Record<(typeof FEATURES)[number], string> = { vision: 'gpt-5-mini', extract: 'gpt-5-mini', chat: 'gpt-5-mini', stt: 'gpt-4o-mini-transcribe', tts: 'gpt-4o-mini-tts', moderation: 'omni-moderation-latest' };
+const MODEL_DEFAULTS: Record<(typeof FEATURES)[number], string> = { vision: DEFAULT_TEXT_MODEL, extract: DEFAULT_TEXT_MODEL, chat: DEFAULT_TEXT_MODEL, stt: DEFAULT_TEXT_MODEL, tts: DEFAULT_TTS_MODEL, moderation: DEFAULT_TEXT_MODEL };
 const TASK_FOR: Record<string, { task: AiTask | 'chat'; feature: 'vision' | 'extract' | 'chat' }> = {
   'meal-scan': { task: 'meal_scan', feature: 'vision' },
   'meal-parse': { task: 'meal_parse', feature: 'extract' },
@@ -201,6 +202,8 @@ export class AdminAiController {
   async test(@ZBody(AdminPromptTestSchema) body: z.infer<typeof AdminPromptTestSchema>) {
     const p = await this.prompts.findById(body.promptId).lean<PromptDoc>();
     if (!p) throw ApiError.notFound();
+    // A scan needs a photo and runs on Gemini; `pnpm eval:meal-scan` is the way to try a prompt version.
+    if (p.key === 'meal-scan') throw new ApiError(ERROR_CODES.VALIDATION_FAILED, 'The meal scan prompt needs a photo: use pnpm eval:meal-scan');
     const spec = TASK_FOR[p.key] ?? { task: 'chat' as const, feature: 'chat' as const };
     const model = p.model || (await this.ai.modelFor(spec.feature, MODEL_DEFAULTS[spec.feature]));
     const maxOutputTokens = Number((p.params as { maxOutputTokens?: number })?.maxOutputTokens ?? 1000);
@@ -208,7 +211,7 @@ export class AdminAiController {
     const res = await this.ai.run(spec.feature, () =>
       spec.task === 'chat'
         ? this.provider.complete({ model, instructions: p.staticPrefix, messages: [{ role: 'user', content: body.input }], timeoutMs: 15_000, maxOutputTokens })
-        : this.provider.structured({ task: spec.task as AiTask, model, instructions: p.staticPrefix, context: body.input, imageUrl: spec.task === 'meal_scan' ? 'data:,' : undefined, timeoutMs: 25_000, maxOutputTokens }),
+        : this.provider.structured({ task: spec.task as AiTask, model, instructions: p.staticPrefix, context: body.input, timeoutMs: 25_000, maxOutputTokens }),
     );
     return {
       output: typeof res.output === 'string' ? res.output : JSON.stringify(res.output, null, 2),

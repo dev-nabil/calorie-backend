@@ -8,7 +8,9 @@ import { ApiError } from '../../common/errors/api-error';
 import { StorageService } from '../../infra/storage/storage';
 import { JobHandlers } from '../../jobs/jobs.module';
 import { AiJobHandlers } from '../ai/ai-jobs';
-import { AiProvider } from '../ai/ai.provider';
+import { DEFAULT_TTS_MODEL } from '../ai/ai-models';
+import { AiProvider, type SpeechResult } from '../ai/ai.provider';
+import { DEFAULT_VOICE, voiceOrDefault } from '../ai/providers/gemini.provider';
 import { AiService, AiUnavailableError } from '../ai/ai.service';
 import { AppConfigService } from '../content/app-config.service';
 import { ContentService } from '../content/content.service';
@@ -19,7 +21,7 @@ export const PRERENDER_JOB = 'prerender_lines';
 export const SPEECH_JOB = 'speech';
 export const TTS_TIMEOUT_MS = 20_000; // plan 8.10
 
-/** M5-T2: OpenAI text-to-speech for canonical lines (pre-rendered once per version) and Plus replies. */
+/** M5-T2: Gemini text-to-speech for canonical lines (pre-rendered once per version) and Plus replies. */
 @Injectable()
 export class VoiceService implements OnModuleInit {
   private readonly logger = new Logger('Voice');
@@ -41,28 +43,29 @@ export class VoiceService implements OnModuleInit {
   }
 
   private async voice(): Promise<{ model: string; voice: string }> {
-    return { model: await this.ai.modelFor('tts', 'gpt-4o-mini-tts'), voice: await this.appConfig.get('ai.tts.voice', 'alloy') };
+    // A voice setting left over from before Gemini (a name from before Gemini) is not a Gemini voice: the default is used instead.
+    return { model: await this.ai.modelFor('tts', DEFAULT_TTS_MODEL), voice: voiceOrDefault(await this.appConfig.get<string>('ai.tts.voice', DEFAULT_VOICE)) };
   }
 
-  private async speak(text: string): Promise<Buffer> {
+  private async speak(text: string): Promise<SpeechResult> {
     const { model, voice } = await this.voice();
     await this.ai.assertAvailable('tts');
     try {
-      const audio = (await this.provider.speech({ model, voice, text, timeoutMs: TTS_TIMEOUT_MS })).audio;
+      const speech = await this.provider.speech({ model, voice, text, timeoutMs: TTS_TIMEOUT_MS });
       this.ai.breaker('tts').record(true);
-      return audio;
+      return speech;
     } catch {
       this.ai.breaker('tts').record(false);
       throw new AiUnavailableError('provider_error', 30);
     }
   }
 
-  /** Storage prefix of a language's pre-rendered lines: English keeps `tts/<version>`, others `tts/<lang>/<version>`. */
+  /** Storage prefix of a language's pre-rendered lines: English keeps `tts/<version>`, others `tts/<lang>/<version>`. Files are WAV (Gemini TTS). */
   private prefix(locale: LocaleCode, version: number): string {
     return locale === DEFAULT_LOCALE ? `tts/${version}` : `tts/${locale}/${version}`;
   }
 
-  /** Renders missing lines of every language that has its own content to tts/[<lang>/]{version}/{lineId}.mp3 and writes the manifests. */
+  /** Renders missing lines of every language that has its own content to tts/[<lang>/]{version}/{lineId}.wav and writes the manifests. */
   async prerender(): Promise<{ version: number; rendered: number; total: number }> {
     const out = { version: 0, rendered: 0, total: 0 };
     for (const locale of LOCALE_CODES) {
@@ -74,10 +77,11 @@ export class VoiceService implements OnModuleInit {
       let rendered = 0;
       const prefix = this.prefix(locale, lines.version);
       for (const [id, text] of Object.entries(all)) {
-        const key = `${prefix}/${id}.mp3`;
+        const key = `${prefix}/${id}.wav`;
         keys[id] = key;
         if (await this.storage.exists(key)) continue;
-        await this.storage.put(key, await this.speak(text), 'audio/mpeg');
+        const speech = await this.speak(text);
+        await this.storage.put(key, speech.audio, speech.contentType);
         rendered++;
       }
       await this.storage.put(`${prefix}/manifest.json`, Buffer.from(JSON.stringify({ version: lines.version, locale, keys })), 'application/json');
@@ -103,11 +107,12 @@ export class VoiceService implements OnModuleInit {
 
   /** Worker job (queue `ai`): renders one coach reply, cached per message. */
   async renderMessage({ userId, messageId }: { userId: string; messageId: string }): Promise<{ key: string; cached: boolean }> {
-    const key = `u/${userId}/tts/${messageId}.mp3`;
+    const key = `u/${userId}/tts/${messageId}.wav`;
     if (await this.storage.exists(key)) return { key, cached: true };
     const msg = await this.messages.findOne({ _id: messageId, userId: new Types.ObjectId(userId), role: 'assistant' }).lean<MessageDoc>();
     if (!msg) throw ApiError.notFound(ERROR_CODES.NOT_FOUND, 'Message not found');
-    await this.storage.put(key, await this.speak(msg.text), 'audio/mpeg');
+    const speech = await this.speak(msg.text);
+    await this.storage.put(key, speech.audio, speech.contentType);
     return { key, cached: false };
   }
 }

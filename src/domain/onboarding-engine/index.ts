@@ -24,6 +24,7 @@ export {
   provisionalViable,
   settleProvisional,
   toStoredValue,
+  volunteerableQuestions,
   type FlowChip,
   type FlowTurn,
 } from './conversation-flow';

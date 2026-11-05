@@ -170,9 +170,11 @@ for (const f of questionFiles) {
     for (const id of r.questionIds) if (!qById.has(id)) err(file, `route ${name}: unknown question ${id}`);
   }
   if (doc.routes.detailed.questionIds.join() !== ids.join()) err(file, 'detailed route must list every question in order');
-  const basicExpected = doc.version >= 2
-    ? ['q01', 'q05', 'q06', 'q07', 'q08', 'q09', 'q10', 'q11', 'q36', 'q30'] // v2: allergies are safety relevant
-    : ['q01', 'q05', 'q06', 'q07', 'q08', 'q09', 'q10', 'q11', 'q30'];
+  const basicExpected = doc.version >= 3
+    ? ['q01', 'q05', 'q06', 'q07', 'q38', 'q08', 'q09', 'q10', 'q11', 'q36', 'q30'] // v3: q38 only shows when the sex input is female
+    : doc.version >= 2
+      ? ['q01', 'q05', 'q06', 'q07', 'q08', 'q09', 'q10', 'q11', 'q36', 'q30'] // v2: allergies are safety relevant
+      : ['q01', 'q05', 'q06', 'q07', 'q08', 'q09', 'q10', 'q11', 'q30'];
   if (doc.routes.basic.questionIds.join() !== basicExpected.join()) err(file, `basic route must be ${basicExpected.join(', ')} (prototype BASIC)`);
   if (!existsSync(join(root, '..', doc.routes.conversation.ref))) err(file, `conversation ref ${doc.routes.conversation.ref} not found`);
 
@@ -188,7 +190,7 @@ for (const f of questionFiles) {
     const deps = JSON.stringify(rule.when).match(/"q":"([^"]+)"/g)?.map((m) => m.slice(5, -1)) || [];
     for (const d of deps) if (qById.get(d) && qById.get(rule.show) && qById.get(d).order >= qById.get(rule.show).order) err(file, `${rule.id}: depends on later question ${d}`);
   }
-  const expectedRules = ['q07', 'q08', 'q09', 'q10', 'target_weight', 'q16', 'q19', 'q27', 'q31', ...(doc.version >= 2 ? ['q35'] : [])];
+  const expectedRules = ['q07', 'q08', 'q09', 'q10', 'target_weight', 'q16', 'q19', 'q27', 'q31', ...(doc.version >= 2 ? ['q35'] : []), ...(doc.version >= 3 ? ['q38'] : [])];
   for (const e of expectedRules) if (!shown.has(e)) err(file, `missing branching rule for ${e}`);
   for (const s of shown) if (!expectedRules.includes(s)) err(file, `unexpected branching rule for ${s}`);
 
@@ -270,7 +272,7 @@ for (const f of readdirSync(join(root, 'onboarding')).filter((x) => /^conversati
   if (!bank) { err(file, `questionSetVersion ${doc.questionSetVersion} has no questions file`); continue; }
   const qById = new Map(bank.questions.map((q) => [q.id, q]));
   const optOk = (qid, oid) => qById.get(qid)?.options.some((o) => o.id === oid);
-  if (doc.turns.length !== 9) err(file, `expected 9 turn groups, found ${doc.turns.length}`);
+  if (doc.turns.length !== (doc.version >= 2 ? 15 : 9)) err(file, `unexpected number of turn groups: ${doc.turns.length}`);
   doc.turns.forEach((t, i) => {
     if (t.turn !== i + 1) err(file, `turn ${t.turn} out of order`);
     for (const id of t.questionIds) if (!qById.has(id)) err(file, `turn ${t.turn}: unknown question ${id}`);
@@ -626,6 +628,27 @@ for (const [kind, spec] of Object.entries(LOCALE_KINDS)) {
 ok.push(...localeOk);
 
 // ---------------------------------------------------------------------------
+// Food records
+// ---------------------------------------------------------------------------
+const foodDir = join(root, 'food-records');
+for (const f of existsSync(foodDir) ? readdirSync(foodDir).filter((x) => x.endsWith('.json')) : []) {
+  const file = `food-records/${f}`;
+  const doc = JSON.parse(readFileSync(join(foodDir, f), 'utf8'));
+  const seen = new Set();
+  for (const r of doc.records) {
+    if (seen.has(r.id)) err(file, `duplicate record ${r.id}`);
+    seen.add(r.id);
+    if (!doc.sources[r.source]) err(file, `${r.id}: unknown source ${r.source}`);
+    if (!r.sourceRef) err(file, `${r.id}: no sourceRef`);
+    if (!r.aliases?.length || !r.preparations?.length) err(file, `${r.id}: needs aliases and preparations`);
+    const { kcal, proteinG: p, carbsG: c, fatG: fat, fiberG } = r.per100g;
+    const energy = 4 * p + 4 * c + 9 * fat + 2 * (fiberG ?? 0);
+    if (Math.abs(energy - kcal) > Math.max(15, 0.25 * kcal)) err(file, `${r.id}: ${kcal} kcal does not fit its macros (${Math.round(energy)})`);
+  }
+  ok.push(`${file}: ${doc.records.length} records OK`);
+}
+
+// ---------------------------------------------------------------------------
 // Prompts
 // ---------------------------------------------------------------------------
 const MARK = '<!-- DYNAMIC CONTEXT BELOW: not cached -->';
@@ -648,7 +671,8 @@ for (const f of existsSync(promptDir) ? readdirSync(promptDir).filter((x) => x.e
   if (!/# Static prefix/.test(stat)) err(file, 'missing "# Static prefix" heading');
   const blocks = [...stat.matchAll(/```json\n([\s\S]*?)```/g)];
   for (const b of blocks) { try { JSON.parse(b[1]); } catch (e) { err(file, `invalid JSON block: ${e.message}`); } }
-  if (!blocks.length) err(file, 'no JSON output schema in static prefix');
+  // A prompt may send its schema through the API instead, where it costs no reply tokens.
+  if (!blocks.length && !/^responseFormat: json schema from /m.test(t)) err(file, 'no JSON output schema in static prefix');
   ok.push(`${file}: static prefix first, ${blocks.length} JSON block(s) parse`);
 }
 

@@ -18,7 +18,7 @@ export default tseslint.config(
     rules: {
       'no-restricted-imports': [
         'error',
-        { patterns: [{ group: ['@nestjs/*', 'mongoose', 'ioredis', 'bullmq', 'openai'], message: 'Domain modules are pure (plan section 9).' }] },
+        { patterns: [{ group: ['@nestjs/*', 'mongoose', 'ioredis', 'bullmq', '@google/genai'], message: 'Domain modules are pure (plan section 9).' }] },
       ],
     },
   },

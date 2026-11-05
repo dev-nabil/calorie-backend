@@ -11,7 +11,6 @@ import {
   type PlanInputs,
 } from './index';
 
-const ok = { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false, eatingDisorderConcern: false };
 const male: PlanInputs = {
   ageYears: 30,
   calculationSex: 'male',
@@ -20,7 +19,6 @@ const male: PlanInputs = {
   activityLevel: 'active',
   goal: 'lose',
   targetWeightKg: 72,
-  attestation: ok,
 };
 
 describe('plan-calculator', () => {
@@ -75,7 +73,7 @@ describe('plan-calculator', () => {
       weightKg: 60,
       activityLevel: 'seated',
       goal: 'maintain',
-      attestation: ok,
+      lifeStage: 'none',
       waterMl: 2000,
     });
     expect(p.bmrKcal).toBe(1330);
@@ -94,7 +92,7 @@ describe('plan-calculator', () => {
       weightKg: 45,
       activityLevel: 'seated',
       goal: 'lose',
-      attestation: ok,
+      lifeStage: 'none',
     });
     expect(p.floorKcal).toBe(1200);
     expect(p.calculated).toEqual({ energyKcal: 1200, proteinG: 72, fatG: 36, carbsG: 147 });
@@ -160,17 +158,20 @@ describe('plan-calculator', () => {
         adult: true,
         estimateAllowed: false,
         mode: 'full',
-        reasons: ['sex_input_missing', 'height_missing', 'weight_missing', 'activity_missing', 'eligibility_unconfirmed'],
+        reasons: ['sex_input_missing', 'height_missing', 'weight_missing', 'activity_missing'],
       });
     });
-    it('blocks pregnancy, breastfeeding and supervised conditions', () => {
-      expect(
-        assessEligibility({ ...male, attestation: { pregnantOrBreastfeeding: true, supervisedNutritionCondition: true, eatingDisorderConcern: false } })
-          .reasons,
-      ).toEqual(['pregnant_or_breastfeeding', 'supervised_condition']);
+    it('reads the life stage only when the sex input is female', () => {
+      expect(assessEligibility({ ...male, lifeStage: 'pregnant' }).reasons).toEqual([]);
+      const female = { ...male, calculationSex: 'female' as const };
+      expect(assessEligibility(female).reasons).toEqual(['life_stage_missing']);
+      expect(assessEligibility({ ...female, lifeStage: 'pregnant' }).reasons).toEqual(['pregnant_or_breastfeeding']);
+      expect(assessEligibility({ ...female, lifeStage: 'breastfeeding' }).reasons).toEqual(['pregnant_or_breastfeeding']);
+      expect(assessEligibility({ ...female, lifeStage: 'none' }).reasons).toEqual([]);
+      expect(assessEligibility({ ...female, lifeStage: 'declined' }).reasons).toEqual([]);
     });
     it('ineligible adult preview keeps full mode, water and goal', () => {
-      const p = calculatePlan({ ...male, attestation: null, goal: null });
+      const p = calculatePlan({ ...male, activityLevel: null, goal: null });
       expect(p).toMatchObject({
         eligible: false,
         mode: 'full',
@@ -238,24 +239,21 @@ describe('plan-calculator', () => {
 });
 
 describe('PLAN-GEN safety reasons', () => {
-  const base = { ageYears: 30, calculationSex: 'female' as const, heightCm: 168, weightKg: 70, activityLevel: 'light' as const, goal: 'lose' };
-  const ok = { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false, eatingDisorderConcern: false };
+  const base = { ageYears: 30, calculationSex: 'female' as const, heightCm: 168, weightKg: 70, activityLevel: 'light' as const, goal: 'lose', lifeStage: 'none' };
 
-  it('an eating-disorder concern blocks every estimate and shows no weight goal', () => {
-    const p = calculatePlan({ ...base, targetWeightKg: 60, attestation: { ...ok, eatingDisorderConcern: true } });
-    expect(p).toMatchObject({ eligible: false, calculated: null, reasons: ['eating_disorder_concern'] });
+  it('pregnant or breastfeeding: no estimate and no weight goal', () => {
+    const p = calculatePlan({ ...base, targetWeightKg: 60, lifeStage: 'pregnant' });
+    expect(p).toMatchObject({ eligible: false, calculated: null, reasons: ['pregnant_or_breastfeeding'] });
     expect(p.goal).toEqual({ type: 'lose', startWeightKg: null, targetWeightKg: null, pace: null });
-    expect(calculatePlan({ ...base, attestation: ok }).eligible).toBe(true);
+    expect(calculatePlan(base).eligible).toBe(true);
   });
 
-  it('a health check that never answered the eating row is unconfirmed, never read as "no"', () => {
-    const legacy = { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false } as never;
-    expect(calculatePlan({ ...base, attestation: legacy })).toMatchObject({ eligible: false, reasons: ['eligibility_unconfirmed'] });
-    expect(assessEligibility({ ...base, attestation: legacy }).estimateAllowed).toBe(false);
+  it('a life stage never asked is not read as "no"', () => {
+    expect(calculatePlan({ ...base, lifeStage: null })).toMatchObject({ eligible: false, reasons: ['life_stage_missing'] });
   });
 
   it('a weight-loss goal below BMI 18.5 gets no estimate, a gain goal does', () => {
-    const light = { ...base, weightKg: 50, attestation: ok };
+    const light = { ...base, weightKg: 50 };
     expect(calculatePlan(light)).toMatchObject({ eligible: false, reasons: ['underweight_loss_goal'] });
     expect(calculatePlan({ ...light, goal: 'gain' }).eligible).toBe(true);
     expect(calculatePlan({ ...light, goal: 'maintain' }).eligible).toBe(true);

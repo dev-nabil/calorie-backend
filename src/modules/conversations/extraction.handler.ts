@@ -5,6 +5,7 @@ import { DEFAULT_LOCALE, parseLocale } from '../../shared/locales';
 import { AiJobHandlers } from '../ai/ai-jobs';
 import { languageDirective } from '../ai/language';
 import { AiProvider } from '../ai/ai.provider';
+import { DEFAULT_TEXT_MODEL } from '../ai/ai-models';
 import { AiService } from '../ai/ai.service';
 import { fillTemplate } from '../content/content.loader';
 import { ContentService } from '../content/content.service';
@@ -44,7 +45,7 @@ export class ExtractionHandler implements OnModuleInit {
 
   async handle(job: ExtractJob): Promise<ExtractionOutput> {
     const prompt = await this.content.activePrompt('onboarding-extract');
-    const model = prompt?.model || (await this.ai.modelFor('extract', 'gpt-5-mini'));
+    const model = prompt?.model || (await this.ai.modelFor('extract', DEFAULT_TEXT_MODEL));
     const res = await this.ai.runOrUnavailable('extract', () =>
       this.provider.structured(
         {

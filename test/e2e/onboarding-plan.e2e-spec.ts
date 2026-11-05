@@ -13,7 +13,6 @@ const ADULT = [
   { questionId: 'q36', value: ['none'], status: 'answered', inputMethod: 'chip' },
   { questionId: 'q30', value: ['photo'], status: 'answered', inputMethod: 'chip' },
 ];
-const ATTEST = { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false, eatingDisorderConcern: false };
 
 describe('Onboarding (M2-T3)', () => {
   let t: TestApp;
@@ -24,8 +23,8 @@ describe('Onboarding (M2-T3)', () => {
 
   it('GET /onboarding/questions is public, versioned and cacheable', async () => {
     const res = await t.http().get('/v1/onboarding/questions').expect(200);
-    expect(res.body.version).toBe(2);
-    expect(res.body.questionSet.questions).toHaveLength(38);
+    expect(res.body.version).toBe(3);
+    expect(res.body.questionSet.questions).toHaveLength(39);
     expect(res.body.conversation.turns.length).toBeGreaterThan(0);
     expect(res.headers['cache-control']).toBe('public, max-age=300');
     await t.http().get('/v1/onboarding/questions').set('If-None-Match', String(res.headers.etag)).expect(304);
@@ -117,7 +116,7 @@ describe('Onboarding (M2-T3)', () => {
     const early = await t.http().post('/v1/onboarding/complete').set(h).send({}).expect(422);
     expect(early.body.error.code).toBe('ANSWER_REQUIRED');
     await t.http().put('/v1/onboarding/answers').set(h).send({ route: 'basic', answers: ADULT }).expect(200);
-    const res = await t.http().post('/v1/onboarding/complete').set(h).send({ eligibility: ATTEST }).expect(200);
+    const res = await t.http().post('/v1/onboarding/complete').set(h).send({}).expect(200);
     expect(res.body.profile).toMatchObject({ mode: 'full', ageYears: 30, heightCm: 180, weightKg: 80, activityLevel: 'active', onboarding: { status: 'completed' } });
     expect(res.body.profile.onboarding.deferredCount).toBeGreaterThan(0);
     expect(res.body.preview).toMatchObject({ eligible: true, method: 'mifflin_st_jeor_v1', bmrKcal: 1780, tdeeKcal: 2759, adjustmentPct: -10, floorKcal: 1780 });
@@ -125,6 +124,22 @@ describe('Onboarding (M2-T3)', () => {
     const state = await t.http().get('/v1/onboarding/state').set(h).expect(200);
     expect(state.body.deferredQuestionIds).toContain('q02');
     expect(state.body.answers.find((a: { questionId: string }) => a.questionId === 'q02').status).toBe('deferred');
+    // Questions that do not apply are recorded as such, so they never hold completion back.
+    expect(state.body.answers.find((a: { questionId: string }) => a.questionId === 'q38').status).toBe('not_applicable');
+  });
+
+  it('a deferred upload never wipes an answer or a decline the server already has', async () => {
+    const s = await signIn(t);
+    const h = bearer(s.accessToken);
+    await t.http().put('/v1/onboarding/answers').set(h).send({ route: 'conversation', answers: [...ADULT, { questionId: 'q11', status: 'skipped', inputMethod: 'chip' }] }).expect(200);
+    const stale = ['q01', 'q07', 'q08', 'q11', 'q12'].map((questionId) => ({ questionId, status: 'deferred', inputMethod: 'form' }));
+    const res = await t.http().put('/v1/onboarding/answers').set(h).send({ route: 'conversation', answers: stale }).expect(200);
+    const by = (id: string) => res.body.answers.find((a: { questionId: string }) => a.questionId === id);
+    expect(by('q01')).toMatchObject({ status: 'answered', value: 'lose' });
+    expect(by('q07')).toMatchObject({ status: 'answered', value: 'male' });
+    expect(by('q08')).toMatchObject({ status: 'answered', value: { cm: 180 } });
+    expect(by('q11').status).toBe('skipped');
+    expect(by('q12').status).toBe('deferred'); // never answered: deferred stands
   });
 });
 
@@ -136,7 +151,7 @@ describe('Plan (M2-T5)', () => {
     const s = await signIn(t);
     h = bearer(s.accessToken);
     await t.http().put('/v1/onboarding/answers').set(h).send({ route: 'basic', answers: ADULT }).expect(200);
-    await t.http().post('/v1/onboarding/complete').set(h).send({ eligibility: ATTEST }).expect(200);
+    await t.http().post('/v1/onboarding/complete').set(h).send({}).expect(200);
   });
   afterAll(() => t.close());
 
@@ -145,7 +160,7 @@ describe('Plan (M2-T5)', () => {
     expect(res.body.error.code).toBe('PLAN_NOT_FOUND');
   });
 
-  it('preview without attestation is not eligible', async () => {
+  it('preview without answers is not eligible', async () => {
     const s = await signIn(t);
     const res = await t.http().post('/v1/plan/preview').set(bearer(s.accessToken)).send({}).expect(200);
     expect(res.body).toMatchObject({ eligible: false, calculated: null, mode: 'habits_only' });

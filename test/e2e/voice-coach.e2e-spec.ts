@@ -79,7 +79,7 @@ describe('M5 leftovers: moderation, summaries, pre-rendered audio, spoken replie
     expect((await voice.prerender()).rendered).toBe(0);
     const m = await t.http().get('/v1/content/audio').expect(200);
     expect(m.body.version).toBe(2); // lines.v2.json is the newest milo_lines version
-    expect(m.body.lines['welcome.greeting']).toContain(encodeURIComponent('tts/2/welcome.greeting.mp3'));
+    expect(m.body.lines['welcome.greeting']).toContain(encodeURIComponent('tts/2/welcome.greeting.wav'));
     expect(m.body.lines['conversation.turn2']).toBeDefined();
     expect(Object.keys(m.body.lines).some((k) => k === 'coach.intro')).toBe(false); // has {name}
   });

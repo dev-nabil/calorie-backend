@@ -1,5 +1,19 @@
 import { loadContentJson } from '../../../test/fixtures/onboarding/load-content';
-import { applicableQuestions, applyAnswers, loadQuestionSet, nextQuestion, profileFromAnswers, type AnswerUpdate, type EngineContext } from './index';
+import {
+  applicableQuestions,
+  applyAnswers,
+  deferredQuestions,
+  deferUnanswered,
+  loadFlowTurns,
+  loadQuestionSet,
+  nextFlowTurn,
+  nextQuestion,
+  openQuestions,
+  profileFromAnswers,
+  volunteerableQuestions,
+  type AnswerUpdate,
+  type EngineContext,
+} from './index';
 
 const v1 = loadQuestionSet(loadContentJson('questions.v1.json'));
 const v2 = loadQuestionSet(loadContentJson('questions.v2.json'));
@@ -99,5 +113,69 @@ describe('questions v2', () => {
     let answers = applyAnswers(v2, {}, ADULT_LOSE, ctx('basic')).answers;
     answers = applyAnswers(v2, answers, [a('q05', 'Sam'), a('q11', 'none')], ctx('basic')).answers;
     expect(nextQuestion(v2, answers, ctx('basic'))).toBe('q36');
+  });
+});
+
+describe('questions v3', () => {
+  const v3 = loadQuestionSet(loadContentJson('questions.v3.json'));
+  const turns = loadFlowTurns(v3, loadContentJson('conversation.v2.json'));
+  const adult = (sex: string) => applyAnswers(v3, {}, [a('q01', 'lose'), a('q06', { mode: 'age', age: 34 }), a('q07', sex)], ctx('conversation')).answers;
+
+  it('asks about pregnancy and breastfeeding only for an adult whose sex input is female', () => {
+    expect(applicableQuestions(v3, adult('female'), ctx('detailed'))).toContain('q38');
+    for (const sex of ['male', 'unsure', 'none']) expect(applicableQuestions(v3, adult(sex), ctx('detailed'))).not.toContain('q38');
+    const minor = applyAnswers(v3, {}, [a('q06', { mode: 'age', age: 16 })], ctx('detailed')).answers;
+    expect(applicableQuestions(v3, minor, ctx('detailed'))).not.toContain('q38');
+    expect(nextFlowTurn(v3, turns, adult('male'), {}, ctx('conversation'))?.turn.id).toBe('name_goal');
+  });
+
+  it('marks the question not applicable and drops its value when the sex input changes (BR-11)', () => {
+    const female = applyAnswers(v3, adult('female'), [a('q38', 'pregnant')], ctx('detailed')).answers;
+    const res = applyAnswers(v3, female, [a('q07', 'male')], ctx('detailed'));
+    expect(res.cleared).toContain('q38');
+    expect(res.answers.q38).toMatchObject({ status: 'not_applicable', value: null });
+    expect(profileFromAnswers(v3, res.answers, today).lifeStage).toBeNull();
+  });
+
+  it('a decline is kept apart from a question never asked', () => {
+    const skipped = applyAnswers(v3, adult('female'), [{ questionId: 'q38', status: 'skipped' }], ctx('detailed')).answers;
+    expect(profileFromAnswers(v3, skipped, today).lifeStage).toBe('declined');
+    expect(profileFromAnswers(v3, adult('female'), today).lifeStage).toBeNull();
+  });
+
+  it('never asks for a target weight while pregnant or breastfeeding', () => {
+    const base = applyAnswers(v3, adult('female'), [a('q08', { cm: 168, unit: 'cm' }), a('q09', { kg: 82, unit: 'kg', isEstimate: false })], ctx('detailed')).answers;
+    expect(applicableQuestions(v3, applyAnswers(v3, base, [a('q38', 'none')], ctx('detailed')).answers, ctx('detailed'))).toContain('target_weight');
+    expect(applicableQuestions(v3, applyAnswers(v3, base, [a('q38', 'pregnant')], ctx('detailed')).answers, ctx('detailed'))).not.toContain('target_weight');
+  });
+
+  it('asks the sex input before height and weight, so nothing said is dropped when none is chosen', () => {
+    const ids = turns.map((t) => t.id);
+    expect(ids.indexOf('sex_input')).toBeLessThan(ids.indexOf('body'));
+    const none = adult('none');
+    expect(nextFlowTurn(v3, turns, { ...none, q05: { value: 'Sam', status: 'answered' } }, {}, ctx('conversation'))?.turn.id).toBe('food');
+  });
+
+  it('completion stores what does not apply, so it can never block', () => {
+    const { answers } = deferUnanswered(v3, adult('male'), ctx('conversation'));
+    expect(answers.q38).toMatchObject({ status: 'not_applicable', value: null });
+    expect(answers.q08).toMatchObject({ status: 'deferred' });
+    expect(deferredQuestions(v3, answers, ctx('conversation'))).not.toContain('q38');
+  });
+
+  it('does not ask for weight on its own once height is declined', () => {
+    const answers = applyAnswers(v3, adult('male'), [{ questionId: 'q08', status: 'skipped' }], ctx('conversation')).answers;
+    const body = turns.find((t) => t.id === 'body')!;
+    expect(openQuestions(v3, body, answers, {}, ctx('conversation'))).toEqual([]);
+  });
+
+  it('listens for later answers, but never for the questions that always get their own turn', () => {
+    const later = volunteerableQuestions(v3, turns, {}, {}, ctx('conversation'), ['q05', 'q01']);
+    expect(later).toEqual(expect.arrayContaining(['q06', 'q08', 'q09', 'q10', 'q11', 'q36']));
+    expect(later).not.toContain('q07');
+    expect(later).not.toContain('q38');
+    expect(later).not.toContain('q05');
+    const minor = applyAnswers(v3, {}, [a('q06', { mode: 'age', age: 15 })], ctx('conversation')).answers;
+    expect(volunteerableQuestions(v3, turns, minor, {}, ctx('conversation'), [])).not.toContain('q09');
   });
 });

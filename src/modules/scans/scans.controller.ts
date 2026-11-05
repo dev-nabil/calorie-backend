@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Req, Res } from '@nestjs/common';
+import { Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiProduces, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { CreateScanRequestSchema, ScanSchema, UuidSchema, type CreateScanRequest, type Scan } from '../../shared';
+import { CreateScanRequestSchema, RecalculateScanRequestSchema, RecalculatedScanSchema, ScanSchema, UuidSchema, type CreateScanRequest, type RecalculateScanRequest, type RecalculatedScan, type Scan } from '../../shared';
 import { CurrentUser, type AuthUser } from '../../common/auth/auth.decorators';
 import { noStore } from '../../common/http/etag';
 import { integrityOk, RequireIntegrity } from '../../common/integrity/integrity';
@@ -37,6 +37,14 @@ export class ScansController {
     const [scan, created] = await this.scans.create(u.id, body, integrityOk(req), user.timezone, undefined, { ip: req.ip, deviceId: req.header('X-Device-Id') ?? undefined });
     res.status(created ? 202 : 200);
     return scan;
+  }
+
+  @Post(':scanId/recalculate')
+  @HttpCode(200)
+  @ZResponse(200, RecalculatedScanSchema, 'Portion and name corrections from the stored per-100-gram values. No model call, no charge, nothing saved')
+  @ApiErrors(400, 401, 404, 409, 429)
+  recalculate(@CurrentUser() u: AuthUser, @ZParam('scanId', UuidSchema) scanId: string, @ZBody(RecalculateScanRequestSchema) body: RecalculateScanRequest): Promise<RecalculatedScan> {
+    return this.scans.recalculate(u.id, scanId, body);
   }
 
   /** Server-sent events: `event: status` with the Scan on every change; ends on a final status or after 40 s. */

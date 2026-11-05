@@ -159,7 +159,7 @@ variable "external_secrets" {
   description = "Secret Manager secrets whose values are added out of band (never in Terraform state)."
   type        = list(string)
   default = [
-    "OPENAI_API_KEY",
+    "GEMINI_API_KEY",
     "EMAIL_API_KEY",
     "REVENUECAT_API_KEY",
     "REVENUECAT_WEBHOOK_SECRET",

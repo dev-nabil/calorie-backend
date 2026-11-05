@@ -7,13 +7,17 @@ import { Types, type Model } from 'mongoose';
 import {
   ERROR_CODES,
   MEAL_RESTORE_WINDOW_DAYS,
+  type AnalysedItem,
   type CreateMealRequest,
   type Meal,
   type MealItemInput,
+  type MealTotals,
   type UpdateMealRequest,
 } from '../../../shared';
 import { diffDays, resolveEntryDay } from '../../../domain/day-keys';
-import { computeTotals, scaleItem } from '../../../domain/nutrition-validator';
+import { ADJUSTED_ESTIMATE, AI_ESTIMATE, USER_ENTERED, applyItemCorrection, computeMealTotals, nutrientsForGrams, type FoodIndex } from '../../../domain/food-nutrition';
+import { scaleItem } from '../../../domain/nutrition-validator';
+import { FoodRecordsService } from '../../content/food-records.service';
 import { ApiError } from '../../../common/errors/api-error';
 import { DailyLogsService } from './daily-logs.service';
 import { StorageService } from '../../../infra/storage/storage';
@@ -21,12 +25,47 @@ import { ownsKey } from '../../uploads/uploads.keys';
 import type { MealDoc, StoredMealItem } from '../schemas/tracking.schema';
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
+const r1OrNull = (n: number | null | undefined) => (n === null || n === undefined ? null : r1(n));
+const r0OrNull = (n: number | null | undefined) => (n === null || n === undefined ? null : Math.round(n));
 const RESTORE_MS = MEAL_RESTORE_WINDOW_DAYS * 86_400_000;
 export const THUMBNAIL_JOB = 'meal_thumbnail';
 
 export interface MealPhotoSource {
   /** Looks up a succeeded scan of this user for the photo reference (scans module). */
   photoFor(userId: Types.ObjectId, scanId: string): Promise<{ key: string; thumbKey: string | null } | null>;
+  /** The stored analysis: the only trusted basis for items saved from a scan. */
+  itemsFor(userId: Types.ObjectId, scanId: string): Promise<AnalysedItem[] | null>;
+}
+
+interface StoreContext {
+  /** Items of the scan this meal comes from. */
+  scan?: AnalysedItem[] | null;
+  /** The meal's current items, on an edit. */
+  prior?: StoredMealItem[];
+  records?: FoodIndex;
+}
+
+function fromScanItem(item: AnalysedItem, input: MealItemInput): StoredMealItem {
+  return {
+    name: item.name,
+    grams: item.grams,
+    kcal: item.kcal,
+    proteinG: item.proteinG,
+    carbsG: item.carbsG,
+    fatG: item.fatG,
+    fiberG: item.fiberG,
+    sugarG: item.sugarG,
+    sodiumMg: item.sodiumMg,
+    preparation: item.preparation,
+    scanItemId: item.id,
+    per100g: item.per100g,
+    source: item.source,
+    otherNutrients: item.otherNutrients,
+    confidence: item.confidence,
+    edited: Boolean(input.edited),
+    excluded: Boolean(input.excluded),
+    addedByUser: false,
+  };
 }
 
 /** M3-T2: meals are the source of truth; every write recomputes the affected day (S-10). */
@@ -40,6 +79,7 @@ export class MealsService implements OnModuleInit {
     private readonly storage: StorageService,
     private readonly handlers: JobHandlers,
     private readonly jobs: JobQueue,
+    private readonly records: FoodRecordsService,
   ) {}
 
   onModuleInit(): void {
@@ -60,27 +100,53 @@ export class MealsService implements OnModuleInit {
     this.photoSource = source;
   }
 
-  static storeItems(items: MealItemInput[]): StoredMealItem[] {
-    return items.map((i) => ({
-      name: i.name,
-      grams: r1(i.grams),
-      kcal: Math.round(i.kcal),
-      proteinG: r1(i.proteinG),
-      carbsG: r1(i.carbsG),
-      fatG: r1(i.fatG),
-      fiberG: i.fiberG === undefined ? null : r1(i.fiberG),
-      confidence: i.confidence ?? null,
-      edited: Boolean(i.edited),
-      excluded: Boolean(i.excluded),
-      addedByUser: Boolean(i.addedByUser),
-    }));
+  /**
+   * Item values always come from a per-100-gram basis when one exists: the stored scan first, then
+   * the item's own. Numbers in the request are used only for entries that have no basis.
+   */
+  static storeItems(items: MealItemInput[], ctx: StoreContext = {}): StoredMealItem[] {
+    return items.map((i) => {
+      const scanned = i.scanItemId ? ctx.scan?.find((s) => s.id === i.scanItemId) : undefined;
+      if (scanned && ctx.records) {
+        const correction = { name: i.name, grams: i.grams, ...(i.preparation ? { preparation: i.preparation } : {}) };
+        return fromScanItem(applyItemCorrection(scanned, correction, ctx.records).item, i);
+      }
+      const prior = i.scanItemId ? ctx.prior?.find((p) => p.scanItemId === i.scanItemId) : undefined;
+      const per100g = i.per100g ?? prior?.per100g ?? null;
+      const grams = r1(i.grams);
+      const stated = {
+        kcal: r0OrNull(i.kcal),
+        proteinG: r1OrNull(i.proteinG),
+        carbsG: r1OrNull(i.carbsG),
+        fatG: r1OrNull(i.fatG),
+        fiberG: r1OrNull(i.fiberG),
+        sugarG: r1OrNull(i.sugarG),
+        sodiumMg: r0OrNull(i.sodiumMg),
+      };
+      const renamed = prior !== undefined && prior.name !== i.name;
+      return {
+        name: i.name,
+        grams,
+        ...(per100g ? nutrientsForGrams(per100g, grams) : stated),
+        preparation: i.preparation ?? prior?.preparation ?? null,
+        scanItemId: i.scanItemId ?? null,
+        per100g,
+        source: renamed ? ADJUSTED_ESTIMATE : (prior?.source ?? (i.per100g ? AI_ESTIMATE : USER_ENTERED)),
+        otherNutrients: prior && prior.grams > 0 ? prior.otherNutrients.map((o) => ({ ...o, amount: r1((o.amount * grams) / prior.grams) })) : [],
+        confidence: i.confidence ?? null,
+        edited: Boolean(i.edited),
+        excluded: Boolean(i.excluded),
+        addedByUser: Boolean(i.addedByUser),
+      };
+    });
   }
 
   async create(userId: string, req: CreateMealRequest, now = clock.now()): Promise<Meal> {
     const uid = new Types.ObjectId(userId);
     const day = resolveEntryDay({ loggedAt: new Date(req.loggedAt), timeZone: req.timezone, date: req.date, now });
     const multiplier = req.portionMultiplier ?? 1;
-    const items = MealsService.storeItems(req.items);
+    const scan = req.scanId && this.photoSource ? await this.photoSource.itemsFor(uid, req.scanId) : null;
+    const items = MealsService.storeItems(req.items, { scan, records: this.records.index });
     let photo = req.scanId && this.photoSource ? await this.photoSource.photoFor(uid, req.scanId) : null;
     if (!photo && req.imageKey) {
       if (!ownsKey(userId, 'meal_photo', req.imageKey) || !(await this.storage.exists(req.imageKey))) {
@@ -102,7 +168,7 @@ export class MealsService implements OnModuleInit {
         photo,
         portionMultiplier: multiplier,
         items,
-        totals: computeTotals(items, multiplier),
+        totals: computeMealTotals(items, multiplier),
       });
     } catch (e) {
       if ((e as { code?: number }).code === 11000) {
@@ -133,11 +199,12 @@ export class MealsService implements OnModuleInit {
       set.date = day.date;
       set.timezone = day.timezone;
     }
-    const items = patch.items ? MealsService.storeItems(patch.items) : meal.items;
+    const scan = patch.items && meal.scanId && this.photoSource ? await this.photoSource.itemsFor(meal.userId, meal.scanId) : null;
+    const items = patch.items ? MealsService.storeItems(patch.items, { scan, prior: meal.items, records: this.records.index }) : meal.items;
     const multiplier = patch.portionMultiplier ?? meal.portionMultiplier;
     if (patch.items) set.items = items;
     if (patch.portionMultiplier !== undefined) set.portionMultiplier = multiplier;
-    set.totals = computeTotals(items, multiplier);
+    set.totals = computeMealTotals(items, multiplier);
     const updated = await this.meals.findOneAndUpdate({ _id: meal._id }, { $set: set }, { returnDocument: 'after' }).lean<MealDoc>();
     await this.dailyLogs.recompute(meal.userId, updated!.date);
     if (updated!.date !== meal.date) await this.dailyLogs.recompute(meal.userId, meal.date);
@@ -178,6 +245,11 @@ export class MealsService implements OnModuleInit {
     return this.meals.find({ userId, date, deletedAt: null }).sort({ loggedAt: 1 }).lean<MealDoc[]>();
   }
 
+  /** Entries saved before these fields existed report them as unknown, not as zero. */
+  private static totalsView(t: Partial<MealTotals> & Pick<MealTotals, 'kcal' | 'proteinG' | 'carbsG' | 'fatG'>): MealTotals {
+    return { kcal: t.kcal, proteinG: t.proteinG, carbsG: t.carbsG, fatG: t.fatG, fiberG: t.fiberG ?? null, sugarG: t.sugarG ?? null, sodiumMg: t.sodiumMg ?? null, incomplete: t.incomplete ?? [] };
+  }
+
   toMeal(d: MealDoc): Meal {
     return {
       id: d._id.toString(),
@@ -202,11 +274,18 @@ export class MealsService implements OnModuleInit {
         return {
           ...i,
           fiberG: i.fiberG ?? null,
+          sugarG: i.sugarG ?? null,
+          sodiumMg: i.sodiumMg ?? null,
+          preparation: i.preparation ?? null,
+          scanItemId: i.scanItemId ?? null,
+          per100g: i.per100g ?? null,
+          source: i.source ?? null,
+          otherNutrients: i.otherNutrients ?? [],
           confidence: i.confidence ?? null,
-          scaled: { grams: r1(s.grams), kcal: Math.round(s.kcal), proteinG: r1(s.proteinG), carbsG: r1(s.carbsG), fatG: r1(s.fatG) },
+          scaled: { grams: r1(s.grams), kcal: r0OrNull(s.kcal), proteinG: r1OrNull(s.proteinG), carbsG: r1OrNull(s.carbsG), fatG: r1OrNull(s.fatG) },
         };
       }),
-      totals: d.totals,
+      totals: MealsService.totalsView(d.totals),
       deletedAt: d.deletedAt ? new Date(d.deletedAt).toISOString() : null,
       restorableUntil: d.deletedAt ? new Date(new Date(d.deletedAt).getTime() + RESTORE_MS).toISOString() : null,
       createdAt: new Date(d.createdAt).toISOString(),

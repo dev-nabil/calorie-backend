@@ -1,7 +1,7 @@
-import OpenAI from 'openai';
 import { z } from 'zod';
 import { MealAnalysisOutputSchema, MealParseOutputSchema, PlanNarrativeOutputSchema } from '../../shared';
 import { PLAN_EXAMPLE_ANALYSIS } from '../../domain/nutrition-validator/fixtures';
+import { SILENT_WAV } from './providers/wav';
 
 export interface AiUsage {
   inputTokens: number;
@@ -11,19 +11,19 @@ export interface AiUsage {
 
 export type AiTask = 'meal_scan' | 'meal_parse' | 'onboarding_extract' | 'plan_narrative';
 
+/** How much a thinking model may think before it answers. Thinking tokens bill as output and count against `maxOutputTokens`. */
+export type ThinkingEffort = 'minimal' | 'low' | 'medium' | 'high';
+
 export interface StructuredRequest {
   task: AiTask;
   model: string;
-  /** Static prefix first so OpenAI prompt caching applies (S-18). */
+  /** Static prefix first so Gemini's implicit prompt caching applies (S-18). */
   instructions: string;
   context: string;
-  imageUrl?: string;
   timeoutMs: number;
   maxOutputTokens: number;
-  /** false = ask OpenAI not to retain the request and response (health-related inputs). */
-  store?: boolean;
-  /** Reasoning models only (gpt-5, o-series): how much thinking to spend. Writing tasks do not need much. */
-  reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high';
+  /** Default `minimal`: extraction and short writing tasks do not need much thinking. */
+  thinking?: ThinkingEffort;
 }
 
 export interface ChatRequest {
@@ -52,35 +52,45 @@ export interface SpeechRequest {
   timeoutMs: number;
 }
 
-/** What the server asks OpenAI to put into the ephemeral client secret of a Realtime session. */
+/** A function the live model may call. `parameters` is a JSON Schema. */
+export interface RealtimeToolDeclaration {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
+
+/** What the server locks into the ephemeral token of a Gemini Live session. The app cannot change any of it. */
 export interface RealtimeSecretRequest {
   model: string;
   voice: string;
   instructions: string;
-  tools: Array<Record<string, unknown>>;
-  /** Input transcription model and a language hint (ISO 639-1), so Bangla speech is read as Bangla. */
-  transcriptionModel: string;
-  transcriptionLanguage: string;
-  /** How long the secret may be used to open the call. */
+  tools: RealtimeToolDeclaration[];
+  /** How long the token may be used to open the call. */
   expiresAfterSec: number;
+  /** How long the opened session may run before Google closes it. */
+  sessionSec: number;
   maxOutputTokens: number;
+  /** The user's turn ends after this much silence; speaking again inside it restarts the count. */
+  silenceMs: number;
   timeoutMs: number;
 }
 
 export interface RealtimeSecret {
+  /** The ephemeral token (`auth_tokens/...`). The app sends it as `access_token` when it opens the WebSocket. */
   value: string;
-  /** Unix seconds. */
+  /** Unix seconds: the app must open the session before this. */
   expiresAt: number;
   model: string;
-  /** SDP exchange endpoint for the WebRTC call. */
+  /** WebSocket endpoint of the Live API for ephemeral tokens (the app appends `?access_token=<value>`). */
   callsUrl: string;
 }
 
-/** One MPEG-1 Layer III frame of silence (128 kbps, 44.1 kHz): a valid, tiny MP3 for dev and tests. */
-export const SILENT_MP3 = Buffer.concat([Buffer.from([0xff, 0xfb, 0x90, 0x64]), Buffer.alloc(413)]);
-
-/** Back-compat shape used by the scan processor. */
-export type MealScanRequest = Omit<StructuredRequest, 'task'> & { imageUrl: string };
+export interface SpeechResult {
+  audio: Buffer;
+  model: string;
+  /** MIME type of `audio` (Gemini TTS is wrapped as WAV). */
+  contentType: string;
+}
 
 export const JSON_SCHEMAS: Record<AiTask, Record<string, unknown>> = {
   meal_scan: z.toJSONSchema(MealAnalysisOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
@@ -107,17 +117,13 @@ export abstract class AiProvider {
 
   /** Coach inputs pass moderation first (plan 8.8 rule 6). */
   abstract moderate(text: string, model: string): Promise<ModerationResult>;
-  abstract speech(req: SpeechRequest): Promise<{ audio: Buffer; model: string }>;
-  /** Realtime voice: mints the short-lived secret the app uses to talk to the model directly over WebRTC. */
+  abstract speech(req: SpeechRequest): Promise<SpeechResult>;
+  /** Realtime voice: mints the short-lived token the app uses to talk to the model directly over a WebSocket. */
   abstract realtimeSecret(req: RealtimeSecretRequest): Promise<RealtimeSecret>;
 
   /** Non-streaming text (rolling summaries). */
   async complete(req: ChatRequest): Promise<AiResult> {
     return this.streamChat(req, () => undefined);
-  }
-
-  analyseMeal(req: MealScanRequest): Promise<AiResult> {
-    return this.structured({ ...req, task: 'meal_scan' });
   }
 }
 
@@ -131,7 +137,7 @@ export const PARSE_EXAMPLE = {
   clarifyingQuestion: null,
 };
 
-/** Small rule-based stand-in for onboarding extraction so local voice/typing demos work without OpenAI. */
+/** Small rule-based stand-in for onboarding extraction so local voice/typing demos work without a model. */
 export function fakeExtract(context: string): unknown {
   const reply = /User reply:\s*"""\s*([\s\S]*?)\s*"""/.exec(context)?.[1] ?? '';
   const open = /Open questions[^`]*```text\s*([\s\S]*?)```/.exec(context)?.[1] ?? '[]';
@@ -219,7 +225,7 @@ export class FakeAiProvider extends AiProvider {
     await this.applyMode();
     if (this.mode === 'not_food') {
       const output = {
-        meal_scan: { isFood: false, mealName: '', items: [], notes: "That doesn't look like food.", clarifyingQuestion: null },
+        meal_scan: { status: 'no_food', mealName: null, items: [], assumptions: [], question: "That doesn't look like food.", retake: null },
         meal_parse: { mealName: '', items: [], notes: null, clarifyingQuestion: 'What did you eat?' },
         onboarding_extract: { answers: [], ack: 'Sorry, I missed that.', clarify: 'Could you say that another way?', userQuestion: null },
         plan_narrative: structuredClone(PLAN_NARRATIVE_EXAMPLE),
@@ -241,7 +247,7 @@ export class FakeAiProvider extends AiProvider {
   async realtimeSecret(req: RealtimeSecretRequest): Promise<RealtimeSecret> {
     this.realtimeCalls.push(req);
     await this.applyMode();
-    return { value: 'ek_fake_secret', expiresAt: Math.floor(Date.now() / 1000) + req.expiresAfterSec, model: req.model, callsUrl: 'https://realtime.fake.test/v1/realtime/calls' };
+    return { value: 'auth_tokens/fake_secret', expiresAt: Math.floor(Date.now() / 1000) + req.expiresAfterSec, model: req.model, callsUrl: 'wss://realtime.fake.test/ws/live' };
   }
 
   /** Flags a few unambiguous phrases so tests and local runs can exercise the refusal paths. */
@@ -253,10 +259,10 @@ export class FakeAiProvider extends AiProvider {
     return { flagged: false, categories: [] };
   }
 
-  async speech(req: SpeechRequest): Promise<{ audio: Buffer; model: string }> {
+  async speech(req: SpeechRequest): Promise<SpeechResult> {
     this.speechCalls.push(req);
     await this.applyMode();
-    return { audio: SILENT_MP3, model: req.model };
+    return { audio: SILENT_WAV, model: req.model, contentType: 'audio/wav' };
   }
 
   async streamChat(req: ChatRequest, onDelta: (text: string) => void): Promise<AiResult> {
@@ -271,112 +277,4 @@ export class FakeAiProvider extends AiProvider {
     for (const word of text.split(/(?<= )/)) onDelta(word);
     return { output: text, usage: { inputTokens: 800, outputTokens: 40, cachedTokens: 600 }, model: req.model };
   }
-}
-
-const REALTIME_BASE = 'https://api.openai.com/v1/realtime';
-
-/** OpenAI Responses API with Structured Outputs (DEC-06) and Realtime client secrets. Never called in tests. */
-export class OpenAiProvider extends AiProvider {
-  readonly name = 'openai';
-  readonly configured = true;
-  private readonly client: OpenAI;
-
-  constructor(private readonly apiKey: string) {
-    super();
-    this.client = new OpenAI({ apiKey, maxRetries: 0 });
-  }
-
-  async structured(req: StructuredRequest, schema?: Record<string, unknown>): Promise<AiResult> {
-    const content: Array<{ type: 'input_text'; text: string } | { type: 'input_image'; image_url: string; detail: 'auto' }> = [
-      { type: 'input_text', text: req.context },
-    ];
-    if (req.imageUrl) content.push({ type: 'input_image', image_url: req.imageUrl, detail: 'auto' });
-    const res = await this.client.responses.create(
-      {
-        model: req.model,
-        instructions: req.instructions,
-        input: [{ role: 'user', content }],
-        text: { format: { type: 'json_schema', name: req.task, strict: true, schema: schema ?? JSON_SCHEMAS[req.task] } },
-        max_output_tokens: req.maxOutputTokens,
-        ...(req.store === false ? { store: false } : {}),
-        ...(req.reasoningEffort ? { reasoning: { effort: req.reasoningEffort } } : {}),
-      },
-      { timeout: req.timeoutMs },
-    );
-    if (res.status === 'incomplete') throw Object.assign(new Error(`OpenAI response incomplete: ${res.incomplete_details?.reason ?? 'unknown'}`), { status: 502 });
-    if (!res.output_text) throw Object.assign(new Error('OpenAI returned no text (refusal or failed response)'), { status: 422 });
-    return { output: JSON.parse(res.output_text), usage: usageOf(res.usage), model: res.model };
-  }
-
-  async moderate(text: string, model: string): Promise<ModerationResult> {
-    const res = await this.client.moderations.create({ model, input: text });
-    const r = res.results[0];
-    return { flagged: Boolean(r?.flagged), categories: Object.entries(r?.categories ?? {}).filter(([, v]) => v).map(([k]) => k) };
-  }
-
-  async speech(req: SpeechRequest): Promise<{ audio: Buffer; model: string }> {
-    const res = await this.client.audio.speech.create({ model: req.model, voice: req.voice as 'alloy', input: req.text, response_format: 'mp3' }, { timeout: req.timeoutMs });
-    return { audio: Buffer.from(await res.arrayBuffer()), model: req.model };
-  }
-
-  /**
-   * POST /v1/realtime/client_secrets. The secret carries the whole session (instructions, tools, voice,
-   * turn detection), so the app cannot change the persona or the tools. The OpenAI key never leaves the server.
-   */
-  async realtimeSecret(req: RealtimeSecretRequest): Promise<RealtimeSecret> {
-    const res = await fetch(`${REALTIME_BASE}/client_secrets`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(req.timeoutMs),
-      body: JSON.stringify({
-        expires_after: { anchor: 'created_at', seconds: req.expiresAfterSec },
-        session: {
-          type: 'realtime',
-          model: req.model,
-          instructions: req.instructions,
-          output_modalities: ['audio'],
-          max_output_tokens: req.maxOutputTokens,
-          tools: req.tools,
-          tool_choice: 'auto',
-          audio: {
-            input: {
-              noise_reduction: { type: 'near_field' },
-              transcription: { model: req.transcriptionModel, language: req.transcriptionLanguage },
-              // The model waits until the sentence is finished: people pause mid-answer when they think of a number.
-              turn_detection: { type: 'semantic_vad', eagerness: 'medium', create_response: true, interrupt_response: true },
-            },
-            output: { voice: req.voice },
-          },
-        },
-      }),
-    });
-    if (!res.ok) throw Object.assign(new Error(`OpenAI client secret failed: HTTP ${res.status}`), { status: res.status >= 500 ? 502 : res.status });
-    const body = (await res.json()) as { value?: string; expires_at?: number; session?: { model?: string } };
-    if (!body.value) throw Object.assign(new Error('OpenAI returned no client secret'), { status: 502 });
-    return { value: body.value, expiresAt: body.expires_at ?? Math.floor(Date.now() / 1000) + req.expiresAfterSec, model: body.session?.model ?? req.model, callsUrl: `${REALTIME_BASE}/calls` };
-  }
-
-  async streamChat(req: ChatRequest, onDelta: (text: string) => void): Promise<AiResult> {
-    const stream = await this.client.responses.create(
-      { model: req.model, instructions: req.instructions, input: req.messages, max_output_tokens: req.maxOutputTokens, stream: true },
-      { timeout: req.timeoutMs },
-    );
-    let text = '';
-    let usage: AiUsage = { inputTokens: 0, outputTokens: 0, cachedTokens: 0 };
-    let model = req.model;
-    for await (const event of stream) {
-      if (event.type === 'response.output_text.delta') {
-        text += event.delta;
-        onDelta(event.delta);
-      } else if (event.type === 'response.completed') {
-        usage = usageOf(event.response.usage);
-        model = event.response.model;
-      }
-    }
-    return { output: text, usage, model };
-  }
-}
-
-function usageOf(u: { input_tokens?: number; output_tokens?: number; input_tokens_details?: { cached_tokens?: number } } | null | undefined): AiUsage {
-  return { inputTokens: u?.input_tokens ?? 0, outputTokens: u?.output_tokens ?? 0, cachedTokens: u?.input_tokens_details?.cached_tokens ?? 0 };
 }

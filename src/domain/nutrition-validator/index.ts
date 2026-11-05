@@ -4,6 +4,19 @@
  */
 import { chooseReactionLine, type ReactionInput, type ScanReactionContent } from './reactions';
 import {
+  AI_ESTIMATE,
+  KCAL_TOLERANCE,
+  computeMealTotals,
+  isInsideDish,
+  matchFoodRecord,
+  nutrientsForGrams,
+  otherNutrientsFor,
+  per100gFromValues,
+  recordSource,
+  sanitisePer100g,
+  type FoodIndex,
+} from '../food-nutrition';
+import {
   ITEM_GRAMS_MAX,
   ITEM_GRAMS_MIN,
   MAX_MEAL_ITEMS,
@@ -16,8 +29,7 @@ import {
 
 export { PLAN_EXAMPLE_ANALYSIS } from './fixtures';
 
-/** Relative tolerance between stated kcal and 4P + 4C + 9F before kcal is recomputed (rule 4). */
-export const KCAL_TOLERANCE = 0.2;
+export { KCAL_TOLERANCE };
 
 const round0 = (n: number): number => Math.round(n);
 const round1 = (n: number): number => Math.round(n * 10) / 10;
@@ -52,22 +64,24 @@ export function parseModelOutput(raw: unknown): ParseResult {
 
 export interface ScalableItem {
   grams: number;
-  kcal: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
+  kcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
   fiberG?: number | null;
 }
 
-/** Rule 6: the portion multiplier scales grams and every nutrient. */
+const scaled = (v: number | null, multiplier: number, round: (n: number) => number): number | null => (v === null ? null : round(v * multiplier));
+
+/** Rule 6: the portion multiplier scales grams and every nutrient. Unknown stays unknown. */
 export function scaleItem<T extends ScalableItem>(item: T, multiplier: number): T {
   return {
     ...item,
     grams: round1(item.grams * multiplier),
-    kcal: round0(item.kcal * multiplier),
-    proteinG: round1(item.proteinG * multiplier),
-    carbsG: round1(item.carbsG * multiplier),
-    fatG: round1(item.fatG * multiplier),
+    kcal: scaled(item.kcal, multiplier, round0),
+    proteinG: scaled(item.proteinG, multiplier, round1),
+    carbsG: scaled(item.carbsG, multiplier, round1),
+    fatG: scaled(item.fatG, multiplier, round1),
     ...(item.fiberG === undefined ? {} : { fiberG: item.fiberG === null ? null : round1(item.fiberG * multiplier) }),
   };
 }
@@ -76,22 +90,22 @@ export function scaleItem<T extends ScalableItem>(item: T, multiplier: number): 
 export function editItemGrams<T extends ScalableItem>(item: T, newGrams: number): T {
   const grams = clamp(newGrams, ITEM_GRAMS_MIN, ITEM_GRAMS_MAX);
   if (item.grams <= 0) return { ...item, grams: round1(grams) };
-  const scaled = scaleItem(item, grams / item.grams);
-  return { ...scaled, grams: round1(grams) };
+  const result = scaleItem(item, grams / item.grams);
+  return { ...result, grams: round1(grams) };
 }
 
-/** Rule 5: the server computes totals; excluded items are skipped. */
+/** Rule 5: the server computes totals; excluded items are skipped and unknown values add nothing. */
 export function computeTotals(
-  items: { kcal: number; proteinG: number; carbsG: number; fatG: number; excluded?: boolean }[],
+  items: { kcal: number | null; proteinG: number | null; carbsG: number | null; fatG: number | null; excluded?: boolean }[],
   multiplier = 1,
 ): NutrientTotals {
   const sum = { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 };
   for (const it of items) {
     if (it.excluded) continue;
-    sum.kcal += it.kcal;
-    sum.proteinG += it.proteinG;
-    sum.carbsG += it.carbsG;
-    sum.fatG += it.fatG;
+    sum.kcal += it.kcal ?? 0;
+    sum.proteinG += it.proteinG ?? 0;
+    sum.carbsG += it.carbsG ?? 0;
+    sum.fatG += it.fatG ?? 0;
   }
   return {
     kcal: round0(sum.kcal * multiplier),
@@ -101,10 +115,22 @@ export function computeTotals(
   };
 }
 
-type OutputItem = MealAnalysisOutput['items'][number];
+/** Item from the text parser (POST /meals/parse): the model gives item values, so the basis is derived from them. */
+export interface ParsedItemInput {
+  name: string;
+  portion: string | null;
+  grams: number;
+  kcal: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  fiberG: number | null;
+  confidence: number;
+  point: { x: number; y: number } | null;
+}
 
-/** Rules 3 and 4 for one item. */
-export function normaliseItem(item: OutputItem): AnalysedItem {
+/** Rules 3 and 4 for one parsed item. */
+export function normaliseItem(item: ParsedItemInput, index = 0): AnalysedItem {
   // Rule 3: clamp grams 1–2000 and keep per-gram values by scaling the nutrients with it.
   const grams = clamp(item.grams, ITEM_GRAMS_MIN, ITEM_GRAMS_MAX);
   const ratio = item.grams > 0 ? grams / item.grams : 1;
@@ -121,25 +147,83 @@ export function normaliseItem(item: OutputItem): AnalysedItem {
     kcal = macroKcal;
     kcalRecomputed = true;
   }
-
-  const point =
-    item.point && item.point.x >= 0 && item.point.x <= 1 && item.point.y >= 0 && item.point.y <= 1
-      ? { x: item.point.x, y: item.point.y }
-      : null;
+  const values = { kcal: round0(kcal), proteinG, carbsG, fatG, fiberG, sugarG: null, sodiumMg: null };
 
   return {
+    id: `i${index}`,
     name: item.name.trim(),
+    canonicalName: null,
     portion: item.portion,
     grams: round1(grams),
-    kcal: round0(kcal),
-    proteinG,
-    carbsG,
-    fatG,
-    fiberG,
+    ...values,
+    per100g: per100gFromValues(values, grams),
+    source: AI_ESTIMATE,
+    otherNutrients: [],
+    preparation: null,
+    role: 'single',
+    excluded: false,
+    countedIn: null,
+    assumption: null,
     confidence: clamp(item.confidence, 0, 1),
-    point,
+    point: validPoint(item.point),
     kcalRecomputed,
   };
+}
+
+const MAX_ASSUMPTIONS = 5;
+const trimTo = (s: string, max: number): string => s.trim().slice(0, max);
+
+const validPoint = (p: { x: number; y: number } | null) => (p && p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1 ? { x: p.x, y: p.y } : null);
+
+type OutputItem = MealAnalysisOutput['items'][number];
+
+/** Rules 3 and 4 for one scanned item: a matching record replaces the model's values and keeps its source. */
+function scanItem(raw: OutputItem, i: number, index: FoodIndex): AnalysedItem {
+  const grams = clamp(raw.g, ITEM_GRAMS_MIN, ITEM_GRAMS_MAX);
+  const record = matchFoodRecord(index, [raw.en, raw.name], raw.prep);
+  const clean = sanitisePer100g({ kcal: raw.n.kcal, proteinG: raw.n.p, carbsG: raw.n.c, fatG: raw.n.f, fiberG: raw.n.fib, sugarG: raw.n.sug, sodiumMg: raw.n.na });
+  const per100g = record?.per100g ?? clean.per100g;
+  return {
+    id: `i${i}`,
+    name: trimTo(raw.name, 120),
+    canonicalName: trimTo(raw.en, 120),
+    portion: null,
+    grams: round1(grams),
+    ...nutrientsForGrams(per100g, grams),
+    per100g,
+    source: record ? recordSource(index, record) : AI_ESTIMATE,
+    otherNutrients: otherNutrientsFor(record, grams),
+    preparation: raw.prep,
+    role: raw.role === 'component' ? 'component' : (record?.kind ?? raw.role),
+    excluded: false,
+    countedIn: null,
+    assumption: raw.note === null ? null : trimTo(raw.note, 140),
+    confidence: clamp(raw.conf, 0, 1),
+    point: validPoint(raw.pt),
+    kcalRecomputed: !record && clean.kcalRecomputed,
+  };
+}
+
+/** A mixed dish already holds its ingredients: anything inside one is shown but left out of the totals. */
+function settleMixedDishes(items: AnalysedItem[], raw: OutputItem[]): void {
+  const inside = (item: AnalysedItem, dish: AnalysedItem) => {
+    item.role = 'component';
+    item.excluded = true;
+    item.countedIn = dish.id;
+  };
+  items.forEach((item, i) => {
+    if (item.role !== 'component') return;
+    const of = raw[i]!.of;
+    const dish = of !== null && of !== i ? items[of] : undefined;
+    if (dish?.role === 'mixed_dish') inside(item, dish);
+    else item.role = 'single';
+  });
+  for (const dish of items.filter((d) => d.role === 'mixed_dish')) {
+    for (const item of items) {
+      if (item.role === 'mixed_dish' || item.countedIn) continue;
+      if (isInsideDish(dish.canonicalName ?? dish.name, item.canonicalName ?? item.name)) inside(item, dish);
+    }
+  }
 }
 
 export interface NormaliseResult {
@@ -147,38 +231,38 @@ export interface NormaliseResult {
   analysis: MealAnalysis;
 }
 
+const NO_RECORDS: FoodIndex = { byAlias: new Map(), sources: {} };
+
 /** Rules 2–7: turn validated model output into the stored analysis. */
 export function normaliseAnalysis(
   out: MealAnalysisOutput,
-  opts: { reaction?: Omit<ReactionInput, 'items'> & { content: ScanReactionContent } } = {},
+  opts: { records?: FoodIndex; reaction?: Omit<ReactionInput, 'items'> & { content: ScanReactionContent } } = {},
 ): NormaliseResult {
-  if (!out.isFood) {
-    // Rule 2: not food → rejected, friendly message on the client, no charge.
+  const question = out.question === null ? null : trimTo(out.question, 200);
+  const base = { isEstimate: true as const, notes: question, clarifyingQuestion: question, retakeReason: out.retake };
+  if (out.status !== 'ok' || !out.items.length) {
+    // Rule 2: not food, or too unclear to estimate → rejected, friendly message, no charge, nothing invented.
+    const noFood = out.status === 'no_food';
     return {
       status: 'rejected',
-      analysis: {
-        isFood: false,
-        mealName: null,
-        items: [],
-        totals: { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 },
-        notes: out.notes,
-        clarifyingQuestion: out.clarifyingQuestion,
-        reactionLineId: null,
-      },
+      analysis: { ...base, outcome: noFood ? 'no_food' : 'unclear', isFood: !noFood, mealName: null, items: [], totals: computeMealTotals([]), assumptions: [], reactionLineId: null },
     };
   }
-  const items = out.items.slice(0, MAX_MEAL_ITEMS).map(normaliseItem);
-  const totals = computeTotals(items);
+  const raw = out.items.slice(0, MAX_MEAL_ITEMS);
+  const items = raw.map((r, i) => scanItem(r, i, opts.records ?? NO_RECORDS));
+  settleMixedDishes(items, raw);
+  const reactionItems = items.map((i) => ({ name: i.name, kcal: i.kcal ?? 0, proteinG: i.proteinG ?? 0, carbsG: i.carbsG ?? 0, excluded: i.excluded }));
   return {
     status: 'succeeded',
     analysis: {
+      ...base,
+      outcome: 'ok',
       isFood: true,
-      mealName: out.mealName,
+      mealName: out.mealName === null ? null : trimTo(out.mealName, 120),
       items,
-      totals,
-      notes: out.notes,
-      clarifyingQuestion: out.clarifyingQuestion,
-      reactionLineId: opts.reaction ? chooseReactionLine(opts.reaction.content, { ...opts.reaction, items }) : null,
+      totals: computeMealTotals(items),
+      assumptions: out.assumptions.slice(0, MAX_ASSUMPTIONS).map((a) => trimTo(a, 140)),
+      reactionLineId: opts.reaction ? chooseReactionLine(opts.reaction.content, { ...opts.reaction, items: reactionItems }) : null,
     },
   };
 }

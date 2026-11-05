@@ -102,20 +102,20 @@ describe('Admin API (/v1/admin, M7)', () => {
   it('content: copy edits publish a new version; a stale baseVersion is a 409', async () => {
     const editor = await login('editor');
     const doc = await t.http().get('/v1/admin/content/onboarding-questions').set(editor).expect(200);
-    expect(doc.body).toMatchObject({ kind: 'onboarding_questions', version: 2, publishedBy: 'seed' }); // questions.v2.json is the newest seeded version
+    expect(doc.body).toMatchObject({ kind: 'onboarding_questions', version: 3, publishedBy: 'seed' }); // questions.v3.json is the newest seeded version
     const q01 = doc.body.data.questions.find((q: { id: string }) => q.id === 'q01');
     const put = await t
       .http()
       .put('/v1/admin/content/onboarding-questions')
       .set(editor)
-      .send({ baseVersion: 2, reason: 'friendlier wording', data: { questions: [{ id: 'q01', text: 'What would you like to work on first?', options: [{ id: q01.options[0].id, label: 'Healthier habits' }] }] } })
+      .send({ baseVersion: 3, reason: 'friendlier wording', data: { questions: [{ id: 'q01', text: 'What would you like to work on first?', options: [{ id: q01.options[0].id, label: 'Healthier habits' }] }] } })
       .expect(200);
-    expect(put.body).toMatchObject({ version: 3, publishedBy: 'editor@nouri.dev' });
+    expect(put.body).toMatchObject({ version: 4, publishedBy: 'editor@nouri.dev' });
     const pub = await t.http().get('/v1/onboarding/questions').expect(200);
-    expect(pub.body.version).toBe(3);
+    expect(pub.body.version).toBe(4);
     expect(pub.body.questionSet.questions.find((q: { id: string }) => q.id === 'q01').text).toBe('What would you like to work on first?');
-    const stale = await t.http().put('/v1/admin/content/onboarding-questions').set(editor).send({ baseVersion: 2, reason: 'late edit here', data: { questions: [] } }).expect(409);
-    expect(stale.body.error).toMatchObject({ code: 'VERSION_CONFLICT', details: { currentVersion: 3 } });
+    const stale = await t.http().put('/v1/admin/content/onboarding-questions').set(editor).send({ baseVersion: 3, reason: 'late edit here', data: { questions: [] } }).expect(409);
+    expect(stale.body.error).toMatchObject({ code: 'VERSION_CONFLICT', details: { currentVersion: 4 } });
     const lines = await t.http().put('/v1/admin/content/milo-lines').set(editor).send({ baseVersion: 2, reason: 'greeting copy', data: { lines: [{ key: 'welcome.greeting', text: 'Hello, I am Milo.' }] } }).expect(200);
     expect(lines.body.data.lines.find((l: { key: string }) => l.key === 'welcome.greeting').text).toBe('Hello, I am Milo.');
     await t.http().put('/v1/admin/content/nope').set(editor).send({ baseVersion: 2, reason: 'unknown kind', data: {} }).expect(404);

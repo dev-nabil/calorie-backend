@@ -22,7 +22,7 @@ export async function healthOf(config: AppConfig, conn: Connection, kv: KvStore)
   const redis = kv.kind === 'memory' ? 'memory' : (await kv.ping()) ? 'up' : 'down';
   return {
     status: mongo === 'up' && redis !== 'down' ? 'ok' : 'degraded',
-    role: config.ROLE,
+    role: config.ROLE === 'worker' ? 'worker' : 'api', // `all` serves HTTP, so it reports as the API
     version: config.APP_VERSION,
     uptimeSec: Math.round(process.uptime()),
     checks: { mongo, redis },

@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { JobHandlers } from '../../../jobs/jobs.module';
 import { AiProvider } from '../../ai/ai.provider';
+import { DEFAULT_TEXT_MODEL } from '../../ai/ai-models';
 import { AiService } from '../../ai/ai.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { type Model } from 'mongoose';
@@ -29,7 +30,7 @@ export class ConversationSummaries implements OnModuleInit {
     if (!conv) return '';
     const recent = (await this.messages.find({ conversationId: conv._id }).sort({ createdAt: -1 }).limit(SUMMARY_EVERY * 2).lean<MessageDoc[]>()).reverse();
     const transcript = recent.map((m) => `${m.role === 'user' ? 'User' : 'Milo'}: ${m.text}`).join('\n');
-    const model = await this.ai.modelFor('chat', 'gpt-5-mini');
+    const model = await this.ai.modelFor('chat', DEFAULT_TEXT_MODEL);
     const res = await this.ai.runOrUnavailable('chat', () =>
       this.provider.complete({
         model,

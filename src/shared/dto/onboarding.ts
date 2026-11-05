@@ -102,14 +102,10 @@ export type OnboardingState = z.infer<typeof OnboardingStateSchema>;
 export const EligibilityAttestationSchema = z
   .strictObject({
     pregnantOrBreastfeeding: z.boolean(),
-    supervisedNutritionCondition: z
-      .boolean()
-      .describe('A medical condition that needs supervised nutrition'),
-    eatingDisorderConcern: z
-      .boolean()
-      .describe('Has, or has had, an eating disorder, or counting food and weight feels distressing. Required: an answer that was never given is never read as "no"'),
+    supervisedNutritionCondition: z.boolean(),
+    eatingDisorderConcern: z.boolean(),
   })
-  .meta({ id: 'EligibilityAttestation' });
+  .meta({ id: 'EligibilityAttestation', description: 'Deprecated: the health check is gone. Still accepted from older apps and ignored' });
 export type EligibilityAttestation = z.infer<typeof EligibilityAttestationSchema>;
 
 export const CompleteOnboardingRequestSchema = z

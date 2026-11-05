@@ -80,7 +80,7 @@ export class DaysService {
     const mode = profile?.mode ?? 'habits_only';
     const categories = MEAL_CATEGORIES.map((category) => {
       const ms = meals.filter((m) => m.category === category);
-      const sum = (k: 'kcal' | 'proteinG' | 'carbsG' | 'fatG') => ms.reduce((s, m) => s + m.totals[k], 0);
+      const sum = (k: 'kcal' | 'proteinG' | 'carbsG' | 'fatG') => ms.reduce((s, m) => s + (m.totals[k] ?? 0), 0);
       return { category, mealCount: ms.length, totals: { kcal: Math.round(sum('kcal')), proteinG: r1(sum('proteinG')), carbsG: r1(sum('carbsG')), fatG: r1(sum('fatG')) } };
     });
     const isToday = date === dayKeyFor(now, user.timezone);

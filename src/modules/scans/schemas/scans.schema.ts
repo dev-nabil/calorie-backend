@@ -7,6 +7,10 @@ export interface ScanDoc {
   status: ScanStatus;
   imageKey: string;
   imageHash: string;
+  /** Hash of everything that shapes the reply; identical scans of one user share it. */
+  cacheKey: string | null;
+  /** Equals cacheKey while the model call is pending: a unique index lets only one run at a time. */
+  inflightKey: string | null;
   category: MealCategory | null;
   timezone: string;
   /** Language the scan was started in (names and notes are written in it). */
@@ -17,8 +21,11 @@ export interface ScanDoc {
   result: MealAnalysis | null;
   rawOutput: unknown;
   error: { code: string; message: string } | null;
-  usage: { inputTokens: number; outputTokens: number; cachedTokens: number; costUsd: number };
+  usage: { inputTokens: number; outputTokens: number; thoughtTokens: number; cachedTokens: number; costUsd: number };
   attempts: number;
+  /** Provider calls for this scan, retries included. */
+  providerAttempts: number;
+  modelLatencyMs: number | null;
   deduped: boolean;
   dedupedFrom: string | null;
   queuedAt: Date;
@@ -37,6 +44,8 @@ export const ScanSchema = new Schema<ScanDoc>(
     status: { type: String, enum: SCAN_STATUSES, required: true },
     imageKey: { type: String, required: true },
     imageHash: { type: String, required: true },
+    cacheKey: { type: String, default: null },
+    inflightKey: { type: String, default: null },
     category: { type: String, enum: [...MEAL_CATEGORIES, null], default: null },
     timezone: { type: String, default: 'UTC' },
     locale: { type: String, default: null },
@@ -49,10 +58,13 @@ export const ScanSchema = new Schema<ScanDoc>(
     usage: {
       inputTokens: { type: Number, default: 0 },
       outputTokens: { type: Number, default: 0 },
+      thoughtTokens: { type: Number, default: 0 },
       cachedTokens: { type: Number, default: 0 },
       costUsd: { type: Number, default: 0 },
     },
     attempts: { type: Number, default: 0 },
+    providerAttempts: { type: Number, default: 0 },
+    modelLatencyMs: { type: Number, default: null },
     deduped: { type: Boolean, default: false },
     dedupedFrom: { type: String, default: null },
     queuedAt: { type: Date, required: true },
@@ -64,7 +76,8 @@ export const ScanSchema = new Schema<ScanDoc>(
   { collection: 'scans', timestamps: true, minimize: false, _id: false },
 );
 ScanSchema.index({ userId: 1, createdAt: -1 });
-ScanSchema.index({ userId: 1, imageHash: 1, status: 1 });
+ScanSchema.index({ userId: 1, cacheKey: 1, status: 1, finishedAt: -1 });
+ScanSchema.index({ userId: 1, inflightKey: 1 }, { unique: true, partialFilterExpression: { inflightKey: { $type: 'string' } } });
 ScanSchema.index({ status: 1, queuedAt: 1 });
 
 export interface AbuseEventDoc {

@@ -13,6 +13,7 @@ import { DEFAULT_LOCALE, type LocaleCode } from '../../shared/locales';
 import { AiJobHandlers } from '../ai/ai-jobs';
 import { languageDirective } from '../ai/language';
 import { AiProvider } from '../ai/ai.provider';
+import { DEFAULT_TEXT_MODEL } from '../ai/ai-models';
 import { AiService } from '../ai/ai.service';
 import { fillTemplate } from '../content/content.loader';
 import { ContentService } from '../content/content.service';
@@ -49,7 +50,7 @@ export class MealParseHandler implements OnModuleInit {
     const user = await this.users.requireActive(userId);
     const profile = await this.profiles.findOne({ userId: new Types.ObjectId(userId) }).lean<ProfileDoc>();
     const prompt = await this.content.activePrompt('meal-parse');
-    const model = prompt?.model || (await this.ai.modelFor('extract', 'gpt-5-mini'));
+    const model = prompt?.model || (await this.ai.modelFor('extract', DEFAULT_TEXT_MODEL));
     const res = await this.ai.runOrUnavailable('extract', () =>
       this.provider.structured({
         task: 'meal_parse',

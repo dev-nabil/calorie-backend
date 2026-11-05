@@ -4,7 +4,7 @@ import { AiProvider, FakeAiProvider, PLAN_NARRATIVE_EXAMPLE } from '../../src/mo
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, signIn } from '../setup/helpers';
 
-const OK = { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false, eatingDisorderConcern: false };
+const OLD_APP = { pregnantOrBreastfeeding: true, supervisedNutritionCondition: true, eatingDisorderConcern: true };
 const answer = (questionId: string, value: unknown, detail?: unknown) => ({ questionId, value, ...(detail ? { detail } : {}), status: 'answered', inputMethod: 'form' });
 
 /** A 34-year-old woman, 82 kg, wants 74 kg in about 26 weeks, peanut allergy. */
@@ -12,6 +12,7 @@ const LOSE = [
   answer('q01', 'lose'),
   answer('q06', { mode: 'age', age: 34 }),
   answer('q07', 'female'),
+  answer('q38', 'none'),
   answer('q08', { cm: 168, unit: 'cm' }),
   answer('q09', { kg: 82, unit: 'kg', isEstimate: false }),
   answer('q10', 'light'),
@@ -42,39 +43,48 @@ describe('Plan generation (PLAN-GEN)', () => {
     await t.http().post('/v1/onboarding/complete').set(h).send({}).expect(200);
     return { h, id: s.user.id as string };
   }
-  const generate = (h: Record<string, string>, body: Record<string, unknown> = { eligibility: OK }, key = randomUUID()) =>
+  const generate = (h: Record<string, string>, body: Record<string, unknown> = {}, key = randomUUID()) =>
     t.http().post('/v1/plan/generate').set(h).set(idem(key)).send(body);
   const aiOn = (...responses: unknown[]) => {
     fake.configured = true;
     fake.enqueue(...responses);
   };
 
-  it('serves question set v2 and the three new questions', async () => {
+  it('serves question set v3 with the conditional life stage question', async () => {
     const res = await t.http().get('/v1/onboarding/questions').expect(200);
-    expect(res.body.version).toBe(2);
-    expect(res.body.questionSet.questions).toHaveLength(38);
+    expect(res.body.version).toBe(3);
+    expect(res.body.questionSet.questions).toHaveLength(39);
     expect(res.body.questionSet.routes.basic.questionIds).toContain('q36');
   });
 
   describe('readiness', () => {
-    it('lists what a calorie plan still needs, without guessing, and asks for the health check once', async () => {
+    it('lists what a calorie plan still needs, without guessing', async () => {
       const s = await signIn(t);
       const h = bearer(s.accessToken);
       await t.http().put('/v1/onboarding/answers').set(h).send({ route: 'basic', answers: [answer('q01', 'lose'), answer('q06', { mode: 'age', age: 30 }), answer('q07', 'female')] }).expect(200);
       const r = await t.http().get('/v1/plan/readiness').set(h).expect(200);
       expect(r.body).toMatchObject({ outcome: 'needs_input', attestationOnFile: false, attestationNeeded: false, canContinueWithoutTargets: true });
-      expect(r.body.missing.map((m: { questionId: string }) => m.questionId)).toEqual(['q08', 'q09', 'q10']);
-      expect(r.body.requiredForTargets).toEqual(['q06', 'q07', 'q08', 'q09', 'q10']);
+      expect(r.body.missing.map((m: { questionId: string }) => m.questionId)).toEqual(['q38', 'q08', 'q09', 'q10']);
+      expect(r.body.requiredForTargets).toEqual(['q06', 'q07', 'q38', 'q08', 'q09', 'q10']);
     });
 
-    it('is ready for a complete profile once the health check is on file', async () => {
+    it('is ready for a complete profile, with no health check step', async () => {
       const { h } = await user();
       const before = await t.http().get('/v1/plan/readiness').set(h).expect(200);
-      expect(before.body).toMatchObject({ outcome: 'needs_input', attestationNeeded: true });
-      expect(before.body.missing).toEqual([expect.objectContaining({ questionId: 'eligibility' })]);
+      expect(before.body).toMatchObject({ outcome: 'ready', attestationNeeded: false, missing: [] });
       await generate(h).expect(200);
       const after = await t.http().get('/v1/plan/readiness').set(h).expect(200);
-      expect(after.body).toMatchObject({ outcome: 'ready', attestationOnFile: true, attestationNeeded: false, latestDraftCurrent: true });
+      expect(after.body).toMatchObject({ outcome: 'ready', attestationNeeded: false, latestDraftCurrent: true });
+    });
+
+    it('a male profile is never asked about pregnancy or breastfeeding', async () => {
+      const { h } = await user(LOSE.filter((a) => a.questionId !== 'q38').map((a) => (a.questionId === 'q07' ? answer('q07', 'male') : a)));
+      const r = await t.http().get('/v1/plan/readiness').set(h).expect(200);
+      expect(r.body).toMatchObject({ outcome: 'ready', requiredForTargets: ['q06', 'q07', 'q08', 'q09', 'q10'] });
+      const state = await t.http().get('/v1/onboarding/state').set(h).expect(200);
+      expect(state.body.applicableQuestionIds).not.toContain('q38');
+      expect(state.body.answers.find((a: { questionId: string }) => a.questionId === 'q38')).toMatchObject({ status: 'not_applicable', value: null });
+      expect(state.body.deferredQuestionIds).not.toContain('q38');
     });
 
     it('needs authentication', async () => {
@@ -82,7 +92,7 @@ describe('Plan generation (PLAN-GEN)', () => {
     });
   });
 
-  describe('without an OpenAI key (the state before you add one)', () => {
+  describe('without a Gemini key (the state before you add one)', () => {
     it('returns the validated numbers, says personalisation is off and invents nothing', async () => {
       const { h } = await user();
       const res = await generate(h).expect(200);
@@ -117,7 +127,7 @@ describe('Plan generation (PLAN-GEN)', () => {
       expect(d.ai).toMatchObject({ status: 'ok', retryable: false });
       expect(d.narrative.guidance).toHaveLength(3);
       expect(fake.calls).toHaveLength(1);
-      expect(fake.calls[0]).toMatchObject({ task: 'plan_narrative', store: false });
+      expect(fake.calls[0]).toMatchObject({ task: 'plan_narrative', thinking: 'low' });
       const sent = fake.calls[0]!.context;
       expect(sent).toMatch(/Peanuts/);
       expect(sent).not.toMatch(/user-.*@example\.com/);
@@ -171,7 +181,7 @@ describe('Plan generation (PLAN-GEN)', () => {
       expect(d.preview.calculated).not.toBeNull();
       // The retry is a new attempt and may succeed.
       aiOn(narrative());
-      const again = (await generate(h, { eligibility: OK, regenerate: true }).expect(200)).body;
+      const again = (await generate(h, { regenerate: true }).expect(200)).body;
       expect(again.ai.status).toBe('ok');
       expect(again.id).not.toBe(d.id);
       expect(again.regenerations).toBe(1);
@@ -231,11 +241,11 @@ describe('Plan generation (PLAN-GEN)', () => {
       const { h } = await user();
       aiOn(narrative());
       const key = randomUUID();
-      const a = await generate(h, { eligibility: OK }, key).expect(200);
-      const b = await generate(h, { eligibility: OK }, key).expect(200);
+      const a = await generate(h, {}, key).expect(200);
+      const b = await generate(h, {}, key).expect(200);
       expect(b.body).toEqual(a.body);
       expect(fake.calls).toHaveLength(1);
-      await t.http().post('/v1/plan/generate').set(h).send({ eligibility: OK }).expect(400); // key required
+      await t.http().post('/v1/plan/generate').set(h).send({}).expect(400); // key required
     });
 
     it('a second request while one is running is refused, not queued behind a second model call', async () => {
@@ -254,9 +264,9 @@ describe('Plan generation (PLAN-GEN)', () => {
       fake.configured = true;
       for (let i = 0; i < 6; i++) {
         fake.enqueue(narrative());
-        await generate(h, { eligibility: OK, regenerate: true }).expect(200);
+        await generate(h, { regenerate: true }).expect(200);
       }
-      const res = await generate(h, { eligibility: OK, regenerate: true }).expect(429);
+      const res = await generate(h, { regenerate: true }).expect(429);
       expect(res.body.error.code).toBe('AI_LIMIT_REACHED');
       expect(fake.calls).toHaveLength(6);
     });
@@ -337,21 +347,17 @@ describe('Plan generation (PLAN-GEN)', () => {
     });
   });
 
-  describe('professional guidance', () => {
-    it.each([
-      ['pregnantOrBreastfeeding', 'pregnant_or_breastfeeding'],
-      ['supervisedNutritionCondition', 'supervised_condition'],
-      ['eatingDisorderConcern', 'eating_disorder_concern'],
-    ])('%s: no numbers, no model call, habits-only plan without weights', async (flag, reason) => {
-      const { h } = await user();
+  describe('goals without calorie targets', () => {
+    it.each(['pregnant', 'breastfeeding'])('%s: no numbers, no model call, no referral, habits plan without weights', async (stage) => {
+      const { h } = await user(LOSE.filter((a) => a.questionId !== 'q38').concat(answer('q38', stage)));
       aiOn(narrative());
-      const d = (await generate(h, { eligibility: { ...OK, [flag]: true } }).expect(200)).body;
-      expect(d).toMatchObject({ status: 'professional_guidance', narrative: null, ai: { status: 'skipped' } });
-      expect(d.assessment.guidanceReasons).toEqual([reason]);
+      const d = (await generate(h).expect(200)).body;
+      expect(d).toMatchObject({ status: 'habits_only', narrative: null, ai: { status: 'skipped' } });
+      expect(d.assessment.guidanceReasons).toEqual(['pregnant_or_breastfeeding']);
       expect(d.preview).toMatchObject({ eligible: false, calculated: null, bmrKcal: null, tdeeKcal: null });
       expect(d.timeframe).toBeNull();
-      expect(d.notice).toMatchObject({ kind: 'professional_guidance', reasons: [reason] });
-      expect(`${d.notice.title} ${d.notice.body}`).not.toMatch(/\d/);
+      expect(d.notice).toMatchObject({ kind: 'habits_only', reasons: ['pregnant_or_breastfeeding'] });
+      expect(`${d.notice.title} ${d.notice.body}`).not.toMatch(/\d|GP|doctor|midwife|dietitian|professional/i);
       expect(fake.calls).toHaveLength(0);
       await t.http().post('/v1/plan').set(h).set(idem()).send({ source: 'calculated', draftId: d.id }).expect(422);
       const plan = await t.http().post('/v1/plan').set(h).set(idem()).send({ source: 'none', draftId: d.id }).expect(201);
@@ -360,13 +366,15 @@ describe('Plan generation (PLAN-GEN)', () => {
       await t.http().post('/v1/plan').set(h).set(idem()).send({ source: 'calculated' }).expect(422);
     });
 
-    it('a weight-loss goal for someone already underweight is referred on', async () => {
+    it('a weight-loss goal for someone already underweight asks for another goal, with no referral', async () => {
       const { h } = await user(LOSE.map((a) => (a.questionId === 'q09' ? answer('q09', { kg: 48, unit: 'kg', isEstimate: false }) : a.questionId === 'target_weight' ? answer('target_weight', { kg: 45, unit: 'kg' }) : a)));
       const d = (await generate(h).expect(200)).body;
-      expect(d.status).toBe('needs_input'); // target_bmi_low is a blocking contradiction and comes first
+      expect(d.status).toBe('needs_input');
       const { h: h2 } = await user([...LOSE.filter((a) => !['target_weight', 'q35', 'q09'].includes(a.questionId)), answer('q09', { kg: 48, unit: 'kg', isEstimate: false })]);
       const d2 = (await generate(h2).expect(200)).body;
-      expect(d2).toMatchObject({ status: 'professional_guidance', assessment: { guidanceReasons: ['underweight_loss_goal'] } });
+      expect(d2).toMatchObject({ status: 'needs_input', notice: { kind: 'needs_input' }, preview: { calculated: null } });
+      expect(d2.assessment.issues.map((i: { code: string }) => i.code)).toContain('loss_goal_underweight');
+      expect(JSON.stringify(d2.notice) + JSON.stringify(d2.assessment.issues)).not.toMatch(/GP|doctor|dietitian|professional/i);
     });
 
     it('under-18s get habits only and their data never reaches the model', async () => {
@@ -380,44 +388,33 @@ describe('Plan generation (PLAN-GEN)', () => {
   });
 
   describe('safety hardening (independent review)', () => {
-    it('the health check must answer all three rows: an omitted eating-disorder row is a 400, never "no"', async () => {
+    it('an old app can still send the health check; it is ignored and changes nothing', async () => {
       const { h } = await user();
-      const res = await generate(h, { eligibility: { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false } }).expect(400);
-      expect(res.body.error.code).toBe('VALIDATION_FAILED');
-      await t.http().post('/v1/plan/preview').set(h).send({ eligibility: { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false } }).expect(400);
+      const d = (await generate(h, { eligibility: OLD_APP }).expect(200)).body;
+      expect(d.status).toBe('ready');
+      const preview = await t.http().post('/v1/plan/preview').set(h).send({ eligibility: OLD_APP }).expect(200);
+      expect(preview.body).toMatchObject({ eligible: true });
     });
 
-    it('a health check stored before the third row existed counts as unanswered', async () => {
-      const { h, id } = await user();
-      const { getModelToken } = await import('@nestjs/mongoose');
-      const { Types } = await import('mongoose');
-      const profiles = t.get<{ updateOne: (f: unknown, u: unknown) => Promise<unknown> }>(getModelToken('Profile'));
-      await profiles.updateOne({ userId: new Types.ObjectId(id) }, { $set: { attestation: { pregnantOrBreastfeeding: false, supervisedNutritionCondition: false } } });
-      const r = await t.http().get('/v1/plan/readiness').set(h).expect(200);
-      expect(r.body).toMatchObject({ outcome: 'needs_input', attestationOnFile: false, attestationNeeded: true });
-      const preview = await t.http().post('/v1/plan/preview').set(h).send({}).expect(200);
-      expect(preview.body).toMatchObject({ eligible: false, calculated: null, reasons: ['eligibility_unconfirmed'] });
-    });
-
-    it('declaring a safety reason after a plan was confirmed ends the calorie plan', async () => {
+    it('stating pregnancy after a plan was confirmed ends the calorie plan', async () => {
       const { h } = await user();
       aiOn(narrative());
       const d = (await generate(h).expect(200)).body;
       const first = await t.http().post('/v1/plan').set(h).set(idem()).send({ source: 'calculated', draftId: d.id }).expect(201);
       expect(first.body.energyKcal).not.toBeNull();
-      const risk = (await generate(h, { eligibility: { ...OK, eatingDisorderConcern: true } }).expect(200)).body;
-      expect(risk.status).toBe('professional_guidance');
+      await t.http().put('/v1/onboarding/answers/q38').set(h).send({ value: 'pregnant', status: 'answered', inputMethod: 'form' }).expect(200);
       const now = await t.http().get('/v1/plan').set(h).expect(200);
       expect(now.body).toMatchObject({ source: 'none', energyKcal: null, proteinG: null, narrative: null, timeframe: null });
       expect(now.body.goal).toMatchObject({ targetWeightKg: null });
       expect(now.body.version).toBe(first.body.version + 1);
+      expect((await generate(h).expect(200)).body.status).toBe('habits_only');
     });
 
     it('draft and preview responses carry no weight goal for people who are not given a plan', async () => {
-      const { h } = await user();
-      const d = (await generate(h, { eligibility: { ...OK, supervisedNutritionCondition: true } }).expect(200)).body;
+      const { h } = await user(LOSE.filter((a) => !['q38', 'target_weight', 'q35'].includes(a.questionId)).concat(answer('q38', 'breastfeeding')));
+      const d = (await generate(h).expect(200)).body;
       expect(d.preview.goal).toEqual({ type: 'lose', startWeightKg: null, targetWeightKg: null, pace: null });
-      const legacy = await t.http().post('/v1/plan/preview').set(h).send({ eligibility: { ...OK, eatingDisorderConcern: true } }).expect(200);
+      const legacy = await t.http().post('/v1/plan/preview').set(h).send({}).expect(200);
       expect(legacy.body.goal).toEqual({ type: 'lose', startWeightKg: null, targetWeightKg: null, pace: null });
       const minor = await user([answer('q01', 'lose'), answer('q06', { mode: 'age', age: 15 })]);
       const m = await t.http().post('/v1/plan/preview').set(minor.h).send({}).expect(200);
@@ -479,7 +476,7 @@ describe('Plan generation (PLAN-GEN)', () => {
       fake.configured = true;
       for (let i = 0; i < 6; i++) {
         fake.enqueue(narrative());
-        await generate(h, { eligibility: OK, regenerate: true }).expect(200);
+        await generate(h, { regenerate: true }).expect(200);
       }
       expect(fake.calls).toHaveLength(6);
       await t.http().put('/v1/onboarding/answers/q09').set(h).send({ value: { kg: 81.5, unit: 'kg', isEstimate: false }, status: 'answered', inputMethod: 'form' }).expect(200);
