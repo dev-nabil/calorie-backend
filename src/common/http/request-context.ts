@@ -18,7 +18,17 @@ export function requestContextMiddleware(req: Request, res: Response, next: Next
   const locale = resolveLocale(query, req.get('x-app-locale'), req.get('accept-language'));
   res.vary('Accept-Language');
   res.vary('X-App-Locale');
-  store.run({ origin: `${req.protocol}://${req.get('host') ?? 'localhost'}`, locale }, next);
+  store.run({ origin: `${clientProtocol(req)}://${req.get('host') ?? 'localhost'}`, locale }, next);
+}
+
+/**
+ * The scheme the client used. Behind a proxy that ends TLS (Render, Cloud Run) `req.protocol` is `http` unless
+ * trust proxy is set, and an `http://` upload URL then gets a 307 redirect the app's PUT does not follow. The
+ * origin only shapes URLs returned to this same client, so the header needs no proxy trust.
+ */
+function clientProtocol(req: Request): string {
+  const forwarded = req.get('x-forwarded-proto')?.split(',')[0]?.trim().toLowerCase();
+  return forwarded === 'https' || forwarded === 'http' ? forwarded : req.protocol;
 }
 
 export function requestOrigin(): string | undefined {

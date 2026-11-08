@@ -71,6 +71,10 @@ folder): choose **New** → **Web Service** instead of Blueprint, set **Root Dir
 **Health Check Path** from `render.yaml`, and add every environment variable from `render.yaml` by hand
 (for the 4 secrets, run `openssl rand -base64 32` once for each).
 
+> **Do not skip `DEV_ROUTES=false`.** Without it the test server is in development mode with the
+> `/v1/dev/*` helpers open to anyone: they read the last sign-in code sent to any email and move the
+> server clock. Check after deploying: `https://<your-url>/v1/dev/last-otp?email=x@y.z` must answer 404.
+
 ## Step 3: check that it runs
 
 Open `https://nouri-api.onrender.com/v1/health` (Render shows the real address at the top of the
@@ -148,3 +152,4 @@ The free plan is not suitable for real users: it sleeps, and its disk and memory
 | Logs say `Invalid environment` | The message names the variable. Fix it under Environment and redeploy |
 | Health shows `"mongo":"down"` or the deploy times out | Atlas Network Access (step 1), or the password in `MONGODB_URI` has a special character that needs URL-encoding |
 | App says it cannot reach the server | The service was asleep: wait a minute and retry. Check the URL in `env.dart` ends with `/v1` |
+| Food scan fails, everything else works | Fixed on 8 Nov 2026 (redeploy the latest `main`): upload URLs were `http://` behind Render's proxy and the photo upload got a 307 redirect. With local storage the upload endpoint now also works with `DEV_ROUTES=false` |

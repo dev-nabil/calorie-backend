@@ -1,7 +1,6 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Put, Query, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types, type Model } from 'mongoose';
-import type { Request, Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { ERROR_CODES } from '../../shared';
@@ -16,7 +15,6 @@ import { clock } from '../../common/clock';
 import { AiProvider, FAKE_AI_MODES, FakeAiProvider } from '../ai/ai.provider';
 import { AppConfigService } from '../content/app-config.service';
 import { ContentService } from '../content/content.service';
-import { isSafeKey, LocalStorageService, StorageService } from '../../infra/storage/storage';
 import { JobHandlers } from '../../jobs/jobs.module';
 import { RECONCILE_JOB } from '../../jobs/reconcile';
 import { PURGE_JOB } from '../account/account.service';
@@ -43,7 +41,6 @@ export class DevController {
     private readonly email: EmailSender,
     private readonly users: UsersService,
     private readonly kv: KvStore,
-    private readonly storage: StorageService,
     private readonly ai: AiProvider,
     private readonly appConfig: AppConfigService,
     private readonly content: ContentService,
@@ -107,46 +104,6 @@ export class DevController {
     this.appConfig.clearCache();
     this.content.clearCache();
     return { now: clock.now().toISOString(), offsetMs: clock.offsetMs() };
-  }
-
-  private local(): LocalStorageService {
-    if (!(this.storage instanceof LocalStorageService)) throw ApiError.notFound(ERROR_CODES.NOT_FOUND, 'Local storage is not enabled');
-    return this.storage;
-  }
-
-  /** Target of presigned uploads with the local driver (signed, 5 minutes, size and type enforced). */
-  @Public()
-  @Put('uploads')
-  @HttpCode(200)
-  upload(@Query() q: Record<string, string>, @Req() req: Request): { key: string; bytes: number } {
-    const storage = this.local();
-    const { key = '', exp = '', sig = '', ct = '', max = '' } = q;
-    if (!isSafeKey(key) || !storage.verify('PUT', key, Number(exp), sig, `${ct}\n${max}`)) {
-      throw ApiError.forbidden(ERROR_CODES.FORBIDDEN, 'Upload URL is invalid or expired');
-    }
-    const body = req.body as unknown;
-    if (req.header('content-type') !== ct || !Buffer.isBuffer(body)) {
-      throw new ApiError(ERROR_CODES.VALIDATION_FAILED, `Send the file as the raw body with Content-Type: ${ct}`);
-    }
-    if (body.length === 0 || body.length > Number(max)) throw new ApiError(ERROR_CODES.VALIDATION_FAILED, `File must be 1–${max} bytes`, 413);
-    if (ct === 'image/jpeg' && !(body[0] === 0xff && body[1] === 0xd8 && body[2] === 0xff)) {
-      throw new ApiError(ERROR_CODES.VALIDATION_FAILED, 'Not a JPEG file');
-    }
-    storage.write(key, body);
-    return { key, bytes: body.length };
-  }
-
-  @Public()
-  @Get('uploads')
-  download(@Query() q: Record<string, string>, @Res() res: Response): void {
-    const storage = this.local();
-    const { key = '', exp = '', sig = '' } = q;
-    if (!isSafeKey(key) || !storage.verify('GET', key, Number(exp), sig)) throw ApiError.forbidden(ERROR_CODES.FORBIDDEN, 'URL is invalid or expired');
-    const file = storage.read(key);
-    if (!file) throw ApiError.notFound();
-    res.setHeader('Content-Type', key.endsWith('.jpg') ? 'image/jpeg' : 'audio/mp4');
-    res.setHeader('Cache-Control', 'private, max-age=3600');
-    res.send(file);
   }
 
   @Public()
