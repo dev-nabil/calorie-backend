@@ -1,5 +1,5 @@
-# M0-T6: lint, typecheck, unit + e2e tests (in-memory MongoDB, no Docker services), build,
-# OpenAPI drift check, Dockerfile lint and an image build. Runs on every PR and on main.
+# M0-T6: lint, typecheck, unit + e2e tests (in-memory MongoDB, no Docker services), build and
+# OpenAPI drift check. Runs on every PR and on main. Deploys are Render's (render.yaml), not CI's.
 name: ci
 
 on:
@@ -54,25 +54,6 @@ jobs:
           name: openapi
           path: openapi/openapi.json
           if-no-files-found: error
-
-  docker:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - name: Lint Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile
-      - uses: docker/setup-buildx-action@v3
-      - name: Build image (no push)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: false
-          tags: nouri-backend:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   infra:
     runs-on: ubuntu-24.04

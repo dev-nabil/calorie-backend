@@ -26,7 +26,8 @@ nouri-backend/
 ├── content/                  question bank, Milo lines, AI prompts (served by the API)
 ├── openapi/openapi.json      the API contract, regenerated with `pnpm openapi`
 ├── evals/                    AI evaluation fixtures
-└── infra/                    docker-compose, terraform, k6
+├── render.yaml               Render Blueprint (free test server; see DEPLOY-RENDER.md)
+└── infra/                    terraform, k6
 ```
 
 ### Anatomy of a feature module (`src/modules/<feature>/`)
@@ -53,7 +54,7 @@ pnpm openapi                    # regenerate openapi/openapi.json (commit it wit
 pnpm admin:seed | plan:smoke | coach:smoke | eval:meal-scan
 ```
 
-`pnpm build` compiles to `dist/`; `node dist/main.js` runs it (the Docker image does exactly this).
+`pnpm build` compiles to `dist/`; `node dist/main.js` runs it. There is no Docker image: the backend deploys to Render as a native Node service (`render.yaml`, step by step in [DEPLOY-RENDER.md](DEPLOY-RENDER.md)).
 
 ## AI
 
