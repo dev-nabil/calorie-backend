@@ -10,26 +10,36 @@ export const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as con
 export type Weekday = (typeof WEEKDAYS)[number];
 
 export interface ReminderRule {
-  time: string; // HH:mm
+  time: string; // HH:mm: the only ring of the day, or the first one when it repeats
   days: Weekday[]; // empty = every day
   timezone: string;
+  /** Rings again every this many hours after `time`, up to `endTime`. Null/missing = once a day. */
+  everyHours?: number | null;
+  /** HH:mm, same day and later than `time`: no ring after it. Only read with `everyHours`. */
+  endTime?: string | null;
 }
 
+/**
+ * At most this many enabled reminders on one weekday. A reminder that repeats every few hours
+ * counts once: the user asked for each of its rings when they picked the interval.
+ */
 export const MAX_PER_DAY = 3;
-export const DEFAULT_QUIET_HOURS = { start: '22:00', end: '07:00' };
-
-const minutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+export const MIN_EVERY_HOURS = 1;
+export const MAX_EVERY_HOURS = 12;
 
 export function isValidTime(t: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
 }
 
-/** True when a local time falls inside quiet hours (ranges may wrap past midnight). */
-export function inQuietHours(time: string, quiet = DEFAULT_QUIET_HOURS): boolean {
-  const t = minutes(time);
-  const s = minutes(quiet.start);
-  const e = minutes(quiet.end);
-  return s <= e ? t >= s && t < e : t >= s || t < e;
+const minutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+/** The local times one reminder rings on a selected day: `time`, then every `everyHours` up to `endTime`. */
+export function ringTimes(rule: Pick<ReminderRule, 'time' | 'everyHours' | 'endTime'>): string[] {
+  if (!rule.everyHours || !rule.endTime) return [rule.time];
+  const out: string[] = [];
+  for (let m = minutes(rule.time); m <= minutes(rule.endTime); m += rule.everyHours * 60) out.push(hhmm(m));
+  return out.length ? out : [rule.time];
 }
 
 /** UTC offset (ms) of a zone at an instant. */
@@ -59,17 +69,30 @@ export function nextFireAt(rule: ReminderRule, after: Date): Date | null {
     const day = addDays(today, i);
     const weekday = WEEKDAYS[isoWeekday(day) - 1]!;
     if (rule.days.length && !rule.days.includes(weekday)) continue;
-    const at = localToUtc(day, rule.time, rule.timezone);
-    if (at.getTime() > after.getTime()) return at;
+    for (const time of ringTimes(rule)) {
+      const at = localToUtc(day, time, rule.timezone);
+      if (at.getTime() > after.getTime()) return at;
+    }
   }
   return null;
 }
 
-/** M9-T1 limits: at most 3 enabled reminders on any weekday, none inside quiet hours. */
-export function validateReminders(rules: { time: string; days: Weekday[]; enabled: boolean }[], quiet = DEFAULT_QUIET_HOURS): { ok: true } | { ok: false; reason: string; details: Record<string, unknown> } {
+/**
+ * M9-T1 limit: at most 3 enabled reminders on any weekday. The user may pick any time of day (no quiet hours).
+ * A repeating reminder needs a valid interval and an end time later the same day.
+ */
+export function validateReminders(
+  rules: { time: string; days: Weekday[]; enabled: boolean; everyHours?: number | null; endTime?: string | null }[],
+): { ok: true } | { ok: false; reason: string; details: Record<string, unknown> } {
   for (const r of rules) {
     if (!isValidTime(r.time)) return { ok: false, reason: 'time', details: { time: r.time } };
-    if (r.enabled && inQuietHours(r.time, quiet)) return { ok: false, reason: 'quiet_hours', details: { time: r.time, quietHours: quiet } };
+    if (r.everyHours == null) continue;
+    if (!Number.isInteger(r.everyHours) || r.everyHours < MIN_EVERY_HOURS || r.everyHours > MAX_EVERY_HOURS) {
+      return { ok: false, reason: 'every_hours', details: { everyHours: r.everyHours, min: MIN_EVERY_HOURS, max: MAX_EVERY_HOURS } };
+    }
+    if (!r.endTime || !isValidTime(r.endTime) || minutes(r.endTime) <= minutes(r.time)) {
+      return { ok: false, reason: 'end_time', details: { time: r.time, endTime: r.endTime ?? null } };
+    }
   }
   for (const day of WEEKDAYS) {
     const n = rules.filter((r) => r.enabled && (r.days.length === 0 || r.days.includes(day))).length;

@@ -142,6 +142,8 @@ export const ReminderInputSchema = z.strictObject({
   time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected HH:mm'),
   days: z.array(weekday).max(7).optional().describe('Empty or missing = every day'),
   enabled: z.boolean(),
+  everyHours: z.number().int().min(1).max(12).nullable().optional().describe('Ring again every N hours after `time`, up to `endTime`. Missing or null = once a day'),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected HH:mm').nullable().optional().describe('Last ring (HH:mm), later the same day than `time`. Required with `everyHours`, ignored without it'),
 });
 export const PutRemindersRequestSchema = z
   .strictObject({ reminders: z.array(ReminderInputSchema).max(10), timezone: TimeZoneSchema.optional().describe('Device timezone; defaults to the profile timezone') })
@@ -150,8 +152,18 @@ export type PutRemindersRequest = z.infer<typeof PutRemindersRequestSchema>;
 export const RemindersResponseSchema = z
   .object({
     timezone: z.string(),
-    quietHours: z.object({ start: z.string(), end: z.string() }),
     maxPerDay: z.number().int(),
-    reminders: z.array(z.object({ id: z.string(), type: z.enum(['log_meal', 'water']), time: z.string(), days: z.array(weekday), enabled: z.boolean(), nextFireAt: z.string().nullable() })),
+    reminders: z.array(
+      z.object({
+        id: z.string(),
+        type: z.enum(['log_meal', 'water']),
+        time: z.string(),
+        days: z.array(weekday),
+        enabled: z.boolean(),
+        everyHours: z.number().int().nullable().describe('Null = once a day at `time`'),
+        endTime: z.string().nullable().describe('Last ring of the day when `everyHours` is set'),
+        nextFireAt: z.string().nullable(),
+      }),
+    ),
   })
   .meta({ id: 'RemindersResponse' });

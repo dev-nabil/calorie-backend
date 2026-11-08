@@ -7404,7 +7404,7 @@
         },
         "responses": {
           "200": {
-            "description": "Replaces all reminders (at most 3 per day, none in quiet hours)",
+            "description": "Replaces all reminders (at most 3 per day; any time of day is allowed)",
             "content": {
               "application/json": {
                 "schema": {
@@ -11469,6 +11469,19 @@
                 },
                 "enabled": {
                   "type": "boolean"
+                },
+                "everyHours": {
+                  "description": "Ring again every N hours after `time`, up to `endTime`. Missing or null = once a day",
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12
+                },
+                "endTime": {
+                  "description": "Last ring (HH:mm), later the same day than `time`. Required with `everyHours`, ignored without it",
+                  "nullable": true,
+                  "type": "string",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
                 }
               },
               "required": [
@@ -11496,21 +11509,6 @@
         "properties": {
           "timezone": {
             "type": "string"
-          },
-          "quietHours": {
-            "type": "object",
-            "properties": {
-              "start": {
-                "type": "string"
-              },
-              "end": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "start",
-              "end"
-            ]
           },
           "maxPerDay": {
             "type": "integer",
@@ -11553,6 +11551,18 @@
                 "enabled": {
                   "type": "boolean"
                 },
+                "everyHours": {
+                  "nullable": true,
+                  "description": "Null = once a day at `time`",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "endTime": {
+                  "nullable": true,
+                  "description": "Last ring of the day when `everyHours` is set",
+                  "type": "string"
+                },
                 "nextFireAt": {
                   "nullable": true,
                   "type": "string"
@@ -11564,6 +11574,8 @@
                 "time",
                 "days",
                 "enabled",
+                "everyHours",
+                "endTime",
                 "nextFireAt"
               ]
             }
@@ -11571,7 +11583,6 @@
         },
         "required": [
           "timezone",
-          "quietHours",
           "maxPerDay",
           "reminders"
         ]

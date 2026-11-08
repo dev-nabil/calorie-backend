@@ -8,6 +8,9 @@ export interface ReminderDoc {
   time: string;
   days: Weekday[];
   enabled: boolean;
+  /** Repeats every this many hours from `time` until `endTime`; null = once a day. */
+  everyHours?: number | null;
+  endTime?: string | null;
   timezone: string;
   nextFireAtUtc: Date | null;
   lastFiredAt: Date | null;
@@ -21,6 +24,8 @@ export const ReminderSchema = new Schema<ReminderDoc>(
     time: { type: String, required: true },
     days: { type: [String], default: [] },
     enabled: { type: Boolean, default: true },
+    everyHours: { type: Number, default: null },
+    endTime: { type: String, default: null },
     timezone: { type: String, required: true },
     nextFireAtUtc: { type: Date, default: null },
     lastFiredAt: { type: Date, default: null },

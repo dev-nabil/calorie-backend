@@ -22,7 +22,7 @@ export class RemindersController {
   }
 
   @Put()
-  @ZResponse(200, RemindersResponseSchema, 'Replaces all reminders (at most 3 per day, none in quiet hours)')
+  @ZResponse(200, RemindersResponseSchema, 'Replaces all reminders (at most 3 per day; any time of day is allowed)')
   @ApiErrors(400, 401, 422)
   put(@CurrentUser() u: AuthUser, @ZBody(PutRemindersRequestSchema) body: PutRemindersRequest) {
     return this.svc.put(u.id, body);

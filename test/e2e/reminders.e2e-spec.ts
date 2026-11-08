@@ -16,16 +16,57 @@ describe('Reminders (M9-T1) and the daily_logs reconcile job', () => {
   it('validates and stores reminders with a precomputed next fire time', async () => {
     const h = bearer((await signIn(t)).accessToken);
     const empty = await t.http().get('/v1/reminders').set(h).expect(200);
-    expect(empty.body).toMatchObject({ timezone: 'UTC', quietHours: { start: '22:00', end: '07:00' }, maxPerDay: 3, reminders: [] });
+    expect(empty.body).toMatchObject({ timezone: 'UTC', maxPerDay: 3, reminders: [] });
+    expect(empty.body).not.toHaveProperty('quietHours');
     const put = await t.http().put('/v1/reminders').set(h).send({ timezone: 'Europe/London', reminders: [{ type: 'log_meal', time: '12:30', days: ['mon', 'wed'], enabled: true }, { type: 'water', time: '15:00', enabled: false }] }).expect(200);
     expect(put.body.timezone).toBe('Europe/London');
     expect(put.body.reminders.find((r: { type: string }) => r.type === 'log_meal').nextFireAt).toEqual(expect.any(String));
     expect(put.body.reminders.find((r: { type: string }) => r.type === 'water').nextFireAt).toBeNull();
-    const quiet = await t.http().put('/v1/reminders').set(h).send({ reminders: [{ type: 'water', time: '23:00', enabled: true }] }).expect(422);
-    expect(quiet.body.error.details.quietHours).toBeDefined();
+    // Late-night and early-morning times are fine: the user picks the time.
+    const night = await t.http().put('/v1/reminders').set(h).send({ reminders: [{ type: 'water', time: '23:00', enabled: true }, { type: 'water', time: '03:00', enabled: true }] }).expect(200);
+    expect(night.body.reminders.map((r: { time: string }) => r.time)).toEqual(['03:00', '23:00']);
     const four = ['08:00', '10:00', '12:00', '14:00'].map((time) => ({ type: 'water', time, enabled: true }));
     expect((await t.http().put('/v1/reminders').set(h).send({ reminders: four }).expect(422)).body.error.details).toMatchObject({ max: 3, count: 4 });
     await t.http().put('/v1/reminders').set(h).send({ reminders: [{ type: 'water', time: '7:00', enabled: true }] }).expect(400);
+  });
+
+  it('stores a reminder that repeats every N hours (user-picked) until an end time', async () => {
+    const h = bearer((await signIn(t)).accessToken);
+    const put = await t
+      .http()
+      .put('/v1/reminders')
+      .set(h)
+      .send({ timezone: 'UTC', reminders: [{ type: 'water', time: '08:00', enabled: true, everyHours: 2, endTime: '20:00' }, { type: 'log_meal', time: '13:00', enabled: true, endTime: '15:00' }] })
+      .expect(200);
+    const water = put.body.reminders.find((r: { type: string }) => r.type === 'water');
+    expect(water).toMatchObject({ time: '08:00', everyHours: 2, endTime: '20:00' });
+    expect(new Date(water.nextFireAt).getUTCMinutes()).toBe(0);
+    expect(new Date(water.nextFireAt).getUTCHours() % 2).toBe(0);
+    // No interval: once a day, and a stray end time is dropped.
+    expect(put.body.reminders.find((r: { type: string }) => r.type === 'log_meal')).toMatchObject({ everyHours: null, endTime: null });
+    const hourly = await t.http().put('/v1/reminders').set(h).send({ reminders: [{ type: 'water', time: '08:00', enabled: true, everyHours: 1, endTime: '20:00' }] }).expect(200);
+    expect(hourly.body.reminders[0]).toMatchObject({ everyHours: 1, endTime: '20:00' });
+    for (const everyHours of [0, 13, 1.5]) {
+      await t.http().put('/v1/reminders').set(h).send({ reminders: [{ type: 'water', time: '08:00', enabled: true, everyHours, endTime: '20:00' }] }).expect(400);
+    }
+    const late = await t.http().put('/v1/reminders').set(h).send({ reminders: [{ type: 'water', time: '20:00', enabled: true, everyHours: 2, endTime: '08:00' }] }).expect(422);
+    expect(late.body.error.details).toMatchObject({ time: '20:00', endTime: '08:00' });
+  });
+
+  it('the rings of a repeating reminder are not held back by the daily push cap', async () => {
+    const s = await signIn(t);
+    const h = bearer(s.accessToken);
+    await t.http().post('/v1/devices').set(h).set(idem()).send({ deviceId: 'p3', platform: 'android', pushToken: 'fcm-token-interval-1' }).expect(201);
+    const put = await t.http().put('/v1/reminders').set(h).send({ timezone: 'UTC', reminders: [{ type: 'water', time: '06:00', enabled: true, everyHours: 2, endTime: '16:00' }] }).expect(200);
+    const push = t.get<ConsolePushSender>(PushSender);
+    const svc = t.get<RemindersService>(RemindersService);
+    const before = push.sent.length;
+    let due = new Date(put.body.reminders[0].nextFireAt);
+    for (let i = 0; i < 5; i++) {
+      await svc.tick(new Date(due.getTime() + 1_000));
+      due = new Date((await t.http().get('/v1/reminders').set(h).expect(200)).body.reminders[0].nextFireAt);
+    }
+    expect(push.sent.slice(before).filter((m) => m.token === 'fcm-token-interval-1')).toHaveLength(5);
   });
 
   it('the minute job sends due reminders to registered devices and schedules the next one', async () => {

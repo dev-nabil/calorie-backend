@@ -4,13 +4,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Types, type Model } from 'mongoose';
 import { ERROR_CODES, type PutRemindersRequest } from '../../shared';
 import { dayKeyFor } from '../../domain/day-keys';
-import { localMinutes } from '../../domain/nudges';
-import { DEFAULT_QUIET_HOURS, inQuietHours, MAX_PER_DAY, nextFireAt, validateReminders, type Weekday } from '../../domain/reminders';
+import { MAX_PER_DAY, nextFireAt, validateReminders, type Weekday } from '../../domain/reminders';
 import { clock } from '../../common/clock';
 import { ApiError } from '../../common/errors/api-error';
 import { KvStore } from '../../infra/kv/kv-store';
 import { JobHandlers } from '../../jobs/jobs.module';
-import { AppConfigService } from '../content/app-config.service';
 import { ContentService } from '../content/content.service';
 import type { DeviceDoc, UserDoc } from '../users/schemas/users.schema';
 import { UsersService } from '../users/users.service';
@@ -32,7 +30,6 @@ export class RemindersService implements OnModuleInit {
     private readonly handlers: JobHandlers,
     private readonly push: PushSender,
     private readonly kv: KvStore,
-    private readonly appConfig: AppConfigService,
     private readonly content: ContentService,
   ) {}
 
@@ -41,26 +38,31 @@ export class RemindersService implements OnModuleInit {
     this.usersService.onTimezoneChange = (userId, tz) => this.retime(userId, tz);
   }
 
-  private quiet() {
-    return this.appConfig.get('reminders.quietHours', DEFAULT_QUIET_HOURS);
-  }
-
   async get(userId: string) {
     const user = await this.usersService.requireActive(userId);
     const docs = await this.reminders.find({ userId: user._id }).sort({ time: 1 }).lean<ReminderDoc[]>();
     return {
       timezone: docs[0]?.timezone ?? user.timezone,
-      quietHours: await this.quiet(),
       maxPerDay: MAX_PER_DAY,
-      reminders: docs.map((d) => ({ id: d._id.toString(), type: d.type, time: d.time, days: d.days, enabled: d.enabled, nextFireAt: d.nextFireAtUtc ? d.nextFireAtUtc.toISOString() : null })),
+      reminders: docs.map((d) => ({
+        id: d._id.toString(),
+        type: d.type,
+        time: d.time,
+        days: d.days,
+        enabled: d.enabled,
+        everyHours: d.everyHours ?? null,
+        endTime: d.everyHours ? (d.endTime ?? null) : null,
+        nextFireAt: d.nextFireAtUtc ? d.nextFireAtUtc.toISOString() : null,
+      })),
     };
   }
 
   /** Replaces the user's reminders; nextFireAtUtc is precomputed (DST-safe). */
   async put(userId: string, body: PutRemindersRequest) {
     const user = await this.usersService.requireActive(userId);
-    const rules = body.reminders.map((r) => ({ ...r, days: (r.days ?? []) as Weekday[] }));
-    const v = validateReminders(rules, await this.quiet());
+    // A once-a-day reminder keeps no end time, so a stray one cannot turn it into a repeat later.
+    const rules = body.reminders.map((r) => ({ ...r, days: (r.days ?? []) as Weekday[], everyHours: r.everyHours ?? null, endTime: r.everyHours ? (r.endTime ?? null) : null }));
+    const v = validateReminders(rules);
     if (!v.ok) throw new ApiError(ERROR_CODES.VALIDATION_FAILED, `Reminders not allowed: ${v.reason}`, 422, v.details);
     const timezone = body.timezone ?? user.timezone;
     const now = clock.now();
@@ -79,11 +81,13 @@ export class RemindersService implements OnModuleInit {
     }
   }
 
-  /** Minute job: due reminders → FCM in batches of 500; quiet hours and 3 per local day enforced. */
+  /**
+   * Minute job: due reminders → FCM in batches of 500; at most 3 once-a-day pushes per local day (any time of day
+   * is allowed). The rings of a repeating reminder are not counted: the user chose each of them with the interval.
+   */
   async tick(now = clock.now()): Promise<{ due: number; sent: number; skipped: number }> {
     const due = await this.reminders.find({ enabled: true, nextFireAtUtc: { $lte: now } }).limit(5000).lean<ReminderDoc[]>();
     if (!due.length) return { due: 0, sent: 0, skipped: 0 };
-    const quiet = await this.quiet();
     const linesByLocale = new Map<string, Record<string, { title?: string; text?: string }>>();
     for (const code of LOCALE_CODES) {
       linesByLocale.set(code, ((await this.content.miloLines(code))?.data as { lines?: Record<string, { title?: string; text?: string }> } | undefined)?.lines ?? {});
@@ -100,13 +104,12 @@ export class RemindersService implements OnModuleInit {
     let skipped = 0;
     for (const r of due) {
       const uid = r.userId.toString();
-      const local = localMinutes(now, r.timezone);
-      const hhmm = `${String(Math.floor(local / 60)).padStart(2, '0')}:${String(local % 60).padStart(2, '0')}`;
       const capKey = `remind:${uid}:${dayKeyFor(now, r.timezone)}`;
-      const blocked = users.get(uid)?.status !== 'active' || inQuietHours(hhmm, quiet) || Number((await this.kv.get(capKey)) ?? 0) >= MAX_PER_DAY;
+      const counted = !r.everyHours;
+      const blocked = users.get(uid)?.status !== 'active' || (counted && Number((await this.kv.get(capKey)) ?? 0) >= MAX_PER_DAY);
       if (blocked || !tokens.get(uid)?.length) skipped++;
       else {
-        await this.kv.incr(capKey, 48 * 3600);
+        if (counted) await this.kv.incr(capKey, 48 * 3600);
         const c = copy(r.type, parseLocale(users.get(uid)?.locale) ?? DEFAULT_LOCALE);
         for (const token of tokens.get(uid)!) messages.push({ token, title: c.title ?? 'Nouri', body: c.text ?? '', data: { type: `reminder.${r.type}`, reminderId: r._id.toString() } });
       }
