@@ -7453,6 +7453,331 @@
           "reminders"
         ]
       }
+    },
+    "/v1/coach/preferences": {
+      "get": {
+        "operationId": "CoachPreferencesController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Milo's tone and the notes Milo remembers (defaults: warm, no notes), for any signed-in user. The coach applies them only while Plus is active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachPreferences"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "coach"
+        ]
+      },
+      "put": {
+        "operationId": "CoachPreferencesController_put",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutCoachPreferencesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved as sent: notes trimmed, inner whitespace collapsed, duplicates dropped. 402 PLUS_REQUIRED for free users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachPreferences"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "coach"
+        ]
+      }
+    },
+    "/v1/recap/weekly": {
+      "get": {
+        "operationId": "RecapController_weekly",
+        "parameters": [
+          {
+            "name": "range",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "last",
+              "description": "last (default): the previous Monday–Sunday; this: Monday of this week through today (user timezone)",
+              "type": "string",
+              "enum": [
+                "last",
+                "this"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plus. Stats from the person's logs and Milo's story cards in the app language. ai: false (no cards) when nothing is logged, Milo is resting, the daily limit is used or the answer was unusable: build the cards from stats. Never an error for those",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyRecap"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "recap"
+        ]
+      }
+    },
+    "/v1/fridge-chef": {
+      "post": {
+        "operationId": "FridgeChefController_cook",
+        "parameters": [
+          {
+            "name": "X-Device-Integrity",
+            "in": "header",
+            "description": "`appattest.<keyId>.<assertion base64url>` or `playintegrity.<token>`, over the client data `${METHOD} ${path} ${X-Integrity-Timestamp}` (required in production, DEC-19)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Integrity-Timestamp",
+            "in": "header",
+            "description": "Milliseconds since epoch used in the signed client data (±5 minutes)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key (UUID v4), 8–128 chars",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FridgeChefRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Plus. Upload one photo first (POST /uploads/presign kind meal_photo, image/jpeg, then PUT), then send its key. The photo is deleted after this call whatever happens, so a retry needs a new upload. Nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FridgeChefResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "fridge-chef"
+        ]
+      }
     }
   },
   "info": {
@@ -15289,6 +15614,342 @@
           "status",
           "exportId",
           "message"
+        ]
+      },
+      "CoachPreferences": {
+        "type": "object",
+        "properties": {
+          "tone": {
+            "type": "string",
+            "enum": [
+              "warm",
+              "cheerful",
+              "calm",
+              "direct"
+            ],
+            "description": "warm (default, no extra rule) | cheerful | calm | direct"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Things the person asked Milo to remember, in their own words"
+          }
+        },
+        "required": [
+          "tone",
+          "notes"
+        ]
+      },
+      "PutCoachPreferencesRequest": {
+        "type": "object",
+        "properties": {
+          "tone": {
+            "type": "string",
+            "enum": [
+              "warm",
+              "cheerful",
+              "calm",
+              "direct"
+            ]
+          },
+          "notes": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "description": "At most 20 notes of 1 to 200 characters each (after trimming); duplicates are dropped"
+          }
+        },
+        "required": [
+          "tone",
+          "notes"
+        ],
+        "additionalProperties": false
+      },
+      "RecapStats": {
+        "type": "object",
+        "properties": {
+          "loggedDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days in the range with at least one meal"
+          },
+          "daysInRange": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "7 for last; 1 to 7 for this"
+          },
+          "meals": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Meals logged in the range"
+          },
+          "averageKcal": {
+            "nullable": true,
+            "description": "Average energy over logged days; null in habits_only mode",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "waterAvgMl": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Average water on the days water was logged, to the nearest 10 ml; 0 when none"
+          },
+          "waterTargetMl": {
+            "nullable": true,
+            "description": "Daily water target of the active plan (the default target without a plan)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "waterGoalDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days in the range that reached the water target"
+          },
+          "proteinGoalDays": {
+            "nullable": true,
+            "description": "Logged days that reached the protein target; null in habits_only mode or without a protein target",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "streak": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Current logging streak (the number Today shows)"
+          },
+          "favouriteFood": {
+            "nullable": true,
+            "description": "Food logged most often in the range (in at least 2 meals), else null",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Meals it was in"
+              }
+            },
+            "required": [
+              "name",
+              "count"
+            ]
+          }
+        },
+        "required": [
+          "loggedDays",
+          "daysInRange",
+          "meals",
+          "averageKcal",
+          "waterAvgMl",
+          "waterTargetMl",
+          "waterGoalDays",
+          "proteinGoalDays",
+          "streak",
+          "favouriteFood"
+        ]
+      },
+      "RecapCard": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Topic of the card: logging, meals, energy, protein, water, streak, favourite or next_week (a repeat gets -2)"
+          },
+          "title": {
+            "type": "string",
+            "description": "At most 40 characters"
+          },
+          "text": {
+            "type": "string",
+            "description": "At most 160 characters; every number in it is one of the stats"
+          },
+          "miloState": {
+            "type": "string",
+            "enum": [
+              "celebrating",
+              "speaking",
+              "thinking",
+              "idle"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "text",
+          "miloState"
+        ]
+      },
+      "WeeklyRecap": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": [
+              "last",
+              "this"
+            ]
+          },
+          "weekStart": {
+            "type": "string",
+            "description": "YYYY-MM-DD, a Monday"
+          },
+          "weekEnd": {
+            "type": "string",
+            "description": "YYYY-MM-DD: the Sunday for last, today for this"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "full",
+              "habits_only"
+            ],
+            "description": "habits_only: no calorie numbers anywhere in the recap"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/RecapStats"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecapCard"
+            },
+            "description": "Milo's story cards in the app language; empty when ai is false (build cards from stats)"
+          },
+          "ai": {
+            "type": "boolean",
+            "description": "false: nothing logged, Milo is resting, the daily limit is used or the answer was unusable"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When stats and cards were computed. A recap with cards is kept: for the week (last) or the day (this)"
+          }
+        },
+        "required": [
+          "range",
+          "weekStart",
+          "weekEnd",
+          "mode",
+          "stats",
+          "cards",
+          "ai",
+          "generatedAt"
+        ]
+      },
+      "FridgeChefRequest": {
+        "type": "object",
+        "properties": {
+          "uploadKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "`key` from POST /uploads/presign (kind meal_photo, image/jpeg) after the PUT. The photo is deleted after this call, whatever its outcome"
+          }
+        },
+        "required": [
+          "uploadKey"
+        ],
+        "additionalProperties": false
+      },
+      "FridgeChefIdea": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string",
+            "description": "One short line on why it fits"
+          },
+          "minutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Rough total time"
+          },
+          "kcal": {
+            "nullable": true,
+            "description": "Estimated energy per serving; null in habits_only mode or when unknown",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "uses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Ingredients from the photo it uses"
+          },
+          "extra": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Common items it also needs that are not in the photo"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "At most 5 short steps"
+          }
+        },
+        "required": [
+          "name",
+          "why",
+          "minutes",
+          "kcal",
+          "uses",
+          "extra",
+          "steps"
+        ]
+      },
+      "FridgeChefResponse": {
+        "type": "object",
+        "properties": {
+          "notFood": {
+            "type": "boolean",
+            "description": "No usable food or ingredients found in the photo; ingredients and ideas are then empty"
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What Milo could see, at most 15"
+          },
+          "ideas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FridgeChefIdea"
+            },
+            "description": "At most 3; never with a listed allergen or against the eating pattern"
+          }
+        },
+        "required": [
+          "notFood",
+          "ingredients",
+          "ideas"
         ]
       },
       "ContentDocument": {
