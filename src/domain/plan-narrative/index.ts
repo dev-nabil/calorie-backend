@@ -179,14 +179,26 @@ export function checkNarrative(n: PlanNarrative, avoidTerms: string[], locale: L
       if (p.medicalClaim.test(t)) problems.add('makes a medical claim');
     }
     if (SPELLED_TARGET.test(t) || BARE_BIG_NUMBER.test(t)) problems.add('states a figure that looks like a target - the app shows every number');
-    for (const sentence of t.split(/(?<=[.!?।])\s+/u)) {
-      const lower = sentence.toLowerCase();
-      const hit = avoidTerms.find((term) => termRegex(term).test(lower));
-      if (hit && !packs.some((p) => p.safeCue.test(lower))) problems.add(`mentions "${hit}", which the user avoids, without saying to avoid or swap it`);
-    }
+    for (const hit of avoidedTermsIn(t, avoidTerms, locale)) problems.add(`mentions "${hit}", which the user avoids, without saying to avoid or swap it`);
   }
   if (n.guidance.length !== new Set(n.guidance.map((g) => g.title.toLowerCase())).size) problems.add('repeats a guidance title');
   return { ok: problems.size === 0, problems: [...problems] };
+}
+
+/**
+ * Avoided terms (allergens, what the eating pattern rules out, the user's own words) that a text names as a suggestion: per
+ * sentence, the first term it names, unless that sentence says to avoid or swap it. Shared with the weekly recap and the
+ * fridge chef checks (domain/copy-rules).
+ */
+export function avoidedTermsIn(text: string, avoidTerms: readonly string[], locale: LocaleCode = DEFAULT_LOCALE): string[] {
+  const packs = packsFor(locale);
+  const hits = new Set<string>();
+  for (const sentence of normaliseDigits(text.normalize('NFC')).split(/(?<=[.!?।])\s+/u)) {
+    const lower = sentence.toLowerCase();
+    const hit = avoidTerms.find((term) => termRegex(term).test(lower));
+    if (hit && !packs.some((p) => p.safeCue.test(lower))) hits.add(hit);
+  }
+  return [...hits];
 }
 
 export { RULE_PACKS };

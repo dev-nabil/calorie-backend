@@ -14,6 +14,8 @@ import { requestLocale } from '../../../common/http/request-context';
 import { coachLanguageDirective, languageDirective } from '../../ai/language';
 import { localeInfo } from '../../../shared/locales';
 import { buildCoachContext } from '../../../domain/coach-context';
+import { coachStyleDirective } from '../../../domain/coach-style';
+import { CoachPreferencesService } from '../../coach-preferences/coach-preferences.service';
 import { COACH_TIMEOUT_MS, coachUserMessage, FALLBACK_INSTRUCTIONS, REPHRASE_MAX_TOKENS } from './coach-prompt';
 import { fillSingle } from '../../content/content.loader';
 import { inWindow, type NudgeContent } from '../../../domain/nudges';
@@ -172,6 +174,7 @@ export class CoachService {
     private readonly content: ContentService,
     private readonly appConfig: AppConfigService,
     private readonly quota: DailyQuota,
+    private readonly coachPrefs: CoachPreferencesService,
   ) {}
 
   private async lines(): Promise<{ lines?: Record<string, { text?: string }>; coach?: CoachContent; nudges?: NudgeContent } | undefined> {
@@ -239,8 +242,11 @@ export class CoachService {
     const locale = requestLocale();
     const context = buildCoachContext({ name: user.displayName ?? profile?.displayName ?? null, mode: profile?.mode ?? 'habits_only', units: user.units, profile, day, week });
     // Chips and quick actions come in the app language (their template is written in it); free text is answered in the
-    // language the person wrote in.
-    const directive = quickAction ? languageDirective(locale) : coachLanguageDirective(locale, history.findLast((m) => m.role === 'assistant')?.content);
+    // language the person wrote in. Plus adds the tone and notes the person chose, after the language rule; free users'
+    // stored preferences are ignored.
+    const style = plus ? await this.coachPrefs.styleFor(userId) : null;
+    const directive =
+      (quickAction ? languageDirective(locale) : coachLanguageDirective(locale, history.findLast((m) => m.role === 'assistant')?.content)) + coachStyleDirective(style);
     let streamed = false;
     try {
       const res = await this.ai.runOrUnavailable('chat', async () => {

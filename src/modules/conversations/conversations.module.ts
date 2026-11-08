@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CoachPreferencesModule } from '../coach-preferences/coach-preferences.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
 import { TrackingModule } from '../tracking/tracking.module';
 import { CoachService } from './services/coach.service';
@@ -10,7 +11,7 @@ import { ConversationsController } from './conversations.controller';
 import { ConversationsService } from './services/conversations.service';
 
 @Module({
-  imports: [OnboardingModule, TrackingModule],
+  imports: [OnboardingModule, TrackingModule, CoachPreferencesModule],
   controllers: [ConversationsController],
   providers: [ConversationsService, OnboardingTurnsService, RealtimeService, CoachService, ExtractionHandler, ConversationSummaries],
 })

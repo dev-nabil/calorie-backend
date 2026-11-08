@@ -17,7 +17,7 @@ export const PURGE_JOB = 'account_purge';
 const EXPORT_LINK_SEC = 24 * 3600;
 
 /** Collections holding a user's personal data, purged after 30 days (BR-13). */
-const USER_DATA_MODELS = ['Profile', 'OnboardingAnswer', 'Plan', 'PlanDraft', 'Meal', 'DailyLog', 'WeightLog', 'Scan', 'Conversation', 'Message', 'Device', 'Session', 'Reminder'] as const;
+const USER_DATA_MODELS = ['Profile', 'OnboardingAnswer', 'Plan', 'PlanDraft', 'Meal', 'DailyLog', 'WeightLog', 'Scan', 'Conversation', 'Message', 'Device', 'Session', 'Reminder', 'CoachPreference', 'WeeklyRecap'] as const;
 
 /** M1-T5: data export (worker job, link by email) and the purge job (BR-13). */
 @Injectable()
@@ -37,6 +37,8 @@ export class AccountService implements OnModuleInit {
     @InjectModel('Conversation') private readonly conversations: Model<unknown>,
     @InjectModel('Message') private readonly messages: Model<unknown>,
     @InjectModel('Device') private readonly devices: Model<unknown>,
+    @InjectModel('CoachPreference') private readonly coachPreferences: Model<unknown>,
+    @InjectModel('WeeklyRecap') private readonly weeklyRecaps: Model<unknown>,
     private readonly handlers: JobHandlers,
     private readonly queue: JobQueue,
     private readonly storage: StorageService,
@@ -63,7 +65,7 @@ export class AccountService implements OnModuleInit {
     if (!user) return '';
     const strip = (docs: unknown[]) => docs.map((d) => ({ ...(d as object), __v: undefined }));
     const sessionsFree = { userId: uid };
-    const [profile, answers, plans, planDrafts, meals, logs, weights, scans, conversations, messages, devices] = await Promise.all([
+    const [profile, answers, plans, planDrafts, meals, logs, weights, scans, conversations, messages, devices, coachPreferences, weeklyRecaps] = await Promise.all([
       this.profiles.findOne(sessionsFree).lean(),
       this.answers.find(sessionsFree).lean(),
       this.plans.find(sessionsFree).lean(),
@@ -75,6 +77,8 @@ export class AccountService implements OnModuleInit {
       this.conversations.find(sessionsFree).lean(),
       this.messages.find(sessionsFree).lean(),
       this.devices.find(sessionsFree, { 'integrity.publicKeyPem': 0, pushToken: 0 }).lean(),
+      this.coachPreferences.findOne(sessionsFree).lean(),
+      this.weeklyRecaps.find(sessionsFree).lean(),
     ]);
     const body = {
       exportedAt: clock.now().toISOString(),
@@ -91,6 +95,8 @@ export class AccountService implements OnModuleInit {
       conversations: strip(conversations),
       messages: strip(messages),
       devices: strip(devices),
+      coachPreferences,
+      weeklyRecaps: strip(weeklyRecaps),
     };
     const key = `u/${userId}/export/${exportId}.json`;
     await this.storage.put(key, Buffer.from(JSON.stringify(body, null, 2)), 'application/json');

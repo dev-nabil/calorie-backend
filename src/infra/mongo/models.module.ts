@@ -14,6 +14,8 @@ import { OnboardingAnswerSchema, ProfileSchema } from '../../modules/onboarding/
 import { PlanDraftSchema, PlanSchema } from '../../modules/plans/schemas/plans.schema';
 import { DailyLogSchema, MealSchema, WeightLogSchema } from '../../modules/tracking/schemas/tracking.schema';
 import { DeviceSchema, ScanLedgerSchema, UserSchema } from '../../modules/users/schemas/users.schema';
+import { CoachPreferenceSchema } from '../../modules/coach-preferences/schemas/coach-preferences.schema';
+import { WeeklyRecapSchema } from '../../modules/recap/schemas/weekly-recap.schema';
 
 /** Every collection, registered once (plan section 6). Inject with @InjectModel('<Name>'). */
 export const MODEL_DEFINITIONS = [
@@ -46,6 +48,8 @@ export const MODEL_DEFINITIONS = [
   { name: 'BillingEvent', schema: BillingEventSchema },
   { name: 'Reminder', schema: ReminderSchema },
   { name: 'ReconcileRun', schema: ReconcileRunSchema },
+  { name: 'CoachPreference', schema: CoachPreferenceSchema },
+  { name: 'WeeklyRecap', schema: WeeklyRecapSchema },
 ];
 
 const models = MongooseModule.forFeature(MODEL_DEFINITIONS);

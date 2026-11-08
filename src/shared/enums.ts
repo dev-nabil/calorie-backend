@@ -108,3 +108,19 @@ export type AiFeature = (typeof AI_FEATURES)[number];
 
 export const MILO_STATES = ['idle', 'listening', 'thinking', 'speaking', 'celebrating'] as const;
 export type MiloState = (typeof MILO_STATES)[number];
+
+/** Milo's coaching tone (Plus). `warm` is the default and adds no rule. */
+export const COACH_TONES = ['warm', 'cheerful', 'calm', 'direct'] as const;
+export type CoachTone = (typeof COACH_TONES)[number];
+
+/** Weekly recap: `last` = the previous Monday–Sunday, `this` = Monday of this week through today (user's timezone). */
+export const RECAP_RANGES = ['last', 'this'] as const;
+export type RecapRange = (typeof RECAP_RANGES)[number];
+
+/** Milo's face on a recap card (a subset of MILO_STATES). */
+export const RECAP_MILO_STATES = ['celebrating', 'speaking', 'thinking', 'idle'] as const;
+export type RecapMiloState = (typeof RECAP_MILO_STATES)[number];
+
+/** What a recap card is about; the model picks one per card and it becomes the card id. */
+export const RECAP_TOPICS = ['logging', 'meals', 'energy', 'protein', 'water', 'streak', 'favourite', 'next_week'] as const;
+export type RecapTopic = (typeof RECAP_TOPICS)[number];

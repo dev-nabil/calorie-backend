@@ -10,3 +10,6 @@ export * from './public';
 export * from './conversations';
 export * from './admin';
 export * from './devices';
+export * from './coach';
+export * from './recap';
+export * from './fridge-chef';

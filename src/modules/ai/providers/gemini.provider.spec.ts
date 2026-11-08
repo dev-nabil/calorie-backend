@@ -1,5 +1,5 @@
 import { pcmToWav, SILENT_WAV } from './wav';
-import { GeminiProvider, LIVE_WS_URL, thinkingConfigFor, toContents, usageOf, voiceOrDefault } from './gemini.provider';
+import { GeminiProvider, LIVE_WS_URL, structuredParts, thinkingConfigFor, toContents, usageOf, voiceOrDefault } from './gemini.provider';
 
 type Fake = jest.Mock;
 const asAny = (p: GeminiProvider) => p as unknown as { client: { models: { generateContent: Fake; generateContentStream: Fake } }; alpha: { authTokens: { create: Fake } } };
@@ -92,6 +92,22 @@ describe('GeminiProvider.structured', () => {
     generate.mockResolvedValue(answer('{}'));
     await p.structured({ ...STRUCTURED, task: 'plan_narrative', thinking: 'low' });
     expect(generate.mock.calls[0]![0].config.thinkingConfig).toEqual({ thinkingLevel: 'LOW' });
+  });
+
+  it('sends a photo before the text, with its resolution on Gemini 3 only (fridge chef)', async () => {
+    const { p, generate } = provider();
+    generate.mockResolvedValue(answer('{"notFood":true,"ingredients":[],"ideas":[]}'));
+    const image = { bytes: Buffer.from('jpeg-bytes'), mimeType: 'image/jpeg' as const, resolution: 'high' as const };
+    await p.structured({ ...STRUCTURED, task: 'fridge_chef', context: 'Mode: full', image });
+    const call = generate.mock.calls[0]![0];
+    expect(call.contents).toEqual([
+      { role: 'user', parts: [{ inlineData: { data: Buffer.from('jpeg-bytes').toString('base64'), mimeType: 'image/jpeg' }, mediaResolution: { level: 'MEDIA_RESOLUTION_HIGH' } }, { text: 'Mode: full' }] },
+    ]);
+    // The fridge chef schema goes through the API (no size keywords: Gemini refuses some of them).
+    expect(JSON.stringify(call.config.responseJsonSchema)).not.toMatch(/maxItems|maxLength|\$schema/);
+    expect(call.config.responseJsonSchema.required).toEqual(['notFood', 'ingredients', 'ideas']);
+    expect(structuredParts({ model: 'gemini-2.5-flash-lite', context: 'x', image })[0]).not.toHaveProperty('mediaResolution');
+    expect(structuredParts({ model: 'gemini-3.5-flash-lite', context: 'x' })).toEqual([{ text: 'x' }]);
   });
 
   it('fails with a status AiService can act on: cut off = 502 (retry), blocked/empty = 422, not JSON = 502', async () => {

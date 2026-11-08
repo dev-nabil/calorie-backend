@@ -20,6 +20,8 @@ export abstract class StorageService {
   abstract size(key: string): Promise<number | null>;
   abstract put(key: string, body: Buffer, contentType: string): Promise<void>;
   abstract get(key: string): Promise<Buffer | null>;
+  /** Removes one object; a missing object is not an error. */
+  abstract delete(key: string): Promise<void>;
   /** Removes every object under a prefix (account purge). */
   abstract deletePrefix(prefix: string): Promise<number>;
 }
@@ -119,6 +121,10 @@ export class LocalStorageService extends StorageService {
     return this.read(key);
   }
 
+  async delete(key: string): Promise<void> {
+    if (isSafeKey(key)) rmSync(this.path(key), { force: true });
+  }
+
   async deletePrefix(prefix: string): Promise<number> {
     const p = this.path(prefix.replace(/\/$/, ''));
     if (!existsSync(p)) return 0;
@@ -172,6 +178,11 @@ export class S3StorageService extends StorageService {
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`storage get ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
+  }
+  async delete(key: string): Promise<void> {
+    if (!isSafeKey(key)) return;
+    const res = await fetch(presignS3(this.target, 'DELETE', key, 300, new Date()), { method: 'DELETE', signal: AbortSignal.timeout(5000) });
+    if (!res.ok && res.status !== 404) throw new Error(`storage delete ${res.status}`);
   }
   async deletePrefix(prefix: string): Promise<number> {
     let n = 0;

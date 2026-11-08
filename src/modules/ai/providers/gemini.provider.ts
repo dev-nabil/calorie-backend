@@ -5,11 +5,13 @@ import {
   HarmBlockThreshold,
   HarmCategory,
   Modality,
+  PartMediaResolutionLevel,
   StartSensitivity,
   ThinkingLevel,
   type Content,
   type GenerateContentResponse,
   type GenerateContentResponseUsageMetadata,
+  type Part,
   type ThinkingConfig,
 } from '@google/genai';
 import {
@@ -80,6 +82,22 @@ export function thinkingConfigFor(model: string, effort: ThinkingEffort): Thinki
   return { thinkingLevel: effort === 'minimal' && model.includes('-pro') ? ThinkingLevel.LOW : THINKING_LEVELS[effort] };
 }
 
+const IMAGE_RESOLUTION: Record<NonNullable<StructuredRequest['image']>['resolution'] & string, PartMediaResolutionLevel> = {
+  low: PartMediaResolutionLevel.MEDIA_RESOLUTION_LOW,
+  medium: PartMediaResolutionLevel.MEDIA_RESOLUTION_MEDIUM,
+  high: PartMediaResolutionLevel.MEDIA_RESOLUTION_HIGH,
+};
+
+/**
+ * The parts of a structured request: the photo first (Google's advice for one image with a text prompt), then the context.
+ * Per-image resolution exists on Gemini 3 only; Gemini 2.5 takes the image at its default.
+ */
+export function structuredParts(req: Pick<StructuredRequest, 'context' | 'image' | 'model'>): Part[] {
+  if (!req.image) return [{ text: req.context }];
+  const resolution = req.image.resolution && !req.model.startsWith('gemini-2.') ? { mediaResolution: { level: IMAGE_RESOLUTION[req.image.resolution] } } : {};
+  return [{ inlineData: { data: req.image.bytes.toString('base64'), mimeType: req.image.mimeType }, ...resolution }, { text: req.context }];
+}
+
 /** Errors the service layer reads: `status` decides whether `AiService` retries (network, 429 and 5xx do; 4xx does not). */
 const fail = (message: string, status: number): Error => Object.assign(new Error(message), { status });
 
@@ -139,7 +157,7 @@ export class GeminiProvider extends AiProvider {
     const jsonSchema = schema ?? JSON_SCHEMAS[req.task];
     const res = await this.client.models.generateContent({
       model: req.model,
-      contents: [{ role: 'user', parts: [{ text: req.context }] }],
+      contents: [{ role: 'user', parts: structuredParts(req) }],
       config: {
         systemInstruction: req.instructions,
         responseMimeType: 'application/json',

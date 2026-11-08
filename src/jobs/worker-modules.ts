@@ -13,6 +13,8 @@ import { ContentModule } from '../modules/content/content.module';
 import { ScansWorkerModule } from '../modules/scans/scans-worker.module';
 import { PlansWorkerModule } from '../modules/plans/plans-worker.module';
 import { UsersModule } from '../modules/users/users.module';
+import { RecapWorkerModule } from '../modules/recap/recap-worker.module';
+import { FridgeChefWorkerModule } from '../modules/fridge-chef/fridge-chef-worker.module';
 
 /** Modules loaded by the worker role (ROLE=worker). */
-export const WORKER_MODULES: Array<Type | DynamicModule> = [ContentModule, UsersModule, AiModule, AiWorkerModule, ScansWorkerModule, MealParseWorkerModule, PlansWorkerModule, ConversationsWorkerModule, AuthModule, AccountWorkerModule, VoiceWorkerModule, RemindersWorkerModule, ReconcileModule, IndexesModule];
+export const WORKER_MODULES: Array<Type | DynamicModule> = [ContentModule, UsersModule, AiModule, AiWorkerModule, ScansWorkerModule, MealParseWorkerModule, PlansWorkerModule, ConversationsWorkerModule, AuthModule, AccountWorkerModule, VoiceWorkerModule, RemindersWorkerModule, ReconcileModule, IndexesModule, RecapWorkerModule, FridgeChefWorkerModule];

@@ -44,6 +44,21 @@ export const KCAL_PER_KG_BODY_WEIGHT = 7700;
  * a 120-word answer in Bangla or Hindi takes about three times the tokens of the same answer in English.
  */
 export const AI_LIMITS = {
-  free: { scansLifetime: FREE_SCANS_DEFAULT, describePerDay: 3, coachPerDay: 10, maxReplyTokens: 700 },
-  plus: { scansPerDay: 30, scansPerMonthSoft: 200, describePerDay: 50, coachPerDay: 100, maxReplyTokens: 900 },
+  free: { scansLifetime: FREE_SCANS_DEFAULT, describePerDay: 3, coachPerDay: 10, maxReplyTokens: 700, fridgePerDay: 0, recapPerDay: 0 },
+  plus: { scansPerDay: 30, scansPerMonthSoft: 200, describePerDay: 50, coachPerDay: 100, maxReplyTokens: 900, fridgePerDay: 5, recapPerDay: 10 },
 } as const;
+
+/** Coach style and memory (Plus): at most this many notes, each 1 to COACH_NOTE_MAX_CHARS characters. */
+export const COACH_NOTES_MAX = 20;
+export const COACH_NOTE_MAX_CHARS = 200;
+
+/** Fridge chef reply sizes (the model is asked for these; the server enforces them). */
+export const FRIDGE_MAX_INGREDIENTS = 15;
+export const FRIDGE_MAX_IDEAS = 3;
+export const FRIDGE_MAX_STEPS = 5;
+
+/** Weekly recap cards: how many, and how long (characters). */
+export const RECAP_MIN_CARDS = 3;
+export const RECAP_MAX_CARDS = 6;
+export const RECAP_TITLE_MAX = 40;
+export const RECAP_TEXT_MAX = 160;

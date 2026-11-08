@@ -6,12 +6,12 @@ import type { AppConfig } from '../../config/env';
 import { ERROR_CODES, type AiFeature } from '../../shared';
 
 /**
- * Features that go through the AI service. `plan` (plan narrative) and `realtime` (voice conversation) are
- * internal: each has its own kill switch (`ai.kill.plan`, `ai.kill.realtime`), circuit breaker, model
- * (`ai.model.<feature>`) and usage row, but is not part of the public config contract or the admin AI
- * settings form (the `voice.realtime` flag is the admin's switch for the realtime voice).
+ * Features that go through the AI service. `plan` (plan narrative), `realtime` (voice conversation), `recap` (weekly recap
+ * cards) and `fridge` (fridge chef) are internal: each has its own kill switch (`ai.kill.<feature>`), circuit breaker, model
+ * (`ai.model.<feature>`) and usage row, but is not part of the public config contract or the admin AI settings form (the
+ * `voice.realtime` flag is the admin's switch for the realtime voice). All of them count towards the monthly budget.
  */
-export type AiRunFeature = AiFeature | 'plan' | 'realtime';
+export type AiRunFeature = AiFeature | 'plan' | 'realtime' | 'recap' | 'fridge';
 import { ApiError } from '../../common/errors/api-error';
 import { AppConfigService } from '../content/app-config.service';
 import { AiProvider, FakeAiProvider, type AiResult, type AiUsage } from './ai.provider';

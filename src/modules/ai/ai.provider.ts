@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MealAnalysisOutputSchema, MealParseOutputSchema, PlanNarrativeOutputSchema } from '../../shared';
+import { FridgeChefOutputSchema, MealAnalysisOutputSchema, MealParseOutputSchema, PlanNarrativeOutputSchema, WeeklyRecapOutputSchema } from '../../shared';
 import { PLAN_EXAMPLE_ANALYSIS } from '../../domain/nutrition-validator/fixtures';
 import { SILENT_WAV } from './providers/wav';
 
@@ -9,7 +9,7 @@ export interface AiUsage {
   cachedTokens: number;
 }
 
-export type AiTask = 'meal_scan' | 'meal_parse' | 'onboarding_extract' | 'plan_narrative';
+export type AiTask = 'meal_scan' | 'meal_parse' | 'onboarding_extract' | 'plan_narrative' | 'weekly_recap' | 'fridge_chef';
 
 /** How much a thinking model may think before it answers. Thinking tokens bill as output and count against `maxOutputTokens`. */
 export type ThinkingEffort = 'minimal' | 'low' | 'medium' | 'high';
@@ -24,6 +24,8 @@ export interface StructuredRequest {
   maxOutputTokens: number;
   /** Default `minimal`: extraction and short writing tasks do not need much thinking. */
   thinking?: ThinkingEffort;
+  /** One photo sent with the context (fridge chef). Already re-encoded: orientation applied, metadata dropped, edge capped. */
+  image?: { bytes: Buffer; mimeType: 'image/jpeg'; resolution?: 'low' | 'medium' | 'high' };
 }
 
 export interface ChatRequest {
@@ -97,6 +99,8 @@ export const JSON_SCHEMAS: Record<AiTask, Record<string, unknown>> = {
   meal_parse: z.toJSONSchema(MealParseOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
   onboarding_extract: {}, // filled from the prompt file (content/prompts/onboarding-extract.v1.md) at runtime
   plan_narrative: planNarrativeJsonSchema(),
+  weekly_recap: z.toJSONSchema(WeeklyRecapOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
+  fridge_chef: z.toJSONSchema(FridgeChefOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
 };
 
 /** Strict structured-output schema for the plan narrative; also copied into content/prompts/plan-narrative.v1.md (a test keeps them equal). */
@@ -184,6 +188,41 @@ export const PLAN_NARRATIVE_EXAMPLE = {
   watchOuts: ['If you feel dizzy, very tired or unwell, speak to a health professional.'],
 };
 
+/** Fake recap cards: no digits, so they pass the number check for any stats (tests queue their own to test it). */
+export const RECAP_EXAMPLE = {
+  cards: [
+    { topic: 'logging', title: 'You kept showing up', text: 'You logged your meals on several days this week. That steady habit is what makes your week easy to read.', miloState: 'celebrating' },
+    { topic: 'meals', title: 'Meals on the map', text: 'Every meal you logged adds a little more to the story of your week.', miloState: 'speaking' },
+    { topic: 'water', title: 'Sips add up', text: 'You kept water in the mix this week. Small sips count.', miloState: 'speaking' },
+    { topic: 'next_week', title: 'One idea for next week', text: 'Try logging breakfast before the day gets busy. It is a quick win to start with.', miloState: 'thinking' },
+  ],
+};
+
+export const FRIDGE_EXAMPLE = {
+  notFood: false,
+  ingredients: ['Eggs', 'Spinach', 'Tomatoes', 'Cheddar', 'Bread'],
+  ideas: [
+    {
+      name: 'Spinach and tomato omelette',
+      why: 'Quick, warm and uses what you already have.',
+      minutes: 10,
+      kcal: 320,
+      uses: ['Eggs', 'Spinach', 'Tomatoes', 'Cheddar'],
+      extra: ['Oil', 'Salt and pepper'],
+      steps: ['Beat the eggs with a pinch of salt.', 'Wilt the spinach in a little oil.', 'Pour in the eggs and add the tomatoes.', 'Top with cheddar, fold and serve.'],
+    },
+    {
+      name: 'Cheesy tomato toast',
+      why: 'A five-minute snack or light lunch.',
+      minutes: 5,
+      kcal: 280,
+      uses: ['Bread', 'Tomatoes', 'Cheddar'],
+      extra: ['Black pepper'],
+      steps: ['Toast the bread.', 'Add sliced tomatoes and cheddar.', 'Grill until the cheese melts.'],
+    },
+  ],
+};
+
 export class FakeAiProvider extends AiProvider {
   readonly name = 'fake';
   /** Tests switch this on (with `enqueue`) to exercise plan personalisation; dev servers leave it off. */
@@ -229,6 +268,8 @@ export class FakeAiProvider extends AiProvider {
         meal_parse: { mealName: '', items: [], notes: null, clarifyingQuestion: 'What did you eat?' },
         onboarding_extract: { answers: [], ack: 'Sorry, I missed that.', clarify: 'Could you say that another way?', userQuestion: null },
         plan_narrative: structuredClone(PLAN_NARRATIVE_EXAMPLE),
+        weekly_recap: structuredClone(RECAP_EXAMPLE),
+        fridge_chef: { notFood: true, ingredients: [], ideas: [] },
       }[req.task];
       return { output, usage: { inputTokens: 1000, outputTokens: 50, cachedTokens: 900 }, model: req.model };
     }
@@ -237,6 +278,8 @@ export class FakeAiProvider extends AiProvider {
       meal_parse: () => structuredClone(PARSE_EXAMPLE),
       onboarding_extract: () => fakeExtract(req.context),
       plan_narrative: () => structuredClone(PLAN_NARRATIVE_EXAMPLE),
+      weekly_recap: () => structuredClone(RECAP_EXAMPLE),
+      fridge_chef: () => structuredClone(FRIDGE_EXAMPLE),
     }[req.task];
     return { output: this.next(fallback), usage: { inputTokens: 1200, outputTokens: 300, cachedTokens: 1000 }, model: req.model };
   }

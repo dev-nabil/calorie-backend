@@ -5,7 +5,7 @@ import { KvStore } from '../../infra/kv/kv-store';
 import { clock } from '../clock';
 import { ApiError } from '../errors/api-error';
 
-export type QuotaFeature = 'describe' | 'coach' | 'tts' | 'plan' | 'plan_attempt' | 'realtime';
+export type QuotaFeature = 'describe' | 'coach' | 'tts' | 'plan' | 'plan_attempt' | 'realtime' | 'recap' | 'fridge';
 
 /**
  * Daily AI quotas (plan 8.9, OQ-38): counted per user and the user's local day (BR-07 day key, so
