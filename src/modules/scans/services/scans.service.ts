@@ -4,7 +4,7 @@ import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { RateLimiter } from '../../../common/rate-limit/rate-limiter.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types, type Model } from 'mongoose';
-import { AI_LIMITS, ERROR_CODES, UPLOAD_KINDS, type AnalysedItem, type CreateScanRequest, type RecalculateScanRequest, type RecalculatedScan, type Scan } from '../../../shared';
+import { AI_LIMITS, ERROR_CODES, UPLOAD_KINDS, scanPromptKey, type ScanMode, type AnalysedItem, type CreateScanRequest, type RecalculateScanRequest, type RecalculatedScan, type Scan } from '../../../shared';
 import { canStartScan, freeScansRemaining, isPlusActive, isVerifiedAccount } from '../../../domain/entitlements';
 import { ApiError } from '../../../common/errors/api-error';
 import { AppConfigService } from '../../content/app-config.service';
@@ -119,7 +119,7 @@ export class ScansService implements OnModuleInit {
     if (!verified || !integrityOk) this.refuse(canStartScan({ verified, integrityOk, isPlus, freeRemaining: 1, plusScansToday: 0, plusDailyLimit: 1 }));
 
     await this.checkImage(req);
-    const cacheKey = await this.cacheKeyFor(uid, req.imageHash);
+    const cacheKey = await this.cacheKeyFor(uid, req.imageHash, req.mode ?? 'meal');
 
     // Same inputs within 24 h: return the stored outcome, no model call, no charge (section 4).
     const prior = await this.scans
@@ -191,12 +191,12 @@ export class ScansService implements OnModuleInit {
     if (sha256Hex(bytes) !== req.imageHash) refuse('hash_mismatch');
   }
 
-  private async cacheKeyFor(userId: Types.ObjectId, imageHash: string): Promise<string> {
+  private async cacheKeyFor(userId: Types.ObjectId, imageHash: string, mode: ScanMode): Promise<string> {
     const [prompt, profile] = await Promise.all([
-      this.content.activePrompt('meal-scan'),
+      this.content.activePrompt(scanPromptKey(mode)),
       this.profiles.findOne({ userId }, { dietPattern: 1 }).lean<Pick<ProfileDoc, 'dietPattern'>>(),
     ]);
-    return this.foodScan.cacheKey({ imageHash, locale: requestLocale(), dietPattern: profile?.dietPattern ?? '', promptKey: prompt?.key ?? 'meal-scan', promptVersion: prompt?.version ?? 0 });
+    return this.foodScan.cacheKey({ imageHash, locale: requestLocale(), dietPattern: profile?.dietPattern ?? '', promptKey: prompt?.key ?? scanPromptKey(mode), promptVersion: prompt?.version ?? 0 });
   }
 
   /** Rides on a running scan: no model call and no charge. Resolved when polled (`settleFollower`). */
@@ -221,6 +221,8 @@ export class ScansService implements OnModuleInit {
         userId,
         imageKey: req.imageKey,
         imageHash: req.imageHash,
+        mode: req.mode ?? 'meal',
+        barcode: req.mode === 'label' ? (req.barcode ?? null) : null,
         category: req.category ?? null,
         timezone,
         locale: requestLocale(),
@@ -286,6 +288,8 @@ export class ScansService implements OnModuleInit {
     return {
       scanId: d._id,
       status: d.status,
+      mode: d.mode ?? 'meal',
+      barcode: d.barcode ?? null,
       category: d.category ?? null,
       result: d.result ?? null,
       error: d.error ? { code: d.error.code, message: d.error.message } : null,

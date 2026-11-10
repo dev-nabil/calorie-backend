@@ -1,7 +1,10 @@
+import type { ScanMode } from '../../../shared';
 import type { FakeAiProvider } from '../ai.provider';
 import type { GeminiTokens } from '../gemini-pricing';
 
 export interface FoodVisionRequest {
+  /** Picks the response schema: a meal estimate or a copied nutrition label. */
+  mode?: ScanMode;
   model: string;
   instructions: string;
   context: string;
@@ -79,7 +82,7 @@ export class FakeFoodVisionProvider extends FoodVisionProvider {
     const usage = { inputTokens: 1600, cachedTokens: 0, outputTokens: 420, thoughtTokens: 0 };
     if (next) return { output: null, truncated: false, usage, model: req.model, ...next };
     try {
-      const res = await this.fake.structured({ task: 'meal_scan', model: req.model, instructions: req.instructions, context: req.context, timeoutMs: req.timeoutMs, maxOutputTokens: req.maxOutputTokens });
+      const res = await this.fake.structured({ task: req.mode === 'label' ? 'label_scan' : 'meal_scan', model: req.model, instructions: req.instructions, context: req.context, timeoutMs: req.timeoutMs, maxOutputTokens: req.maxOutputTokens });
       return { output: res.output, truncated: false, usage, model: req.model };
     } catch (e) {
       const status = (e as { status?: number }).status;

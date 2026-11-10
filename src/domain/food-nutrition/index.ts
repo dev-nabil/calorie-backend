@@ -179,6 +179,7 @@ export function addedItem(a: { name: string; grams: number; per100g: NutrientVal
     per100g: a.per100g,
     source: AI_ESTIMATE,
     otherNutrients: [],
+    richIn: [],
     preparation: null,
     role: 'single',
     excluded: Boolean(a.excluded),
@@ -209,7 +210,9 @@ export function applyItemCorrection(base: AnalysedItem, c: ItemCorrection, index
   const preparation = c.preparation ?? base.preparation ?? 'unknown';
   const grams = clamp(c.grams ?? base.grams, ITEM_GRAMS_MIN, ITEM_GRAMS_MAX);
   const renamed = name !== base.name;
-  const identityChanged = renamed || preparation !== (base.preparation ?? 'unknown');
+  // Values read off a pack or a product database belong to that product: a new name is only a label.
+  const fromPack = base.source.type === 'package_label' || base.source.type === 'product_database';
+  const identityChanged = !fromPack && (renamed || preparation !== (base.preparation ?? 'unknown'));
   let per100g = base.per100g;
   let source = base.source;
   let other: Pick<FoodRecord, 'other'> | null = null;
@@ -238,6 +241,8 @@ export function applyItemCorrection(base: AnalysedItem, c: ItemCorrection, index
       per100g,
       source,
       otherNutrients,
+      // A renamed food is another food: the old one's vitamins no longer apply. Scans stored before richIn have none.
+      richIn: renamed && !fromPack ? [] : (base.richIn ?? []),
       excluded: c.excluded ?? base.excluded,
       ...nutrientsForGrams(per100g, grams),
     },

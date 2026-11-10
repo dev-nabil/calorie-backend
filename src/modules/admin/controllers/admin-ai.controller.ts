@@ -43,6 +43,7 @@ const FEATURES = ['vision', 'extract', 'chat', 'stt', 'tts', 'moderation'] as co
 const MODEL_DEFAULTS: Record<(typeof FEATURES)[number], string> = { vision: DEFAULT_TEXT_MODEL, extract: DEFAULT_TEXT_MODEL, chat: DEFAULT_TEXT_MODEL, stt: DEFAULT_TEXT_MODEL, tts: DEFAULT_TTS_MODEL, moderation: DEFAULT_TEXT_MODEL };
 const TASK_FOR: Record<string, { task: AiTask | 'chat'; feature: 'vision' | 'extract' | 'chat' }> = {
   'meal-scan': { task: 'meal_scan', feature: 'vision' },
+  'label-scan': { task: 'label_scan', feature: 'vision' },
   'meal-parse': { task: 'meal_parse', feature: 'extract' },
   'onboarding-extract': { task: 'onboarding_extract', feature: 'extract' },
   coach: { task: 'chat', feature: 'chat' },

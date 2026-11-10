@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FOOD_PREPARATIONS, MEAL_CATEGORIES, MEAL_SOURCES, NUTRIENT_KEYS, NUTRITION_SOURCE_TYPES, OTHER_NUTRIENT_KEYS } from '../enums';
+import { FOOD_PREPARATIONS, MEAL_CATEGORIES, MEAL_SOURCES, NUTRIENT_KEYS, NUTRITION_SOURCE_TYPES, OTHER_NUTRIENT_KEYS, RICH_IN_KEYS } from '../enums';
 import {
   ITEM_GRAMS_MAX,
   ITEM_GRAMS_MIN,
@@ -50,6 +50,11 @@ export const OtherNutrientSchema = z
   .meta({ id: 'OtherNutrient' });
 export type OtherNutrient = z.infer<typeof OtherNutrientSchema>;
 
+export const RichInSchema = z
+  .array(z.enum(RICH_IN_KEYS))
+  .describe('Vitamins and minerals this food is a good source of, strongest first. Names only, no amounts; empty when unknown')
+  .meta({ id: 'RichIn' });
+
 export const PointSchema = z
   .object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) })
   .meta({ id: 'Point' });
@@ -80,6 +85,11 @@ export const MealItemInputSchema = z
     preparation: z.enum(FOOD_PREPARATIONS).optional(),
     scanItemId: z.string().max(16).optional().describe('AnalysedItem.id: the server rebuilds this item from the stored scan, ignoring the numbers sent here'),
     per100g: Per100gInputSchema.optional().describe('Basis for items not from a scan; item values are then computed from it'),
+    barcode: z
+      .string()
+      .regex(/^\d{8,14}$/)
+      .optional()
+      .describe('From GET /foods/barcode/{code}: the server takes the basis and source of that product, ignoring the numbers sent here'),
   })
   .meta({ id: 'MealItemInput' });
 export type MealItemInput = z.infer<typeof MealItemInputSchema>;
@@ -104,6 +114,7 @@ export const MealItemSchema = z
     per100g: NutrientValuesSchema.nullable(),
     source: NutritionSourceSchema.nullable(),
     otherNutrients: z.array(OtherNutrientSchema),
+    richIn: RichInSchema,
     scaled: z
       .object({ grams: z.number(), kcal: known, proteinG: known, carbsG: known, fatG: known })
       .describe('Values after the portion multiplier'),

@@ -28,6 +28,7 @@ import {
 } from '../../shared';
 
 export { PLAN_EXAMPLE_ANALYSIS } from './fixtures';
+export { labelGrams, labelPer100g, labelSource, labelValues, normaliseLabel, parseLabelOutput, KJ_PER_KCAL, SODIUM_MG_PER_G_SALT, SINGLE_PACK_MAX_G, type LabelNormaliseResult, type LabelParseResult } from './label';
 
 export { KCAL_TOLERANCE };
 
@@ -159,6 +160,7 @@ export function normaliseItem(item: ParsedItemInput, index = 0): AnalysedItem {
     per100g: per100gFromValues(values, grams),
     source: AI_ESTIMATE,
     otherNutrients: [],
+    richIn: [],
     preparation: null,
     role: 'single',
     excluded: false,
@@ -171,6 +173,7 @@ export function normaliseItem(item: ParsedItemInput, index = 0): AnalysedItem {
 }
 
 const MAX_ASSUMPTIONS = 5;
+const MAX_RICH_IN = 4;
 const trimTo = (s: string, max: number): string => s.trim().slice(0, max);
 
 const validPoint = (p: { x: number; y: number } | null) => (p && p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1 ? { x: p.x, y: p.y } : null);
@@ -193,6 +196,7 @@ function scanItem(raw: OutputItem, i: number, index: FoodIndex): AnalysedItem {
     per100g,
     source: record ? recordSource(index, record) : AI_ESTIMATE,
     otherNutrients: otherNutrientsFor(record, grams),
+    richIn: [...new Set(raw.rich)].slice(0, MAX_RICH_IN),
     preparation: raw.prep,
     role: raw.role === 'component' ? 'component' : (record?.kind ?? raw.role),
     excluded: false,

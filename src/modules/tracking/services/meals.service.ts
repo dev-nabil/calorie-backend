@@ -12,6 +12,9 @@ import {
   type Meal,
   type MealItemInput,
   type MealTotals,
+  type NutrientValues,
+  type NutritionSource,
+  type RichInKey,
   type UpdateMealRequest,
 } from '../../../shared';
 import { diffDays, resolveEntryDay } from '../../../domain/day-keys';
@@ -37,7 +40,21 @@ export interface MealPhotoSource {
   itemsFor(userId: Types.ObjectId, scanId: string): Promise<AnalysedItem[] | null>;
 }
 
+/** A packaged product's basis for an item saved with `barcode` (foods module). */
+export interface ProductBasis {
+  per100g: NutrientValues;
+  source: NutritionSource;
+  richIn: RichInKey[];
+}
+
+export interface MealProductSource {
+  /** Cached product or the user's own label scan for this barcode; never calls an outside service. */
+  basisFor(userId: Types.ObjectId, barcode: string): Promise<ProductBasis | null>;
+}
+
 interface StoreContext {
+  /** Products for items sent with a barcode. */
+  products?: Map<string, ProductBasis>;
   /** Items of the scan this meal comes from. */
   scan?: AnalysedItem[] | null;
   /** The meal's current items, on an edit. */
@@ -61,6 +78,7 @@ function fromScanItem(item: AnalysedItem, input: MealItemInput): StoredMealItem 
     per100g: item.per100g,
     source: item.source,
     otherNutrients: item.otherNutrients,
+    richIn: item.richIn ?? [],
     confidence: item.confidence,
     edited: Boolean(input.edited),
     excluded: Boolean(input.excluded),
@@ -72,6 +90,7 @@ function fromScanItem(item: AnalysedItem, input: MealItemInput): StoredMealItem 
 @Injectable()
 export class MealsService implements OnModuleInit {
   private photoSource: MealPhotoSource | null = null;
+  private productSource: MealProductSource | null = null;
 
   constructor(
     @InjectModel('Meal') private readonly meals: Model<MealDoc>,
@@ -100,6 +119,21 @@ export class MealsService implements OnModuleInit {
     this.photoSource = source;
   }
 
+  setProductSource(source: MealProductSource): void {
+    this.productSource = source;
+  }
+
+  /** Bases for every barcode in the items; unknown barcodes are left out and those items keep their own numbers. */
+  private async productsFor(userId: Types.ObjectId, items: MealItemInput[]): Promise<Map<string, ProductBasis>> {
+    const out = new Map<string, ProductBasis>();
+    if (!this.productSource) return out;
+    for (const code of new Set(items.map((i) => i.barcode).filter((c): c is string => Boolean(c)))) {
+      const basis = await this.productSource.basisFor(userId, code);
+      if (basis) out.set(code, basis);
+    }
+    return out;
+  }
+
   /**
    * Item values always come from a per-100-gram basis when one exists: the stored scan first, then
    * the item's own. Numbers in the request are used only for entries that have no basis.
@@ -110,6 +144,25 @@ export class MealsService implements OnModuleInit {
       if (scanned && ctx.records) {
         const correction = { name: i.name, grams: i.grams, ...(i.preparation ? { preparation: i.preparation } : {}) };
         return fromScanItem(applyItemCorrection(scanned, correction, ctx.records).item, i);
+      }
+      const product = i.barcode ? ctx.products?.get(i.barcode) : undefined;
+      if (product) {
+        const grams = r1(i.grams);
+        return {
+          name: i.name,
+          grams,
+          ...nutrientsForGrams(product.per100g, grams),
+          preparation: null,
+          scanItemId: null,
+          per100g: product.per100g,
+          source: product.source,
+          otherNutrients: [],
+          richIn: product.richIn,
+          confidence: i.confidence ?? null,
+          edited: Boolean(i.edited),
+          excluded: Boolean(i.excluded),
+          addedByUser: Boolean(i.addedByUser),
+        };
       }
       const prior = i.scanItemId ? ctx.prior?.find((p) => p.scanItemId === i.scanItemId) : undefined;
       const per100g = i.per100g ?? prior?.per100g ?? null;
@@ -133,6 +186,7 @@ export class MealsService implements OnModuleInit {
         per100g,
         source: renamed ? ADJUSTED_ESTIMATE : (prior?.source ?? (i.per100g ? AI_ESTIMATE : USER_ENTERED)),
         otherNutrients: prior && prior.grams > 0 ? prior.otherNutrients.map((o) => ({ ...o, amount: r1((o.amount * grams) / prior.grams) })) : [],
+        richIn: prior && !renamed ? (prior.richIn ?? []) : [],
         confidence: i.confidence ?? null,
         edited: Boolean(i.edited),
         excluded: Boolean(i.excluded),
@@ -146,7 +200,7 @@ export class MealsService implements OnModuleInit {
     const day = resolveEntryDay({ loggedAt: new Date(req.loggedAt), timeZone: req.timezone, date: req.date, now });
     const multiplier = req.portionMultiplier ?? 1;
     const scan = req.scanId && this.photoSource ? await this.photoSource.itemsFor(uid, req.scanId) : null;
-    const items = MealsService.storeItems(req.items, { scan, records: this.records.index });
+    const items = MealsService.storeItems(req.items, { scan, records: this.records.index, products: await this.productsFor(uid, req.items) });
     let photo = req.scanId && this.photoSource ? await this.photoSource.photoFor(uid, req.scanId) : null;
     if (!photo && req.imageKey) {
       if (!ownsKey(userId, 'meal_photo', req.imageKey) || !(await this.storage.exists(req.imageKey))) {
@@ -200,7 +254,8 @@ export class MealsService implements OnModuleInit {
       set.timezone = day.timezone;
     }
     const scan = patch.items && meal.scanId && this.photoSource ? await this.photoSource.itemsFor(meal.userId, meal.scanId) : null;
-    const items = patch.items ? MealsService.storeItems(patch.items, { scan, prior: meal.items, records: this.records.index }) : meal.items;
+    const products = patch.items ? await this.productsFor(meal.userId, patch.items) : undefined;
+    const items = patch.items ? MealsService.storeItems(patch.items, { scan, prior: meal.items, records: this.records.index, products }) : meal.items;
     const multiplier = patch.portionMultiplier ?? meal.portionMultiplier;
     if (patch.items) set.items = items;
     if (patch.portionMultiplier !== undefined) set.portionMultiplier = multiplier;
@@ -281,6 +336,7 @@ export class MealsService implements OnModuleInit {
           per100g: i.per100g ?? null,
           source: i.source ?? null,
           otherNutrients: i.otherNutrients ?? [],
+          richIn: i.richIn ?? [],
           confidence: i.confidence ?? null,
           scaled: { grams: r1(s.grams), kcal: r0OrNull(s.kcal), proteinG: r1OrNull(s.proteinG), carbsG: r1OrNull(s.carbsG), fatG: r1OrNull(s.fatG) },
         };

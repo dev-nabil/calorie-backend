@@ -7778,6 +7778,82 @@
           "fridge-chef"
         ]
       }
+    },
+    "/v1/foods/barcode/{code}": {
+      "get": {
+        "operationId": "FoodsController_lookup",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{8,14}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A packaged product by barcode: your own label scan of it, else Open Food Facts. found=false is a normal answer; no AI, no charge",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BarcodeProduct"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "foods"
+        ]
+      }
     }
   },
   "info": {
@@ -10281,7 +10357,9 @@
               "verified_record",
               "ai_estimate",
               "adjusted_estimate",
-              "user_entered"
+              "user_entered",
+              "package_label",
+              "product_database"
             ]
           },
           "recordId": {
@@ -10326,6 +10404,27 @@
           "key",
           "amount"
         ]
+      },
+      "RichIn": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "vitaminA",
+            "vitaminB12",
+            "vitaminC",
+            "vitaminD",
+            "vitaminE",
+            "vitaminK",
+            "folate",
+            "calcium",
+            "iron",
+            "potassium",
+            "magnesium",
+            "zinc"
+          ]
+        },
+        "description": "Vitamins and minerals this food is a good source of, strongest first. Names only, no amounts; empty when unknown"
       },
       "Point": {
         "type": "object",
@@ -10501,6 +10600,11 @@
                 "$ref": "#/components/schemas/Per100gInput"
               }
             ]
+          },
+          "barcode": {
+            "description": "From GET /foods/barcode/{code}: the server takes the basis and source of that product, ignoring the numbers sent here",
+            "type": "string",
+            "pattern": "^\\d{8,14}$"
           }
         },
         "required": [
@@ -10610,6 +10714,9 @@
               "$ref": "#/components/schemas/OtherNutrient"
             }
           },
+          "richIn": {
+            "$ref": "#/components/schemas/RichIn"
+          },
           "scaled": {
             "type": "object",
             "properties": {
@@ -10662,6 +10769,7 @@
           "per100g",
           "source",
           "otherNutrients",
+          "richIn",
           "scaled"
         ]
       },
@@ -10703,7 +10811,8 @@
               "photo",
               "text",
               "voice",
-              "manual"
+              "manual",
+              "barcode"
             ]
           },
           "scanId": {
@@ -10816,7 +10925,8 @@
               "photo",
               "text",
               "voice",
-              "manual"
+              "manual",
+              "barcode"
             ]
           },
           "scanId": {
@@ -11654,6 +11764,9 @@
               "$ref": "#/components/schemas/OtherNutrient"
             }
           },
+          "richIn": {
+            "$ref": "#/components/schemas/RichIn"
+          },
           "preparation": {
             "nullable": true,
             "type": "string",
@@ -11727,6 +11840,7 @@
           "per100g",
           "source",
           "otherNutrients",
+          "richIn",
           "preparation",
           "role",
           "excluded",
@@ -11753,10 +11867,7 @@
           },
           "isEstimate": {
             "type": "boolean",
-            "enum": [
-              true
-            ],
-            "description": "A photo cannot establish weight, ingredients or hidden oil"
+            "description": "true for a meal photo (it cannot establish weight, ingredients or hidden oil); false for values read from a label"
           },
           "mealName": {
             "nullable": true,
@@ -11840,6 +11951,19 @@
               "dinner",
               "snack"
             ]
+          },
+          "mode": {
+            "description": "meal (default): estimate a served meal; label: read the nutrition table on a pack",
+            "type": "string",
+            "enum": [
+              "meal",
+              "label"
+            ]
+          },
+          "barcode": {
+            "description": "Label scans only: the pack's barcode, so GET /foods/barcode/{code} finds this label next time",
+            "type": "string",
+            "pattern": "^\\d{8,14}$"
           }
         },
         "required": [
@@ -11864,6 +11988,17 @@
               "failed",
               "rejected"
             ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "meal",
+              "label"
+            ]
+          },
+          "barcode": {
+            "nullable": true,
+            "type": "string"
           },
           "category": {
             "nullable": true,
@@ -11920,6 +12055,8 @@
         "required": [
           "scanId",
           "status",
+          "mode",
+          "barcode",
           "category",
           "result",
           "error",
@@ -15961,6 +16098,79 @@
           "notFood",
           "ingredients",
           "ideas"
+        ]
+      },
+      "BarcodeProduct": {
+        "type": "object",
+        "properties": {
+          "barcode": {
+            "type": "string"
+          },
+          "found": {
+            "type": "boolean",
+            "description": "false: unknown barcode. Offer a label scan (POST /scans with mode \"label\" and this barcode)"
+          },
+          "complete": {
+            "type": "boolean",
+            "description": "Energy and the three macros are known. When false, a label scan gives better numbers"
+          },
+          "name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "brand": {
+            "nullable": true,
+            "type": "string"
+          },
+          "servingG": {
+            "nullable": true,
+            "description": "One serving in g (or ml), when known",
+            "type": "number"
+          },
+          "servingText": {
+            "nullable": true,
+            "description": "Serving as printed on the pack",
+            "type": "string"
+          },
+          "packG": {
+            "nullable": true,
+            "description": "Net weight or volume of the pack",
+            "type": "number"
+          },
+          "per100g": {
+            "description": "Per 100 g (or 100 ml); null when unknown, never 0 as a guess",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NutrientValues"
+              }
+            ]
+          },
+          "richIn": {
+            "$ref": "#/components/schemas/RichIn"
+          },
+          "source": {
+            "nullable": true,
+            "description": "product_database (Open Food Facts) or package_label (your own label scan); null when not found",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NutritionSource"
+              }
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "barcode",
+          "found",
+          "complete",
+          "name",
+          "brand",
+          "servingG",
+          "servingText",
+          "packG",
+          "per100g",
+          "richIn",
+          "source"
         ]
       },
       "ContentDocument": {

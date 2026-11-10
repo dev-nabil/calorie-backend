@@ -1,10 +1,14 @@
 import { Schema, Types } from 'mongoose';
-import { MEAL_CATEGORIES, SCAN_STATUSES, type MealAnalysis, type MealCategory, type ScanStatus } from '../../../shared';
+import { MEAL_CATEGORIES, SCAN_MODES, SCAN_STATUSES, type MealAnalysis, type MealCategory, type ScanMode, type ScanStatus } from '../../../shared';
 
 export interface ScanDoc {
   _id: string; // scanId from the app (UUID v4)
   userId: Types.ObjectId;
   status: ScanStatus;
+  /** Missing on scans stored before label scans: those are meals. */
+  mode?: ScanMode;
+  /** Label scans: the pack's barcode, so a later barcode lookup finds this label. */
+  barcode?: string | null;
   imageKey: string;
   imageHash: string;
   /** Hash of everything that shapes the reply; identical scans of one user share it. */
@@ -42,6 +46,8 @@ export const ScanSchema = new Schema<ScanDoc>(
     _id: { type: String, required: true },
     userId: { type: Schema.Types.ObjectId, required: true },
     status: { type: String, enum: SCAN_STATUSES, required: true },
+    mode: { type: String, enum: SCAN_MODES, default: 'meal' },
+    barcode: { type: String, default: null },
     imageKey: { type: String, required: true },
     imageHash: { type: String, required: true },
     cacheKey: { type: String, default: null },
@@ -79,6 +85,7 @@ ScanSchema.index({ userId: 1, createdAt: -1 });
 ScanSchema.index({ userId: 1, cacheKey: 1, status: 1, finishedAt: -1 });
 ScanSchema.index({ userId: 1, inflightKey: 1 }, { unique: true, partialFilterExpression: { inflightKey: { $type: 'string' } } });
 ScanSchema.index({ status: 1, queuedAt: 1 });
+ScanSchema.index({ userId: 1, barcode: 1, finishedAt: -1 }, { partialFilterExpression: { barcode: { $type: 'string' } } });
 
 export interface AbuseEventDoc {
   kind: string;

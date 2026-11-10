@@ -52,7 +52,12 @@
         },
         "conf": 0.8,
         "pt": null,
-        "note": null
+        "note": null,
+        "rich": [
+          "vitaminK",
+          "vitaminA",
+          "vitaminC"
+        ]
       },
       {
         "name": "Feta cheese",
@@ -72,7 +77,11 @@
         },
         "conf": 0.7,
         "pt": null,
-        "note": null
+        "note": null,
+        "rich": [
+          "calcium",
+          "vitaminB12"
+        ]
       },
       {
         "name": "Olive oil dressing",
@@ -92,7 +101,10 @@
         },
         "conf": 0.5,
         "pt": null,
-        "note": null
+        "note": null,
+        "rich": [
+          "vitaminE"
+        ]
       }
     ],
     "assumptions": [],

@@ -16,6 +16,7 @@ import { DailyLogSchema, MealSchema, WeightLogSchema } from '../../modules/track
 import { DeviceSchema, ScanLedgerSchema, UserSchema } from '../../modules/users/schemas/users.schema';
 import { CoachPreferenceSchema } from '../../modules/coach-preferences/schemas/coach-preferences.schema';
 import { WeeklyRecapSchema } from '../../modules/recap/schemas/weekly-recap.schema';
+import { ProductSchema } from '../../modules/foods/schemas/products.schema';
 
 /** Every collection, registered once (plan section 6). Inject with @InjectModel('<Name>'). */
 export const MODEL_DEFINITIONS = [
@@ -50,6 +51,7 @@ export const MODEL_DEFINITIONS = [
   { name: 'ReconcileRun', schema: ReconcileRunSchema },
   { name: 'CoachPreference', schema: CoachPreferenceSchema },
   { name: 'WeeklyRecap', schema: WeeklyRecapSchema },
+  { name: 'Product', schema: ProductSchema },
 ];
 
 const models = MongooseModule.forFeature(MODEL_DEFINITIONS);

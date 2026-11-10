@@ -136,6 +136,7 @@ export const enErrors: Record<ErrorCode, ErrMsg> = {
   IMAGE_INVALID: 'That photo could not be used. Try another one.',
   NO_FOOD_DETECTED: 'Milo could not find any food in this photo.',
   IMAGE_UNCLEAR: 'This photo is too unclear to estimate. Try another one.',
+  NO_LABEL_DETECTED: 'No nutrition table was found. Take a photo of the table on the back of the pack.',
   AI_LIMIT_REACHED: 'Daily limit reached. Try again tomorrow.',
   CONVERSATION_NOT_FOUND: 'We could not find that conversation.',
   NOTHING_TO_CONFIRM: 'There is nothing to confirm.',

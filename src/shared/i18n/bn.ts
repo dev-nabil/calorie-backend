@@ -123,6 +123,7 @@ export const bnErrors: Record<ErrorCode, ErrMsg> = {
   IMAGE_INVALID: 'এই ছবিটি ব্যবহার করা গেল না। অন্য একটি ছবি দিন।',
   NO_FOOD_DETECTED: 'মিলো এই ছবিতে কোনো খাবার খুঁজে পায়নি।',
   IMAGE_UNCLEAR: 'ছবিটি এত অস্পষ্ট যে হিসাব করা যাচ্ছে না। আরেকটি ছবি দিন।',
+  NO_LABEL_DETECTED: 'পুষ্টির তালিকা পাওয়া যায়নি। প্যাকেটের পেছনের তালিকাটির ছবি তুলুন।',
   AI_LIMIT_REACHED: 'আজকের সীমা শেষ হয়েছে। আগামীকাল আবার চেষ্টা করুন।',
   CONVERSATION_NOT_FOUND: 'কথোপকথনটি খুঁজে পাওয়া যায়নি।',
   NOTHING_TO_CONFIRM: 'নিশ্চিত করার মতো কিছু নেই।',

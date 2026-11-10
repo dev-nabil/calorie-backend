@@ -20,10 +20,10 @@ const LUNCH = {
   status: 'ok',
   mealName: 'Rice, dal and fish curry',
   items: [
-    { name: 'White rice', en: 'white rice', g: 200, prep: 'boiled', role: 'single', of: null, n: { kcal: 130, p: 2.7, c: 28, f: 0.3, fib: 0.4, sug: 0, na: 1 }, conf: 0.85, pt: { x: 0.3, y: 0.6 }, note: null },
-    { name: 'Dal', en: 'dal', g: 120, prep: 'curried', role: 'mixed_dish', of: null, n: { kcal: 120, p: 7, c: 15, f: 4, fib: 4, sug: 1, na: 300 }, conf: 0.8, pt: { x: 0.6, y: 0.3 }, note: null },
-    { name: 'Fish curry', en: 'fish curry', g: 150, prep: 'curried', role: 'mixed_dish', of: null, n: { kcal: 110, p: 12, c: 4, f: 5, fib: 0.5, sug: 1, na: 350 }, conf: 0.7, pt: { x: 0.7, y: 0.7 }, note: 'Oil assumed' },
-    { name: 'Shak bhaji', en: 'greens stir fry', g: 80, prep: 'fried', role: 'single', of: null, n: { kcal: 70, p: 2, c: 5, f: 5, fib: 2, sug: null, na: null }, conf: 0.6, pt: null, note: null },
+    { name: 'White rice', en: 'white rice', g: 200, prep: 'boiled', role: 'single', of: null, n: { kcal: 130, p: 2.7, c: 28, f: 0.3, fib: 0.4, sug: 0, na: 1 }, rich: [], conf: 0.85, pt: { x: 0.3, y: 0.6 }, note: null },
+    { name: 'Dal', en: 'dal', g: 120, prep: 'curried', role: 'mixed_dish', of: null, n: { kcal: 120, p: 7, c: 15, f: 4, fib: 4, sug: 1, na: 300 }, rich: ['folate', 'iron', 'potassium'], conf: 0.8, pt: { x: 0.6, y: 0.3 }, note: null },
+    { name: 'Fish curry', en: 'fish curry', g: 150, prep: 'curried', role: 'mixed_dish', of: null, n: { kcal: 110, p: 12, c: 4, f: 5, fib: 0.5, sug: 1, na: 350 }, rich: ['vitaminB12', 'vitaminD'], conf: 0.7, pt: { x: 0.7, y: 0.7 }, note: 'Oil assumed' },
+    { name: 'Shak bhaji', en: 'greens stir fry', g: 80, prep: 'fried', role: 'single', of: null, n: { kcal: 70, p: 2, c: 5, f: 5, fib: 2, sug: null, na: null }, rich: ['vitaminA', 'vitaminK', 'vitaminC', 'iron'], conf: 0.6, pt: null, note: null },
   ],
   assumptions: ['Oil in the curry is assumed to be typical.'],
   question: null,
@@ -103,6 +103,7 @@ describe('Food photo scanner, Gemini mocked', () => {
       expect(fish).toMatchObject({ per100g: { kcal: 93 }, kcal: 140, assumption: 'Oil assumed' });
       expect(greens).toMatchObject({ source: { type: 'ai_estimate' }, per100g: { sugarG: null, sodiumMg: null }, sugarG: null, sodiumMg: null, kcal: 56 });
       expect(scan.result.totals.kcal).toBe(222 + dal.kcal + 140 + 56);
+      expect([rice.richIn, dal.richIn, greens.richIn]).toEqual([[], ['folate', 'iron', 'potassium'], ['vitaminA', 'vitaminK', 'vitaminC', 'iron']]);
     });
 
     it('reports a total as incomplete when one item lacks the nutrient', async () => {
@@ -117,7 +118,7 @@ describe('Food photo scanner, Gemini mocked', () => {
       const h = await asPlus();
       const { b } = await scanLunch(h);
       const doc = await scans().findById(b.scanId).lean<ScanDoc>();
-      expect(doc).toMatchObject({ model: 'gemini-3.5-flash-lite', promptKey: 'meal-scan', promptVersion: 3, providerAttempts: 1, usage: { inputTokens: 1600, outputTokens: 420 } });
+      expect(doc).toMatchObject({ model: 'gemini-3.5-flash-lite', promptKey: 'meal-scan', promptVersion: 4, providerAttempts: 1, usage: { inputTokens: 1600, outputTokens: 420 } });
       expect(doc!.usage.costUsd).toBeCloseTo((1600 * 0.3 + 420 * 2.5) / 1e6, 8);
       expect(doc!.modelLatencyMs).not.toBeNull();
       expect(JSON.stringify(doc)).not.toMatch(/base64|\/9j\//);
@@ -181,6 +182,7 @@ describe('Food photo scanner, Gemini mocked', () => {
       const saved = await t.http().post('/v1/meals').set(h).set(idem()).send(tampered).expect(201);
       expect(saved.body.items[0]).toMatchObject({ grams: 100, kcal: 111, sugarG: null, preparation: 'boiled', scanItemId: 'i0', per100g: { kcal: 111 }, source: { recordId: 'fct_bd:01_0041' } });
       expect(saved.body.totals.incomplete).toEqual(expect.arrayContaining(['sugarG', 'sodiumMg']));
+      expect(saved.body.items[1].richIn).toEqual(['folate', 'iron', 'potassium']);
       expect(vision.calls).toHaveLength(1);
     });
 

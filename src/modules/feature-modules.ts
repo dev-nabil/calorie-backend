@@ -21,6 +21,7 @@ import { ReconcileModule } from '../jobs/reconcile';
 import { CoachPreferencesModule } from './coach-preferences/coach-preferences.module';
 import { RecapModule } from './recap/recap.module';
 import { FridgeChefModule } from './fridge-chef/fridge-chef.module';
+import { FoodsModule } from './foods/foods.module';
 
 /** Feature modules served by the API role. */
-export const FEATURE_MODULES = [HealthModule, ContentModule, UsersModule, AuthModule, OnboardingModule, PlansModule, TrackingModule, PublicModule, AiModule, ScansModule, AppConfigModule, BillingModule, UploadsModule, MealParseModule, ConversationsModule, AdminModule, AccountModule, VoiceModule, RemindersModule, ReconcileModule, CoachPreferencesModule, RecapModule, FridgeChefModule];
+export const FEATURE_MODULES = [HealthModule, ContentModule, UsersModule, AuthModule, OnboardingModule, PlansModule, TrackingModule, PublicModule, AiModule, ScansModule, AppConfigModule, BillingModule, UploadsModule, MealParseModule, ConversationsModule, AdminModule, AccountModule, VoiceModule, RemindersModule, ReconcileModule, CoachPreferencesModule, RecapModule, FridgeChefModule, FoodsModule];

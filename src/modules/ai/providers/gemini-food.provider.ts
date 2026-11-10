@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MealAnalysisOutputSchema } from '../../../shared';
+import { LabelScanOutputSchema, MealAnalysisOutputSchema, type ScanMode } from '../../../shared';
 import { toGeminiSchema } from '../gemini-schema';
 import { FoodVisionError, FoodVisionProvider, type FoodVisionRequest, type FoodVisionResult } from './food-vision.provider';
 
@@ -10,11 +10,12 @@ const TRANSIENT_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 type JsonSchema = Record<string, unknown>;
 
 /** The response schema sent to Gemini, generated from the same zod schema that validates the reply. */
-export function foodScanResponseSchema(): JsonSchema {
-  return toGeminiSchema(z.toJSONSchema(MealAnalysisOutputSchema, { target: 'draft-7', io: 'output' }) as JsonSchema);
+export function foodScanResponseSchema(mode: ScanMode = 'meal'): JsonSchema {
+  const schema = mode === 'label' ? LabelScanOutputSchema : MealAnalysisOutputSchema;
+  return toGeminiSchema(z.toJSONSchema(schema, { target: 'draft-7', io: 'output' }) as JsonSchema);
 }
 
-const RESPONSE_SCHEMA = foodScanResponseSchema();
+const RESPONSE_SCHEMAS: Record<ScanMode, JsonSchema> = { meal: foodScanResponseSchema('meal'), label: foodScanResponseSchema('label') };
 
 /** Gemini 2.5 has neither the thinking levels nor per-image resolution, and thinking is off there by default. */
 const hasGemini3Controls = (model: string): boolean => !model.startsWith('gemini-2.');
@@ -77,7 +78,7 @@ export class GeminiFoodProvider extends FoodVisionProvider {
             { type: 'image', data: req.image.bytes.toString('base64'), mime_type: req.image.mimeType, ...(modern ? { resolution: req.resolution } : {}) },
           ],
           generation_config: { max_output_tokens: req.maxOutputTokens, ...(modern ? { thinking_level: req.thinkingLevel } : {}) },
-          response_format: { type: 'text', mime_type: 'application/json', schema: RESPONSE_SCHEMA },
+          response_format: { type: 'text', mime_type: 'application/json', schema: RESPONSE_SCHEMAS[req.mode ?? 'meal'] },
         }),
       });
     } catch (e) {

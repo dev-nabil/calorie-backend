@@ -11,6 +11,7 @@ import {
   type NutrientValues,
   type NutritionSource,
   type OtherNutrient,
+  type RichInKey,
   type WeightSource,
 } from '../../../shared';
 
@@ -31,6 +32,8 @@ export interface StoredMealItem {
   per100g: NutrientValues | null;
   source: NutritionSource | null;
   otherNutrients: OtherNutrient[];
+  /** Vitamins and minerals the food is a good source of; missing on meals logged before it existed. */
+  richIn?: RichInKey[];
   confidence: number | null;
   edited: boolean;
   excluded: boolean;
@@ -73,6 +76,7 @@ const ItemSchema = new Schema<StoredMealItem>(
     per100g: { type: Schema.Types.Mixed, default: null },
     source: { type: Schema.Types.Mixed, default: null },
     otherNutrients: { type: Schema.Types.Mixed, default: () => [] },
+    richIn: { type: [String], default: () => [] },
     confidence: { type: Number, default: null },
     edited: { type: Boolean, default: false },
     excluded: { type: Boolean, default: false },

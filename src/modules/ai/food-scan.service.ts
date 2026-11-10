@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { APP_CONFIG } from '../../config/config.module';
 import type { AppConfig } from '../../config/env';
 import { prepareScanImage } from '../../infra/media/scan-image';
+import type { ScanMode } from '../../shared';
 import { AiService, AiUnavailableError } from './ai.service';
 import { FoodScanBudget } from './food-scan-budget.service';
 import { geminiCostUsd, type GeminiTokens } from './gemini-pricing';
@@ -16,6 +17,8 @@ const MAX_WAIT_MS = 5_000;
 
 export interface FoodScanInput {
   scanId: string;
+  /** Default meal. */
+  mode?: ScanMode;
   instructions: string;
   context: string;
   image: Buffer;
@@ -90,6 +93,7 @@ export class FoodScanService {
       let res: FoodVisionResult;
       try {
         res = await this.provider.analyse({
+          mode: input.mode ?? 'meal',
           model: this.model,
           instructions: input.instructions,
           context: input.context,

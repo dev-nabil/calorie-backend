@@ -6,7 +6,8 @@
 export const MEAL_CATEGORIES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 export type MealCategory = (typeof MEAL_CATEGORIES)[number];
 
-export const MEAL_SOURCES = ['photo', 'text', 'voice', 'manual'] as const;
+/** `barcode`: a packaged product looked up by its barcode (GET /foods/barcode/{code}). */
+export const MEAL_SOURCES = ['photo', 'text', 'voice', 'manual', 'barcode'] as const;
 export type MealSource = (typeof MEAL_SOURCES)[number];
 
 export const AUTH_PROVIDERS = ['email', 'google', 'apple'] as const;
@@ -66,6 +67,17 @@ export const PLAN_AI_STATUSES = ['ok', 'not_configured', 'unavailable', 'invalid
 export type PlanAiStatus = (typeof PLAN_AI_STATUSES)[number];
 
 export const SCAN_STATUSES = ['queued', 'processing', 'succeeded', 'failed', 'rejected'] as const;
+
+/** What a scan photo shows: a served meal (estimated), or the nutrition table on a pack (read as printed). */
+export const SCAN_MODES = ['meal', 'label'] as const;
+export type ScanMode = (typeof SCAN_MODES)[number];
+
+/** The content/prompts key each scan mode runs on. */
+export const scanPromptKey = (mode: ScanMode): 'meal-scan' | 'label-scan' => (mode === 'label' ? 'label-scan' : 'meal-scan');
+
+/** How the values on a nutrition label are given. */
+export const LABEL_BASES = ['per_100g', 'per_serving'] as const;
+export type LabelBasis = (typeof LABEL_BASES)[number];
 export type ScanStatus = (typeof SCAN_STATUSES)[number];
 
 /** How a food was cooked, when the photo shows it. `unknown` never matches a record that needs a specific method. */
@@ -76,8 +88,11 @@ export type FoodPreparation = (typeof FOOD_PREPARATIONS)[number];
 export const FOOD_ROLES = ['single', 'mixed_dish', 'component'] as const;
 export type FoodRole = (typeof FOOD_ROLES)[number];
 
-/** `adjusted_estimate`: the user renamed the food and no record matched, so the earlier values were kept. */
-export const NUTRITION_SOURCE_TYPES = ['verified_record', 'ai_estimate', 'adjusted_estimate', 'user_entered'] as const;
+/**
+ * `adjusted_estimate`: the user renamed the food and no record matched, so the earlier values were kept.
+ * `package_label`: read from the nutrition table printed on the pack. `product_database`: a barcode lookup (Open Food Facts).
+ */
+export const NUTRITION_SOURCE_TYPES = ['verified_record', 'ai_estimate', 'adjusted_estimate', 'user_entered', 'package_label', 'product_database'] as const;
 export type NutritionSourceType = (typeof NUTRITION_SOURCE_TYPES)[number];
 
 /** Nutrients on every item. Anything else appears only when a credible record supplies it. */
@@ -86,6 +101,13 @@ export type NutrientKey = (typeof NUTRIENT_KEYS)[number];
 
 export const OTHER_NUTRIENT_KEYS = ['calciumMg', 'ironMg', 'potassiumMg', 'vitaminCMg'] as const;
 export type OtherNutrientKey = (typeof OTHER_NUTRIENT_KEYS)[number];
+
+/**
+ * Vitamins and minerals a food is a good source of in a normal serving. Named only, never measured: the
+ * model knows which foods carry what far better than how much a photo holds, so there are no amounts.
+ */
+export const RICH_IN_KEYS = ['vitaminA', 'vitaminB12', 'vitaminC', 'vitaminD', 'vitaminE', 'vitaminK', 'folate', 'calcium', 'iron', 'potassium', 'magnesium', 'zinc'] as const;
+export type RichInKey = (typeof RICH_IN_KEYS)[number];
 
 /** What a photo produced. `unclear` asks for another photo instead of guessing. */
 export const SCAN_OUTCOMES = ['ok', 'no_food', 'unclear'] as const;

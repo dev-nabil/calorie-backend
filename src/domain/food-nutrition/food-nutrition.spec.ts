@@ -28,6 +28,7 @@ const food = (over: Partial<MealAnalysisOutput['items'][number]> = {}): MealAnal
   role: 'single',
   of: null,
   n: { kcal: 100, p: 5, c: 10, f: 4.4, fib: 1, sug: 1, na: 10 },
+  rich: [],
   conf: 0.7,
   pt: null,
   note: null,
@@ -226,5 +227,24 @@ describe('user corrections', () => {
   it('re-matches on preparation', () => {
     const egg = normaliseAnalysis(out([food({ name: 'Egg', en: 'boiled egg', prep: 'boiled', g: 50 })]), { records: index }).analysis.items[0]!;
     expect(applyItemCorrection(egg, { preparation: 'fried' }, index).stale).toBe(true);
+  });
+});
+
+describe('vitamins and minerals a food is rich in', () => {
+  it('keeps the model\'s names, without repeats, at most four', () => {
+    const [item] = normaliseAnalysis(out([food({ rich: ['iron', 'folate', 'iron', 'potassium', 'magnesium', 'zinc'] })])).analysis.items;
+    expect(item!.richIn).toEqual(['iron', 'folate', 'potassium', 'magnesium']);
+  });
+
+  it('keeps them on a portion or preparation change and drops them when the food is renamed', () => {
+    const dal = normaliseAnalysis(out([food({ name: 'Dal', en: 'dal', prep: 'curried', rich: ['folate', 'iron'] })]), { records: index }).analysis.items[0]!;
+    expect(applyItemCorrection(dal, { grams: 250 }, index).item.richIn).toEqual(['folate', 'iron']);
+    expect(applyItemCorrection(dal, { preparation: 'fried' }, index).item.richIn).toEqual(['folate', 'iron']);
+    expect(applyItemCorrection(dal, { name: 'chicken curry' }, index).item.richIn).toEqual([]);
+  });
+
+  it('treats a scan stored before the field existed as having none', () => {
+    const old = { ...normaliseAnalysis(out([food()])).analysis.items[0]!, richIn: undefined } as unknown as AnalysedItem;
+    expect(applyItemCorrection(old, { grams: 150 }, index).item.richIn).toEqual([]);
   });
 });

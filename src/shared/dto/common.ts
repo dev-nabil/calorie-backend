@@ -16,6 +16,8 @@ export const TimeZoneSchema = z
 
 export const ObjectIdSchema = z.string().regex(/^[a-f0-9]{24}$/, 'Expected an id');
 export const UuidSchema = z.uuid();
+/** EAN-8, UPC-A, EAN-13 or GTIN-14: digits only. */
+export const BarcodeSchema = z.string().regex(/^\d{8,14}$/, 'Expected 8 to 14 digits');
 export const IsoDateTimeSchema = z.iso.datetime({ offset: true });
 
 export const ErrorResponseSchema = z

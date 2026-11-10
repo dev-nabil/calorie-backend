@@ -90,6 +90,12 @@ export const EnvSchema = z
     GEMINI_FOOD_OUTPUT_USD_PER_M: z.coerce.number().positive().optional(),
     /** Development only: canned scan results instead of Gemini, to walk the flow before the key exists. */
     GEMINI_FOOD_MOCK: bool(false),
+    /** Barcode lookups (GET /foods/barcode/{code}): Open Food Facts, free and keyless. Tests never call it; a fake answers. */
+    PRODUCT_DB_ENABLED: bool(true),
+    PRODUCT_DB_URL: z.url().default('https://world.openfoodfacts.org'),
+    /** Open Food Facts asks every client to name itself. Never put a personal email here. */
+    PRODUCT_DB_USER_AGENT: z.string().min(3).default('Nouri/1.0 (nutrition app)'),
+    PRODUCT_DB_TIMEOUT_MS: z.coerce.number().int().min(500).max(15_000).default(4000),
     FREE_SCANS: z.coerce.number().int().min(0).max(100).default(1),
     CORS_ORIGINS: csv,
     TURNSTILE_SECRET: z.string().optional(),

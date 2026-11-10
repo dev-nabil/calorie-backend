@@ -52,7 +52,11 @@
           "x": 0.54,
           "y": 0.74
         },
-        "note": null
+        "note": null,
+        "rich": [
+          "vitaminB12",
+          "zinc"
+        ]
       },
       {
         "name": "White rice, cooked",
@@ -75,7 +79,8 @@
           "x": 0.2,
           "y": 0.68
         },
-        "note": null
+        "note": null,
+        "rich": []
       },
       {
         "name": "Cooking oil (estimated)",
@@ -95,7 +100,10 @@
         },
         "conf": 0.4,
         "pt": null,
-        "note": null
+        "note": null,
+        "rich": [
+          "vitaminE"
+        ]
       }
     ],
     "assumptions": [

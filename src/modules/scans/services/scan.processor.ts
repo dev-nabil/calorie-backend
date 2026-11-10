@@ -4,10 +4,10 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import type { Connection, Model } from 'mongoose';
 import { dayKeyFor } from '../../../domain/day-keys';
 import { isPlusActive, shouldChargeFreeScan } from '../../../domain/entitlements';
-import { normaliseAnalysis, parseModelOutput } from '../../../domain/nutrition-validator';
+import { normaliseAnalysis, normaliseLabel, parseLabelOutput, parseModelOutput } from '../../../domain/nutrition-validator';
 import { FoodRecordsService } from '../../content/food-records.service';
 import { fillTemplate } from '../../content/content.loader';
-import { ERROR_CODES, type ScanOutcome } from '../../../shared';
+import { ERROR_CODES, scanPromptKey, type ScanOutcome } from '../../../shared';
 import { DEFAULT_LOCALE, parseLocale } from '../../../shared/locales';
 import { languageDirective } from '../../ai/language';
 import { ContentService } from '../../content/content.service';
@@ -30,6 +30,10 @@ export const STUCK_PROCESSING_MS = 3 * 60_000; // plan 8.10 stuck-job sweep
 const REJECTIONS: Partial<Record<ScanOutcome, { code: string; message: string }>> = {
   no_food: { code: ERROR_CODES.NO_FOOD_DETECTED, message: 'No food was found in this photo' },
   unclear: { code: ERROR_CODES.IMAGE_UNCLEAR, message: 'This photo is too unclear to estimate' },
+};
+const LABEL_REJECTIONS: Partial<Record<ScanOutcome, { code: string; message: string }>> = {
+  no_food: { code: ERROR_CODES.NO_LABEL_DETECTED, message: 'No nutrition table was found in this photo' },
+  unclear: { code: ERROR_CODES.IMAGE_UNCLEAR, message: 'The nutrition table could not be read' },
 };
 
 function failureOf(e: unknown): { code: string; message: string } {
@@ -77,18 +81,20 @@ export class ScanProcessor {
     const user = await this.users.findById(scan.userId.toString());
     if (!user) return this.finish(scan, 'failed', { error: { code: 'USER_GONE', message: 'Account no longer active' } });
     try {
-      const prompt = await this.content.activePrompt('meal-scan');
+      const mode = scan.mode ?? 'meal';
+      const prompt = await this.content.activePrompt(scanPromptKey(mode));
       const profile = await this.profiles.findOne({ userId: scan.userId }).lean<ProfileDoc>();
       const scanLocale = parseLocale(scan.locale) ?? parseLocale(user.locale) ?? DEFAULT_LOCALE;
       const image = await this.storage.get(scan.imageKey);
       if (!image) return this.finish(scan, 'failed', { error: { code: 'AI_FAILED', message: 'The photo is no longer available' } });
       const res = await this.foodScan.analyse({
         scanId,
-        instructions: prompt?.staticPrefix ?? 'List the foods in the photo and return JSON.',
+        mode,
+        instructions: prompt?.staticPrefix ?? (mode === 'label' ? 'Copy the nutrition table in the photo and return JSON.' : 'List the foods in the photo and return JSON.'),
         context: languageDirective(scanLocale) + fillTemplate(prompt?.dynamicTemplate ?? '', { dietPattern: profile?.dietPattern ?? '' }),
         image,
       });
-      const parsed = parseModelOutput(res.output);
+      const parsed = mode === 'label' ? parseLabelOutput(res.output) : parseModelOutput(res.output);
       const meta = {
         model: res.model,
         promptKey: prompt?.key ?? null,
@@ -103,9 +109,14 @@ export class ScanProcessor {
         return this.finish(scan, 'failed', { ...meta, error: { code: 'MODEL_OUTPUT_INVALID', message: 'The analysis could not be read' } });
       }
       const reaction = await this.reactionInput(scan, user, profile, now);
-      const normalised = normaliseAnalysis(parsed.value, { records: this.records.index, ...(reaction ? { reaction } : {}) });
+      const extra = reaction ? { reaction } : {};
+      const normalised =
+        mode === 'label'
+          ? normaliseLabel(parsed.value as Parameters<typeof normaliseLabel>[0], { barcode: scan.barcode ?? null, ...extra })
+          : normaliseAnalysis(parsed.value as Parameters<typeof normaliseAnalysis>[0], { records: this.records.index, ...extra });
+      const rejections = mode === 'label' ? LABEL_REJECTIONS : REJECTIONS;
       if (normalised.status === 'succeeded') await this.succeed(scan, user, { ...meta, result: normalised.analysis }, now);
-      else await this.finish(scan, normalised.status, { ...meta, result: normalised.analysis, error: REJECTIONS[normalised.analysis.outcome] ?? null });
+      else await this.finish(scan, normalised.status, { ...meta, result: normalised.analysis, error: rejections[normalised.analysis.outcome] ?? null });
     } catch (e) {
       const mayRecover = e instanceof AiUnavailableError && e.reason !== 'daily_cap' && e.reason !== 'not_configured';
       if (mayRecover && now.getTime() - new Date(scan.queuedAt).getTime() < AI_WAIT_LIMIT_MS) {

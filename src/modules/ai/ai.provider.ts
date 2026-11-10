@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { FridgeChefOutputSchema, MealAnalysisOutputSchema, MealParseOutputSchema, PlanNarrativeOutputSchema, WeeklyRecapOutputSchema } from '../../shared';
-import { PLAN_EXAMPLE_ANALYSIS } from '../../domain/nutrition-validator/fixtures';
+import { FridgeChefOutputSchema, LabelScanOutputSchema, MealAnalysisOutputSchema, MealParseOutputSchema, PlanNarrativeOutputSchema, WeeklyRecapOutputSchema } from '../../shared';
+import { LABEL_EXAMPLE, PLAN_EXAMPLE_ANALYSIS } from '../../domain/nutrition-validator/fixtures';
 import { SILENT_WAV } from './providers/wav';
 
 export interface AiUsage {
@@ -9,7 +9,7 @@ export interface AiUsage {
   cachedTokens: number;
 }
 
-export type AiTask = 'meal_scan' | 'meal_parse' | 'onboarding_extract' | 'plan_narrative' | 'weekly_recap' | 'fridge_chef';
+export type AiTask = 'meal_scan' | 'label_scan' | 'meal_parse' | 'onboarding_extract' | 'plan_narrative' | 'weekly_recap' | 'fridge_chef';
 
 /** How much a thinking model may think before it answers. Thinking tokens bill as output and count against `maxOutputTokens`. */
 export type ThinkingEffort = 'minimal' | 'low' | 'medium' | 'high';
@@ -96,6 +96,7 @@ export interface SpeechResult {
 
 export const JSON_SCHEMAS: Record<AiTask, Record<string, unknown>> = {
   meal_scan: z.toJSONSchema(MealAnalysisOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
+  label_scan: z.toJSONSchema(LabelScanOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
   meal_parse: z.toJSONSchema(MealParseOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
   onboarding_extract: {}, // filled from the prompt file (content/prompts/onboarding-extract.v1.md) at runtime
   plan_narrative: planNarrativeJsonSchema(),
@@ -265,6 +266,7 @@ export class FakeAiProvider extends AiProvider {
     if (this.mode === 'not_food') {
       const output = {
         meal_scan: { status: 'no_food', mealName: null, items: [], assumptions: [], question: "That doesn't look like food.", retake: null },
+        label_scan: { ...structuredClone(LABEL_EXAMPLE), status: 'no_food', name: null, en: null, rich: [], question: 'I cannot see a nutrition table.' },
         meal_parse: { mealName: '', items: [], notes: null, clarifyingQuestion: 'What did you eat?' },
         onboarding_extract: { answers: [], ack: 'Sorry, I missed that.', clarify: 'Could you say that another way?', userQuestion: null },
         plan_narrative: structuredClone(PLAN_NARRATIVE_EXAMPLE),
@@ -275,6 +277,7 @@ export class FakeAiProvider extends AiProvider {
     }
     const fallback = {
       meal_scan: () => structuredClone(PLAN_EXAMPLE_ANALYSIS),
+      label_scan: () => structuredClone(LABEL_EXAMPLE),
       meal_parse: () => structuredClone(PARSE_EXAMPLE),
       onboarding_extract: () => fakeExtract(req.context),
       plan_narrative: () => structuredClone(PLAN_NARRATIVE_EXAMPLE),
