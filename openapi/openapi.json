@@ -10652,6 +10652,37 @@
         },
         "description": "Vitamins and minerals this food is a good source of, strongest first. Names only, no amounts; empty when unknown"
       },
+      "CropRect": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "y": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "w": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "h": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "w",
+          "h"
+        ]
+      },
       "Point": {
         "type": "object",
         "properties": {
@@ -11178,6 +11209,16 @@
                 "nullable": true,
                 "description": "Signed 320 px thumbnail URL once the thumbnail job has run",
                 "type": "string"
+              },
+              "crop": {
+                "description": "The food and its whole vessel, from the scan; show the photo through this window when present",
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CropRect"
+                  }
+                ],
+                "type": "object"
               }
             },
             "required": [
@@ -12107,6 +12148,16 @@
           },
           "totals": {
             "$ref": "#/components/schemas/MealTotals"
+          },
+          "crop": {
+            "description": "The food and the whole of its vessel, with a margin, for showing the photo; null or absent when the photo is already about the food",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CropRect"
+              }
+            ],
+            "type": "object"
           },
           "assumptions": {
             "type": "array",

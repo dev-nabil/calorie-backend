@@ -265,7 +265,7 @@ export class FakeAiProvider extends AiProvider {
     await this.applyMode();
     if (this.mode === 'not_food') {
       const output = {
-        meal_scan: { status: 'no_food', mealName: null, items: [], assumptions: [], question: "That doesn't look like food.", retake: null },
+        meal_scan: { status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: "That doesn't look like food.", retake: null },
         label_scan: { ...structuredClone(LABEL_EXAMPLE), status: 'no_food', name: null, en: null, rich: [], question: 'I cannot see a nutrition table.' },
         meal_parse: { mealName: '', items: [], notes: null, clarifyingQuestion: 'What did you eat?' },
         onboarding_extract: { answers: [], ack: 'Sorry, I missed that.', clarify: 'Could you say that another way?', userQuestion: null },

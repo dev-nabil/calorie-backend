@@ -19,12 +19,13 @@ import { UsersService } from '../../src/modules/users/users.service';
 /** A Bangladeshi lunch as Gemini would return it. Rice, dal and fish curry have records; the greens do not. */
 const LUNCH = {
   status: 'ok',
+  box_2d: [250, 200, 750, 800],
   mealName: 'Rice, dal and fish curry',
   items: [
-    { name: 'White rice', en: 'white rice', g: 200, prep: 'boiled', role: 'single', of: null, n: { kcal: 130, p: 2.7, c: 28, f: 0.3, fib: 0.4, sug: 0, na: 1 }, rich: [], conf: 0.85, pt: { x: 0.3, y: 0.6 }, note: null },
-    { name: 'Dal', en: 'dal', g: 120, prep: 'curried', role: 'mixed_dish', of: null, n: { kcal: 120, p: 7, c: 15, f: 4, fib: 4, sug: 1, na: 300 }, rich: ['folate', 'iron', 'potassium'], conf: 0.8, pt: { x: 0.6, y: 0.3 }, note: null },
-    { name: 'Fish curry', en: 'fish curry', g: 150, prep: 'curried', role: 'mixed_dish', of: null, n: { kcal: 110, p: 12, c: 4, f: 5, fib: 0.5, sug: 1, na: 350 }, rich: ['vitaminB12', 'vitaminD'], conf: 0.7, pt: { x: 0.7, y: 0.7 }, note: 'Oil assumed' },
-    { name: 'Shak bhaji', en: 'greens stir fry', g: 80, prep: 'fried', role: 'single', of: null, n: { kcal: 70, p: 2, c: 5, f: 5, fib: 2, sug: null, na: null }, rich: ['vitaminA', 'vitaminK', 'vitaminC', 'iron'], conf: 0.6, pt: null, note: null },
+    { name: 'White rice', en: 'white rice', ves: 'plate', cm: 26, pcs: 1, g: 200, prep: 'boiled', role: 'single', of: null, n: { kcal: 130, p: 2.7, c: 28, f: 0.3, fib: 0.4, sug: 0, na: 1 }, rich: [], conf: 0.85, pt: { x: 0.3, y: 0.6 }, note: null },
+    { name: 'Dal', en: 'dal', ves: 'plate', cm: 26, pcs: 1, g: 120, prep: 'curried', role: 'mixed_dish', of: null, n: { kcal: 120, p: 7, c: 15, f: 4, fib: 4, sug: 1, na: 300 }, rich: ['folate', 'iron', 'potassium'], conf: 0.8, pt: { x: 0.6, y: 0.3 }, note: null },
+    { name: 'Fish curry', en: 'fish curry', ves: 'plate', cm: 26, pcs: 1, g: 150, prep: 'curried', role: 'mixed_dish', of: null, n: { kcal: 110, p: 12, c: 4, f: 5, fib: 0.5, sug: 1, na: 350 }, rich: ['vitaminB12', 'vitaminD'], conf: 0.7, pt: { x: 0.7, y: 0.7 }, note: 'Oil assumed' },
+    { name: 'Shak bhaji', en: 'greens stir fry', ves: 'plate', cm: 26, pcs: 1, g: 80, prep: 'fried', role: 'single', of: null, n: { kcal: 70, p: 2, c: 5, f: 5, fib: 2, sug: null, na: null }, rich: ['vitaminA', 'vitaminK', 'vitaminC', 'iron'], conf: 0.6, pt: null, note: null },
   ],
   assumptions: ['Oil in the curry is assumed to be typical.'],
   question: null,
@@ -124,7 +125,7 @@ describe('Food photo scanner, Gemini mocked', () => {
       const h = await asPlus();
       const { b } = await scanLunch(h);
       const doc = await scans().findById(b.scanId).lean<ScanDoc>();
-      expect(doc).toMatchObject({ model: 'gemini-3.5-flash-lite', promptKey: 'meal-scan', promptVersion: 4, providerAttempts: 1, usage: { inputTokens: 1600, outputTokens: 420 } });
+      expect(doc).toMatchObject({ model: 'gemini-3.5-flash-lite', promptKey: 'meal-scan', promptVersion: 6, providerAttempts: 1, usage: { inputTokens: 1600, outputTokens: 420 } });
       expect(doc!.usage.costUsd).toBeCloseTo((1600 * 0.3 + 420 * 2.5) / 1e6, 8);
       expect(doc!.modelLatencyMs).not.toBeNull();
       expect(JSON.stringify(doc)).not.toMatch(/base64|\/9j\//);
@@ -169,7 +170,7 @@ describe('Food photo scanner, Gemini mocked', () => {
       const { scan } = await scanLunch(h);
       await recalc(bearer((await signIn(t)).accessToken), scan.scanId, {}).expect(404);
       await recalc(h, scan.scanId, { items: [{ id: 'i99', grams: 10 }] }).expect(400);
-      fake.enqueue({ status: 'no_food', mealName: null, items: [], assumptions: [], question: null, retake: null });
+      fake.enqueue({ status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: null, retake: null });
       const b = await body(h);
       await post(h, b).expect(202);
       await drain();
@@ -190,6 +191,15 @@ describe('Food photo scanner, Gemini mocked', () => {
       expect(saved.body.totals.incomplete).toEqual(expect.arrayContaining(['sugarG', 'sodiumMg']));
       expect(saved.body.items[1].richIn).toEqual(['folate', 'iron', 'potassium']);
       expect(vision.calls).toHaveLength(1);
+    });
+
+    it('hands the food crop from the scan to the saved meal, so every device shows the same window', async () => {
+      const h = await asPlus();
+      const { scan } = await scanLunch(h);
+      // LUNCH box_2d [250, 200, 750, 800] is 60 % x 50 % of the photo; the crop adds a 10 % margin on each side.
+      expect(scan.result.crop).toEqual({ x: 0.14, y: 0.2, w: 0.72, h: 0.6 });
+      const saved = await t.http().post('/v1/meals').set(h).set(idem()).send(mealFrom(scan)).expect(201);
+      expect(saved.body.photo.crop).toEqual({ x: 0.14, y: 0.2, w: 0.72, h: 0.6 });
     });
 
     it('keeps unknown values unknown through to the day totals', async () => {
@@ -289,7 +299,7 @@ describe('Food photo scanner, Gemini mocked', () => {
 
     it('caches a rejected photo too, so retrying it costs nothing', async () => {
       const h = await asPlus();
-      fake.enqueue({ status: 'no_food', mealName: null, items: [], assumptions: [], question: 'A cat', retake: null });
+      fake.enqueue({ status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: 'A cat', retake: null });
       const seed = randomUUID();
       await post(h, await body(h, seed)).expect(202);
       await drain();
@@ -358,7 +368,7 @@ describe('Food photo scanner, Gemini mocked', () => {
 
     it('asks for another photo when the picture is unclear, free of charge', async () => {
       const h = bearer((await signIn(t)).accessToken);
-      fake.enqueue({ status: 'unclear', mealName: null, items: [], assumptions: [], question: 'Too dark to see. Try with more light.', retake: 'too_dark' });
+      fake.enqueue({ status: 'unclear', box_2d: null, mealName: null, items: [], assumptions: [], question: 'Too dark to see. Try with more light.', retake: 'too_dark' });
       const b = await body(h);
       await post(h, b).expect(202);
       await drain();

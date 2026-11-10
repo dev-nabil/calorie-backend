@@ -29,11 +29,20 @@
   },
   "fakeOutput": {
     "status": "ok",
+    "box_2d": [
+      100,
+      60,
+      920,
+      940
+    ],
     "mealName": "Grilled chicken with rice and greens",
     "items": [
       {
         "name": "Grilled chicken breast",
         "en": "grilled chicken breast",
+        "ves": "plate",
+        "cm": 26,
+        "pcs": 1,
         "g": 150,
         "prep": "grilled",
         "role": "single",
@@ -61,6 +70,9 @@
       {
         "name": "White rice, cooked",
         "en": "long grain rice",
+        "ves": "plate",
+        "cm": 26,
+        "pcs": 1,
         "g": 160,
         "prep": "boiled",
         "role": "single",
@@ -85,6 +97,9 @@
       {
         "name": "Cooking oil (estimated)",
         "en": "cooking oil",
+        "ves": "plate",
+        "cm": 26,
+        "pcs": 1,
         "g": 5,
         "prep": "unknown",
         "role": "single",

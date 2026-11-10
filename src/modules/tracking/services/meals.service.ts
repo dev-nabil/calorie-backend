@@ -9,6 +9,7 @@ import {
   MEAL_RESTORE_WINDOW_DAYS,
   type AnalysedItem,
   type CreateMealRequest,
+  type CropRect,
   type Meal,
   type MealItemInput,
   type MealTotals,
@@ -35,7 +36,7 @@ export const THUMBNAIL_JOB = 'meal_thumbnail';
 
 export interface MealPhotoSource {
   /** Looks up a succeeded scan of this user for the photo reference (scans module). */
-  photoFor(userId: Types.ObjectId, scanId: string): Promise<{ key: string; thumbKey: string | null } | null>;
+  photoFor(userId: Types.ObjectId, scanId: string): Promise<{ key: string; thumbKey: string | null; crop?: CropRect | null } | null>;
   /** The stored analysis: the only trusted basis for items saved from a scan. */
   itemsFor(userId: Types.ObjectId, scanId: string): Promise<AnalysedItem[] | null>;
 }
@@ -321,6 +322,7 @@ export class MealsService implements OnModuleInit {
             thumbKey: d.photo.thumbKey ?? null,
             url: this.storage.signedGetUrl(d.photo.displayKey ?? d.photo.key),
             thumbUrl: d.photo.thumbKey ? this.storage.signedGetUrl(d.photo.thumbKey) : null,
+            crop: d.photo.crop ?? null,
           }
         : null,
       portionMultiplier: d.portionMultiplier,

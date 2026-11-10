@@ -85,7 +85,7 @@ describe('Scans (M4-T3)', () => {
 
   it('does not charge a rejected (not food) scan', async () => {
     const h = bearer((await signIn(t)).accessToken);
-    fake.enqueue({ status: 'no_food', mealName: null, items: [], assumptions: [], question: 'That looks like a cat.', retake: null });
+    fake.enqueue({ status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: 'That looks like a cat.', retake: null });
     const body = await scanBody(h);
     await post(h, body).expect(202);
     await drain();

@@ -13,6 +13,7 @@ import {
   type OtherNutrient,
   type RichInKey,
   type WeightSource,
+  type CropRect,
 } from '../../../shared';
 
 export interface StoredMealItem {
@@ -50,7 +51,7 @@ export interface MealDoc {
   name: string;
   source: MealSource;
   scanId: string | null;
-  photo: { key: string; thumbKey: string | null; displayKey?: string | null } | null;
+  photo: { key: string; thumbKey: string | null; displayKey?: string | null; crop?: CropRect | null } | null;
   portionMultiplier: number;
   /** Items at the base portion (1×); totals apply the multiplier (plan 8.3 rule 6). */
   items: StoredMealItem[];
@@ -96,7 +97,10 @@ export const MealSchema = new Schema<MealDoc>(
     name: { type: String, required: true },
     source: { type: String, enum: MEAL_SOURCES, required: true },
     scanId: { type: String, default: null },
-    photo: { type: new Schema({ key: String, thumbKey: { type: String, default: null }, displayKey: { type: String, default: null } }, { _id: false }), default: null },
+    photo: {
+      type: new Schema({ key: String, thumbKey: { type: String, default: null }, displayKey: { type: String, default: null }, crop: { type: Schema.Types.Mixed, default: null } }, { _id: false }),
+      default: null,
+    },
     portionMultiplier: { type: Number, default: 1 },
     items: { type: [ItemSchema], default: [] },
     totals: { kcal: Number, proteinG: Number, carbsG: Number, fatG: Number, fiberG: Number, sugarG: Number, sodiumMg: Number, incomplete: { type: [String], default: [] } },

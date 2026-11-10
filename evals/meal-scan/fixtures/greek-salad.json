@@ -32,11 +32,20 @@
   },
   "fakeOutput": {
     "status": "ok",
+    "box_2d": [
+      100,
+      60,
+      920,
+      940
+    ],
     "mealName": "Greek salad",
     "items": [
       {
         "name": "Tomato and cucumber salad",
         "en": "tomato cucumber salad",
+        "ves": "plate",
+        "cm": 26,
+        "pcs": 1,
         "g": 200,
         "prep": "raw",
         "role": "single",
@@ -62,6 +71,9 @@
       {
         "name": "Feta cheese",
         "en": "feta cheese",
+        "ves": "plate",
+        "cm": 26,
+        "pcs": 1,
         "g": 40,
         "prep": "raw",
         "role": "single",
@@ -86,6 +98,9 @@
       {
         "name": "Olive oil dressing",
         "en": "olive oil dressing",
+        "ves": "plate",
+        "cm": 26,
+        "pcs": 1,
         "g": 14,
         "prep": "raw",
         "role": "single",

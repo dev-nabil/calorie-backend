@@ -55,6 +55,12 @@ export const RichInSchema = z
   .describe('Vitamins and minerals this food is a good source of, strongest first. Names only, no amounts; empty when unknown')
   .meta({ id: 'RichIn' });
 
+/** A part of the photo, as shares of its width and height (0 to 1, from the top-left of the upright photo). */
+export const CropRectSchema = z
+  .object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1), w: z.number().min(0).max(1), h: z.number().min(0).max(1) })
+  .meta({ id: 'CropRect' });
+export type CropRect = z.infer<typeof CropRectSchema>;
+
 export const PointSchema = z
   .object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) })
   .meta({ id: 'Point' });
@@ -171,6 +177,7 @@ export const MealSchema = z
         thumbKey: z.string().nullable(),
         url: z.string().describe('Signed URL (1024 px when ready, else the original), valid 1 hour'),
         thumbUrl: z.string().nullable().describe('Signed 320 px thumbnail URL once the thumbnail job has run'),
+        crop: CropRectSchema.nullable().optional().describe('The food and its whole vessel, from the scan; show the photo through this window when present'),
       })
       .nullable(),
     portionMultiplier: z.number(),

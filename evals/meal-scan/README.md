@@ -10,5 +10,5 @@
 ```json
 { "id": "chicken-rice", "category": "lunch",
   "expected": { "isFood": true, "kcal": 470, "items": [{ "name": "chicken", "match": ["chicken"] }] },
-  "fakeOutput": { "...": "model output in the schema of content/prompts/meal-scan.v3.md" } }
+  "fakeOutput": { "...": "model output in the schema of src/shared/dto/scans.ts, MealAnalysisOutputSchema" } }
 ```

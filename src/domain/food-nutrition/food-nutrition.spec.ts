@@ -19,10 +19,13 @@ const index = buildFoodIndex(file.records, file.sources);
 
 const rice: NutrientValues = { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3, fiberG: 0.4, sugarG: null, sodiumMg: 1 };
 
-const out = (items: MealAnalysisOutput['items']): MealAnalysisOutput => ({ status: 'ok', mealName: 'Lunch', items, assumptions: [], question: null, retake: null });
+const out = (items: MealAnalysisOutput['items']): MealAnalysisOutput => ({ status: 'ok', box_2d: null, mealName: 'Lunch', items, assumptions: [], question: null, retake: null });
 const food = (over: Partial<MealAnalysisOutput['items'][number]> = {}): MealAnalysisOutput['items'][number] => ({
   name: 'Food',
   en: 'unlisted food',
+  ves: 'plate',
+  cm: 26,
+  pcs: 1,
   g: 100,
   prep: 'unknown',
   role: 'single',
@@ -191,7 +194,7 @@ describe('sizes the model is not held to', () => {
 
 describe('unclear photos', () => {
   it('asks for another photo instead of inventing numbers', () => {
-    const r = normaliseAnalysis({ status: 'unclear', mealName: null, items: [], assumptions: [], question: 'Move closer to the plate', retake: 'too_far' });
+    const r = normaliseAnalysis({ status: 'unclear', box_2d: null, mealName: null, items: [], assumptions: [], question: 'Move closer to the plate', retake: 'too_far' });
     expect(r.status).toBe('rejected');
     expect(r.analysis).toMatchObject({ outcome: 'unclear', isFood: true, items: [], retakeReason: 'too_far', clarifyingQuestion: 'Move closer to the plate' });
   });
@@ -246,5 +249,11 @@ describe('vitamins and minerals a food is rich in', () => {
   it('treats a scan stored before the field existed as having none', () => {
     const old = { ...normaliseAnalysis(out([food()])).analysis.items[0]!, richIn: undefined } as unknown as AnalysedItem;
     expect(applyItemCorrection(old, { grams: 150 }, index).item.richIn).toEqual([]);
+  });
+
+  it('multiplies the weight of one piece by the piece count', () => {
+    const bananas = normaliseAnalysis(out([food({ name: '3 bananas', en: 'banana', pcs: 3, g: 120, n: { kcal: 89, p: 1.1, c: 23, f: 0.3, fib: 2.6, sug: 12, na: 1 } })])).analysis.items[0]!;
+    expect(bananas.grams).toBe(360);
+    expect(bananas.kcal).toBe(320);
   });
 });

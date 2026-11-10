@@ -88,6 +88,10 @@ export type FoodPreparation = (typeof FOOD_PREPARATIONS)[number];
 export const FOOD_ROLES = ['single', 'mixed_dish', 'component'] as const;
 export type FoodRole = (typeof FOOD_ROLES)[number];
 
+/** What the model says a food is in. It is written before the grams so the weight follows the vessel's real size; never stored. */
+export const SCAN_VESSELS = ['plate', 'bowl', 'cup', 'glass', 'pot', 'pan', 'serving_dish', 'tray', 'box', 'hand', 'none'] as const;
+export type ScanVessel = (typeof SCAN_VESSELS)[number];
+
 /**
  * `adjusted_estimate`: the user renamed the food and no record matched, so the earlier values were kept.
  * `package_label`: read from the nutrition table printed on the pack. `product_database`: a barcode lookup (Open Food Facts).

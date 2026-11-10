@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { MAX_MEAL_ITEMS, PORTION_MULTIPLIER_MAX, PORTION_MULTIPLIER_MIN } from '../constants';
-import { FOOD_PREPARATIONS, FOOD_ROLES, LABEL_BASES, MEAL_CATEGORIES, RETAKE_REASONS, RICH_IN_KEYS, SCAN_MODES, SCAN_OUTCOMES, SCAN_STATUSES } from '../enums';
+import { FOOD_PREPARATIONS, FOOD_ROLES, LABEL_BASES, MEAL_CATEGORIES, RETAKE_REASONS, RICH_IN_KEYS, SCAN_MODES, SCAN_OUTCOMES, SCAN_STATUSES, SCAN_VESSELS } from '../enums';
 import { BarcodeSchema, IsoDateTimeSchema, UuidSchema } from './common';
-import { MealTotalsSchema, NutrientTotalsSchema, NutrientValuesSchema, NutritionSourceSchema, OtherNutrientSchema, Per100gInputSchema, PointSchema, RichInSchema } from './meals';
+import { CropRectSchema, MealTotalsSchema, NutrientTotalsSchema, NutrientValuesSchema, NutritionSourceSchema, OtherNutrientSchema, Per100gInputSchema, PointSchema, RichInSchema } from './meals';
 
 const per100 = z.number().min(0).nullable();
 
@@ -10,7 +10,10 @@ const per100 = z.number().min(0).nullable();
 export const MealAnalysisItemOutputSchema = z.strictObject({
   name: z.string().min(1).describe('Display name in the requested language'),
   en: z.string().min(1).describe('Plain lowercase English name, for example "white rice"'),
-  g: z.number().describe('Estimated edible weight as served, in grams'),
+  ves: z.enum(SCAN_VESSELS).describe('What the food is in: pot = cooking pot, saucepan, handi; pan = korai, wok, frying pan; none = no vessel. Written before g so the weight follows the real size'),
+  cm: z.number().nullable().describe('Real inner width of that vessel in cm, judged from its kind and from things of known size beside it, never from how much of the photo it fills; null for none'),
+  pcs: z.number().int().min(1).describe('How many identical separate pieces are in the photo (3 bananas = 3); 1 for rice, curry and anything not served in pieces'),
+  g: z.number().describe('Estimated edible weight of ONE piece as served, in grams; for pcs = 1 the whole item. The server multiplies by pcs'),
   prep: z.enum(FOOD_PREPARATIONS),
   role: z.enum(FOOD_ROLES),
   of: z.number().int().nullable().describe('For a component: index of its mixed dish in items'),
@@ -24,12 +27,16 @@ export const MealAnalysisItemOutputSchema = z.strictObject({
 });
 
 /**
- * Raw model output for a meal photo (content/prompts/meal-scan.v4.md). Unknown fields are rejected. This also
+ * Raw model output for a meal photo (content/prompts/meal-scan.v6.md). Unknown fields are rejected. This also
  * generates the schema sent to Gemini, which refuses `maxItems` here ("too many states") and ignores string
  * lengths, so sizes are enforced by normaliseAnalysis instead: an over-long reply is trimmed, not failed.
  */
 export const MealAnalysisOutputSchema = z.strictObject({
   status: z.enum(SCAN_OUTCOMES),
+  box_2d: z
+    .array(z.number().int())
+    .nullable()
+    .describe('One box around all the food and the whole of every vessel it is in, [ymin, xmin, ymax, xmax], each 0 to 1000 from the top-left of the photo; null when there is no food'),
   mealName: z.string().nullable(),
   items: z.array(MealAnalysisItemOutputSchema),
   assumptions: z.array(z.string()),
@@ -99,6 +106,7 @@ export const MealAnalysisSchema = z
     mealName: z.string().nullable(),
     items: z.array(AnalysedItemSchema),
     totals: MealTotalsSchema,
+    crop: CropRectSchema.nullable().optional().describe('The food and the whole of its vessel, with a margin, for showing the photo; null or absent when the photo is already about the food'),
     assumptions: z.array(z.string()),
     notes: z.string().nullable(),
     clarifyingQuestion: z.string().nullable(),

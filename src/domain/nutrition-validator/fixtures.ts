@@ -1,12 +1,13 @@
 /** A plate in the model's output format, used by tests and the fake provider. Totals 501 kcal. */
 export const PLAN_EXAMPLE_ANALYSIS = {
   status: 'ok',
+  box_2d: [120, 90, 900, 950],
   mealName: 'Grilled chicken with rice and greens',
   items: [
     {
       name: 'Grilled chicken breast',
       en: 'grilled chicken breast',
-      g: 150,
+      ves: 'plate', cm: 26, pcs: 1, g: 150,
       prep: 'grilled',
       role: 'single',
       of: null,
@@ -19,7 +20,7 @@ export const PLAN_EXAMPLE_ANALYSIS = {
     {
       name: 'White rice, cooked',
       en: 'long grain rice',
-      g: 160,
+      ves: 'plate', cm: 26, pcs: 1, g: 160,
       prep: 'boiled',
       role: 'single',
       of: null,
@@ -32,7 +33,7 @@ export const PLAN_EXAMPLE_ANALYSIS = {
     {
       name: 'Cooking oil (estimated)',
       en: 'cooking oil',
-      g: 5,
+      ves: 'plate', cm: 26, pcs: 1, g: 5,
       prep: 'unknown',
       role: 'single',
       of: null,

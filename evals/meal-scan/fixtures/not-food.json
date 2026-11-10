@@ -7,6 +7,7 @@
   },
   "fakeOutput": {
     "status": "no_food",
+    "box_2d": null,
     "mealName": null,
     "items": [],
     "assumptions": [],

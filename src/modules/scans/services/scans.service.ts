@@ -61,8 +61,8 @@ export class ScansService implements OnModuleInit {
   onModuleInit(): void {
     this.meals.setPhotoSource({
       photoFor: async (userId, scanId) => {
-        const s = await this.scans.findOne({ _id: scanId, userId }, { imageKey: 1 }).lean<Pick<ScanDoc, 'imageKey'>>();
-        return s ? { key: s.imageKey, thumbKey: null } : null;
+        const s = await this.scans.findOne({ _id: scanId, userId }, { imageKey: 1, 'result.crop': 1 }).lean<Pick<ScanDoc, 'imageKey' | 'result'>>();
+        return s ? { key: s.imageKey, thumbKey: null, crop: s.result?.crop ?? null } : null;
       },
       itemsFor: async (userId, scanId) => {
         const s = await this.scans.findOne({ _id: scanId, userId }, { result: 1 }).lean<Pick<ScanDoc, 'result'>>();

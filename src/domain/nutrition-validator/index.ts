@@ -2,6 +2,7 @@
  * Server rules for AI meal analysis (plan section 8.3, rules 1–7). The server never trusts
  * model totals and normalises every item before it reaches a user.
  */
+import { cropFromBox } from './crop';
 import { chooseReactionLine, type ReactionInput, type ScanReactionContent } from './reactions';
 import {
   AI_ESTIMATE,
@@ -28,6 +29,7 @@ import {
 } from '../../shared';
 
 export { PLAN_EXAMPLE_ANALYSIS } from './fixtures';
+export { cropFromBox } from './crop';
 export { labelGrams, labelPer100g, labelSource, labelValues, normaliseLabel, parseLabelOutput, KJ_PER_KCAL, SODIUM_MG_PER_G_SALT, SINGLE_PACK_MAX_G, type LabelNormaliseResult, type LabelParseResult } from './label';
 
 export { KCAL_TOLERANCE };
@@ -182,7 +184,7 @@ type OutputItem = MealAnalysisOutput['items'][number];
 
 /** Rules 3 and 4 for one scanned item: a matching record replaces the model's values and keeps its source. */
 function scanItem(raw: OutputItem, i: number, index: FoodIndex): AnalysedItem {
-  const grams = clamp(raw.g, ITEM_GRAMS_MIN, ITEM_GRAMS_MAX);
+  const grams = clamp(raw.g * raw.pcs, ITEM_GRAMS_MIN, ITEM_GRAMS_MAX);
   const record = matchFoodRecord(index, [raw.en, raw.name], raw.prep);
   const clean = sanitisePer100g({ kcal: raw.n.kcal, proteinG: raw.n.p, carbsG: raw.n.c, fatG: raw.n.f, fiberG: raw.n.fib, sugarG: raw.n.sug, sodiumMg: raw.n.na });
   const per100g = record?.per100g ?? clean.per100g;
@@ -249,7 +251,7 @@ export function normaliseAnalysis(
     const noFood = out.status === 'no_food';
     return {
       status: 'rejected',
-      analysis: { ...base, outcome: noFood ? 'no_food' : 'unclear', isFood: !noFood, mealName: null, items: [], totals: computeMealTotals([]), assumptions: [], reactionLineId: null },
+      analysis: { ...base, outcome: noFood ? 'no_food' : 'unclear', isFood: !noFood, mealName: null, items: [], totals: computeMealTotals([]), crop: null, assumptions: [], reactionLineId: null },
     };
   }
   const raw = out.items.slice(0, MAX_MEAL_ITEMS);
@@ -265,6 +267,7 @@ export function normaliseAnalysis(
       mealName: out.mealName === null ? null : trimTo(out.mealName, 120),
       items,
       totals: computeMealTotals(items),
+      crop: cropFromBox(out.box_2d),
       assumptions: out.assumptions.slice(0, MAX_ASSUMPTIONS).map((a) => trimTo(a, 140)),
       reactionLineId: opts.reaction ? chooseReactionLine(opts.reaction.content, { ...opts.reaction, items: reactionItems }) : null,
     },
