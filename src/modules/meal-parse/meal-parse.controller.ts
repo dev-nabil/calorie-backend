@@ -16,17 +16,17 @@ import { ApiErrors, ZBody, ZResponse } from '../../common/zod/decorators';
 import { DailyQuota } from '../../common/rate-limit/daily-quota';
 import { clock } from '../../common/clock';
 import { requestLocale } from '../../common/http/request-context';
-import { AiJobRunner } from '../ai/ai-jobs';
+import { AiJobs } from '../ai/ai-jobs';
 import { AppConfigService } from '../content/app-config.service';
 import { UsersService } from '../users/users.service';
-import { MEAL_PARSE_JOB, MEAL_PARSE_TIMEOUT_MS } from './meal-parse.handler';
+import { MEAL_PARSE_JOB } from './meal-parse.handler';
 
 @ApiTags('meals')
 @ApiBearerAuth()
 @Controller('meals')
 export class MealParseController {
   constructor(
-    private readonly runner: AiJobRunner,
+    private readonly runner: AiJobs,
     private readonly users: UsersService,
     private readonly quota: DailyQuota,
     private readonly appConfig: AppConfigService,
@@ -45,7 +45,7 @@ export class MealParseController {
     const limits = await this.appConfig.get('limits', AI_LIMITS);
     const limit = plus ? limits.plus.describePerDay : limits.free.describePerDay;
     await this.quota.assertAvailable('describe', u.id, user.timezone, limit, plus, plus ? 'Daily limit reached. Try again tomorrow.' : 'Free descriptions are used up for today.');
-    const result = await this.runner.run<MealParseResponse>(MEAL_PARSE_JOB, { userId: u.id, req: body, locale: requestLocale() }, MEAL_PARSE_TIMEOUT_MS + 5000);
+    const result = await this.runner.run<MealParseResponse>(MEAL_PARSE_JOB, { userId: u.id, req: body, locale: requestLocale() });
     await this.quota.consume('describe', u.id, user.timezone); // only after a successful answer (OQ-38)
     return result;
   }

@@ -1,8 +1,6 @@
-import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
-import { APP_CONFIG } from '../../config/config.module';
-import type { AppConfig } from '../../config/env';
 import { ERROR_CODES, type AiFeature } from '../../shared';
 
 /**
@@ -38,6 +36,8 @@ interface Price {
 }
 
 const BUDGET_STOP_SHARE = 0.95; // plan 8.9: downgrade at 95% of the monthly limit
+/** The owner's monthly cap for every AI feature except photo scans (4 Nov 2026). Change it in admin AI settings. */
+export const DEFAULT_MONTHLY_BUDGET_USD = 10;
 const isRetryable = (e: unknown): boolean => {
   const status = (e as { status?: number }).status;
   return status === undefined || status >= 500 || status === 429;
@@ -54,7 +54,6 @@ export class AiService {
   private readonly breakers = new Map<AiRunFeature, CircuitBreaker>();
 
   constructor(
-    @Inject(APP_CONFIG) private readonly config: AppConfig,
     @InjectModel('AiUsageDaily') private readonly usage: Model<AiUsageDailyDoc>,
     private readonly appConfig: AppConfigService,
     private readonly provider: AiProvider,
@@ -76,9 +75,9 @@ export class AiService {
     const b = this.breaker(feature);
     if (b.state() === 'open') throw new AiUnavailableError('circuit_open', b.retryAfterSec() || 30);
     if (opts.monthlyBudget === false) return;
-    // Admin AI settings (ai.budget) win over AI_MONTHLY_BUDGET_USD; downgrade at downgradePct (plan 8.9).
+    // Admin AI settings (ai.budget); downgrade at downgradePct (plan 8.9). Unset or 0 = the owner's default cap.
     const cfg = await this.appConfig.get<{ monthlyLimitUsd?: number; downgradePct?: number } | null>('ai.budget', null);
-    const budget = cfg?.monthlyLimitUsd || this.config.AI_MONTHLY_BUDGET_USD;
+    const budget = cfg?.monthlyLimitUsd || DEFAULT_MONTHLY_BUDGET_USD;
     const share = cfg?.downgradePct ? cfg.downgradePct / 100 : BUDGET_STOP_SHARE;
     if (budget && (await this.monthSpend()) >= budget * share) throw new AiUnavailableError('budget', 3600);
   }
@@ -140,8 +139,9 @@ export class AiService {
     }
   }
 
+  /** Admin setting `ai.model.<feature>`; unset or empty = `fallback`. */
   async modelFor(feature: AiRunFeature | 'moderation', fallback: string): Promise<string> {
-    return this.appConfig.get<string>(`ai.model.${feature}`, fallback);
+    return (await this.appConfig.get<string>(`ai.model.${feature}`, fallback)) || fallback;
   }
 
   private async cost(model: string, u: AiUsage): Promise<number> {

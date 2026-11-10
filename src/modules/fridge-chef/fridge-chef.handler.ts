@@ -9,7 +9,7 @@ import { avoidTermsFor } from '../../domain/plan-narrative';
 import { ApiError } from '../../common/errors/api-error';
 import { prepareScanImage, ScanImageError, validateScanImage } from '../../infra/media/scan-image';
 import { StorageService } from '../../infra/storage/storage';
-import { AiJobHandlers } from '../ai/ai-jobs';
+import { AiJobs } from '../ai/ai-jobs';
 import { AiProvider } from '../ai/ai.provider';
 import { DEFAULT_TEXT_MODEL } from '../ai/ai-models';
 import { AiService, AiUnavailableError } from '../ai/ai.service';
@@ -33,12 +33,12 @@ const FALLBACK_INSTRUCTIONS =
 export interface FridgeChefJob {
   userId: string;
   uploadKey: string;
-  /** Reply language (jobs run in the worker, outside the request). */
+  /** Reply language (the job runs outside the request context). */
   locale?: LocaleCode;
 }
 
 /**
- * Runs in the worker (queue `ai`): one Gemini vision call (structured JSON) through the monthly AI budget, then the domain
+ * An AI job (AiJobs): one Gemini vision call (structured JSON) through the monthly AI budget, then the domain
  * check (allergens, eating pattern, habits-only, sizes). The photo is deleted right after the call, whatever its outcome.
  */
 @Injectable()
@@ -48,7 +48,7 @@ export class FridgeChefHandler implements OnModuleInit {
   constructor(
     @InjectModel('Profile') private readonly profiles: Model<ProfileDoc>,
     @InjectModel('Plan') private readonly plans: Model<PlanDoc>,
-    private readonly handlers: AiJobHandlers,
+    private readonly handlers: AiJobs,
     private readonly ai: AiService,
     private readonly provider: AiProvider,
     private readonly content: ContentService,

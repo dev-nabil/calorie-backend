@@ -11,7 +11,7 @@ import { LocalStorageService, S3StorageService, StorageService } from './storage
       provide: StorageService,
       inject: [APP_CONFIG],
       useFactory: (c: AppConfig): StorageService =>
-        c.STORAGE_DRIVER === 's3'
+        c.storageDriver === 's3'
           ? new S3StorageService({
               endpoint: c.S3_ENDPOINT ?? `https://s3.${c.S3_REGION ?? 'us-east-1'}.amazonaws.com`,
               region: c.S3_REGION ?? 'auto',

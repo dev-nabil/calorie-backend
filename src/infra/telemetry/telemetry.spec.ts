@@ -6,7 +6,7 @@ describe('telemetry (DEC-13)', () => {
     expect(startTelemetry({ OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318', NODE_ENV: 'test' })).toBeNull();
   });
   it('starts the SDK when an endpoint is configured', async () => {
-    const sdk = startTelemetry({ OTEL_EXPORTER_OTLP_ENDPOINT: 'http://127.0.0.1:9/', NODE_ENV: 'development', ROLE: 'worker' });
+    const sdk = startTelemetry({ OTEL_EXPORTER_OTLP_ENDPOINT: 'http://127.0.0.1:9/', NODE_ENV: 'development' });
     expect(sdk).not.toBeNull();
     await sdk!.shutdown().catch(() => undefined);
   });

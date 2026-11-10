@@ -201,7 +201,7 @@ describe('Auth (M1-T2..T4)', () => {
 describe('Integrity enforcement (DEC-19, M1-T8)', () => {
   let t: TestApp;
   beforeAll(async () => {
-    t = await createTestApp({ INTEGRITY_ENFORCE: 'true' });
+    t = await createTestApp({}, undefined, { 'integrity.enforce': true });
   });
   afterAll(() => t.close());
 

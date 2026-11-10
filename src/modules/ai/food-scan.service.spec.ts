@@ -1,20 +1,24 @@
 import sharp from 'sharp';
-import type { AppConfig } from '../../config/env';
+import type { SettingsService } from '../settings/settings.service';
 import { AiService, AiUnavailableError } from './ai.service';
 import type { FoodScanBudget, FoodScanHold } from './food-scan-budget.service';
 import { FoodScanService } from './food-scan.service';
 import { geminiCostUsd, knownGeminiPrice } from './gemini-pricing';
 import { FoodVisionError, FoodVisionProvider, type FoodVisionResult } from './providers/food-vision.provider';
 
-const config = {
-  GEMINI_FOOD_MODEL: 'gemini-3.5-flash-lite',
-  GEMINI_FOOD_THINKING_LEVEL: 'minimal',
-  GEMINI_FOOD_IMAGE_RESOLUTION: 'high',
-  GEMINI_FOOD_IMAGE_MAX_EDGE: 1024,
-  GEMINI_FOOD_MAX_OUTPUT_TOKENS: 2560,
-  GEMINI_FOOD_TIMEOUT_MS: 20_000,
-  GEMINI_FOOD_MAX_ATTEMPTS: 3,
-} as AppConfig;
+const values: Record<string, unknown> = {
+  'scan.model': 'gemini-3.5-flash-lite',
+  'scan.thinkingLevel': 'minimal',
+  'scan.imageResolution': 'high',
+  'scan.imageMaxEdgePx': 1024,
+  'scan.maxOutputTokens': 2560,
+  'scan.timeoutMs': 20_000,
+  'scan.maxAttempts': 3,
+};
+const settings = {
+  get: async (k: string) => values[k],
+  many: async (keys: string[]) => Object.fromEntries(keys.map((k) => [k, values[k]])),
+} as unknown as SettingsService;
 
 const ok: FoodVisionResult = { output: {}, truncated: false, usage: { inputTokens: 1800, cachedTokens: 0, outputTokens: 400, thoughtTokens: 30 }, model: 'gemini-3.5-flash-lite' };
 
@@ -23,7 +27,7 @@ function harness(script: Array<FoodVisionResult | Error>) {
     reserve: jest.fn(async (): Promise<FoodScanHold> => ({ date: '2026-11-04', microUsd: 7000 })),
     settle: jest.fn(async () => undefined),
     release: jest.fn(async () => undefined),
-    price: () => knownGeminiPrice('gemini-3.5-flash-lite')!,
+    price: async () => knownGeminiPrice('gemini-3.5-flash-lite')!,
   };
   const provider = {
     configured: true,
@@ -34,7 +38,7 @@ function harness(script: Array<FoodVisionResult | Error>) {
     }),
   };
   const ai = { runExternal: (_f: string, call: () => Promise<unknown>) => call() };
-  const service = new FoodScanService(config, ai as unknown as AiService, budget as unknown as FoodScanBudget, provider as unknown as FoodVisionProvider);
+  const service = new FoodScanService(settings, ai as unknown as AiService, budget as unknown as FoodScanBudget, provider as unknown as FoodVisionProvider);
   return { service, budget, provider };
 }
 
@@ -101,12 +105,12 @@ describe('FoodScanService', () => {
     await expect(service.assertAvailable()).rejects.toMatchObject({ reason: 'not_configured' });
   });
 
-  it('builds a cache key from everything that shapes the reply', () => {
+  it('builds a cache key from everything that shapes the reply', async () => {
     const { service } = harness([]);
     const base = { imageHash: 'a'.repeat(64), locale: 'en', dietPattern: '', promptKey: 'meal-scan', promptVersion: 2 };
-    expect(service.cacheKey(base)).toBe(service.cacheKey({ ...base }));
+    expect(await service.cacheKey(base)).toBe(await service.cacheKey({ ...base }));
     for (const change of [{ imageHash: 'b'.repeat(64) }, { locale: 'bn' }, { dietPattern: 'vegetarian' }, { promptVersion: 3 }]) {
-      expect(service.cacheKey({ ...base, ...change })).not.toBe(service.cacheKey(base));
+      expect(await service.cacheKey({ ...base, ...change })).not.toBe(await service.cacheKey(base));
     }
   });
 });

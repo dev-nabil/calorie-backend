@@ -6,7 +6,7 @@ import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, signIn, uploadPhoto } from '../setup/helpers';
 import { JobQueue } from '../../src/jobs/jobs.module';
 import { AppConfigService } from '../../src/modules/content/app-config.service';
-import { InlineScanQueue, ScanQueue } from '../../src/modules/scans/scan-queue';
+import { ScanQueue } from '../../src/modules/scans/scan-queue';
 
 describe('M4 leftovers: thumbnails, abuse limits, scan events', () => {
   let t: TestApp;
@@ -43,7 +43,7 @@ describe('M4 leftovers: thumbnails, abuse limits, scan events', () => {
     expect(statuses).toEqual([202, 202, 429]);
     const abuse = t.get<Model<{ kind: string; deviceId: string }>>(getModelToken('AbuseEvent'));
     expect(await abuse.countDocuments({ kind: 'scan_rate_limit', deviceId: 'shared-device' })).toBe(1);
-    await (t.get<ScanQueue>(ScanQueue) as InlineScanQueue).drain();
+    await t.get<ScanQueue>(ScanQueue).drain();
     await t.get<AppConfigService>(AppConfigService).set('limits.scanAbuse', { perDeviceHour: 100, perIpHour: 100, accountDailyAlert: 100 });
   });
 

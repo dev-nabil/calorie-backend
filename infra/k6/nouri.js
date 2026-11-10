@@ -1,5 +1,5 @@
 // k6 load test (plan §16, M9-T8): sign-in, Today, meal write, scan enqueue + poll, coach stream.
-// Run against staging with the worker and Gemini stubbed (AI_PROVIDER=fake) or against start:local:
+// Run against start:local (fake AI, so no Gemini spend) or a staging server whose scan caps are raised for the run:
 //   k6 run -e BASE=http://localhost:3000 -e DEV_OTP=1 infra/k6/nouri.js
 //   k6 run -e BASE=https://api.staging.example -e TOKENS=tokens.json -e PEAK=5000 infra/k6/nouri.js
 // Thresholds are the SLOs of plan §15 (read p95 < 300 ms, write p95 < 500 ms, scan p95 < 15 s, 5xx < 0.1%).

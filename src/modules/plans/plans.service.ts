@@ -27,7 +27,7 @@ import { DailyQuota } from '../../common/rate-limit/daily-quota';
 import { translatorFor, type Translator } from '../../shared/i18n';
 import { DEFAULT_LOCALE, parseLocale, type LocaleCode } from '../../shared/locales';
 import { KvStore } from '../../infra/kv/kv-store';
-import { AiJobRunner } from '../ai/ai-jobs';
+import { AiJobs } from '../ai/ai-jobs';
 import { ContentService } from '../content/content.service';
 import type { ProfileDoc } from '../onboarding/schemas/onboarding.schema';
 import { UsersService } from '../users/users.service';
@@ -103,7 +103,7 @@ export class PlansService {
     @InjectModel('PlanDraft') private readonly drafts: Model<PlanDraftDoc>,
     @InjectModel('Profile') private readonly profiles: Model<ProfileDoc>,
     private readonly content: ContentService,
-    private readonly runner: AiJobRunner,
+    private readonly runner: AiJobs,
     private readonly quota: DailyQuota,
     private readonly kv: KvStore,
     private readonly users: UsersService,
@@ -222,7 +222,7 @@ export class PlansService {
     }
   }
 
-  /** The model call, behind the daily limit, the verified-account rule and the worker queue. Never throws for AI trouble. */
+  /** The model call, behind the daily limit, the verified-account rule and the AI job runner. Never throws for AI trouble. */
   private async personalise(
     user: Awaited<ReturnType<UsersService['requireActive']>>,
     uid: Types.ObjectId,
@@ -255,7 +255,7 @@ export class PlansService {
     const job: PlanNarrativeJob = { facts: facts.context, avoidTerms: facts.avoidTerms, locale };
     let result: PlanNarrativeResult;
     try {
-      result = await this.runner.run<PlanNarrativeResult>(PLAN_NARRATIVE_JOB, job, PLAN_NARRATIVE_BUDGET_MS + 5_000);
+      result = await this.runner.run<PlanNarrativeResult>(PLAN_NARRATIVE_JOB, job);
     } catch (e) {
       this.logger.warn({ userId, err: (e as Error).message }, 'plan narrative job failed');
       return { status: 'unavailable', narrative: null, message: tr('plan.ai.unavailable'), retryable: true, model: null, rejected: [] };

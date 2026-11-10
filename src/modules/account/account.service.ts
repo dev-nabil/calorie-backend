@@ -19,7 +19,7 @@ const EXPORT_LINK_SEC = 24 * 3600;
 /** Collections holding a user's personal data, purged after 30 days (BR-13). */
 const USER_DATA_MODELS = ['Profile', 'OnboardingAnswer', 'Plan', 'PlanDraft', 'Meal', 'DailyLog', 'WeightLog', 'Scan', 'Conversation', 'Message', 'Device', 'Session', 'Reminder', 'CoachPreference', 'WeeklyRecap'] as const;
 
-/** M1-T5: data export (worker job, link by email) and the purge job (BR-13). */
+/** M1-T5: data export (background job, link by email) and the purge job (BR-13). */
 @Injectable()
 export class AccountService implements OnModuleInit {
   private readonly logger = new Logger('AccountJobs');
@@ -54,7 +54,7 @@ export class AccountService implements OnModuleInit {
   async requestExport(userId: string): Promise<{ exportId: string }> {
     await this.limiter.consume({ key: `export:user:${userId}`, limit: 3, windowSec: 24 * 3600 });
     const exportId = randomUUID();
-    await this.queue.enqueue(EXPORT_JOB, { userId, exportId }, { jobId: exportId });
+    await this.queue.enqueue(EXPORT_JOB, { userId, exportId }, { key: exportId });
     return { exportId };
   }
 

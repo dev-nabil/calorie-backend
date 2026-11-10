@@ -5,7 +5,7 @@ import { RecapController } from './recap.controller';
 import { RecapService } from './recap.service';
 import { WeeklyRecapHandler } from './weekly-recap.handler';
 
-/** Weekly recap (Plus): GET /recap/weekly. The handler is here too so the in-process runner works without Redis. */
+/** Weekly recap (Plus): GET /recap/weekly. */
 @Module({
   imports: [TrackingModule, PlansModule],
   controllers: [RecapController],

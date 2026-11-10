@@ -1,11 +1,12 @@
 /**
- * `pnpm plan:smoke [--fake] [--locale bn]`
+ * `pnpm plan:smoke [--fake] [--locale bn] [--model gemini-…]`
  * One real call to Gemini with the exact prompt, structured-output schema, model and checks the plan
  * personalisation uses, for a made-up sample profile. Run it once after adding GEMINI_API_KEY.
  * Needs no database. Prints the model, token usage, the validated narrative or why it was rejected;
  * never prints the key. Exit code 0 only when a narrative passed every check.
  * --fake   runs the same path against the built-in fake provider (checks this script, not Gemini)
  * --locale the language the tips are written in (en, bn); the rule pack of that language checks the answer
+ * --model  try another model than the plan prompt's own (no database, so the admin setting ai.model.plan is not read)
  */
 import { existsSync } from 'node:fs';
 import { ConfigError, loadConfig } from '../config/env';
@@ -45,8 +46,8 @@ async function main(): Promise<void> {
     f.enqueue(structuredClone(PLAN_NARRATIVE_EXAMPLE));
     provider = f;
   } else {
-    if (config.AI_PROVIDER !== 'gemini' || !config.GEMINI_API_KEY) {
-      console.error('Not configured. In .env set  AI_PROVIDER=gemini  and  GEMINI_API_KEY=<your key>, then run this again.');
+    if (!config.GEMINI_API_KEY) {
+      console.error('Not configured. In .env set  GEMINI_API_KEY=<your key>, then run this again.');
       process.exit(2);
     }
     provider = new GeminiProvider(config.GEMINI_API_KEY);
@@ -66,7 +67,8 @@ async function main(): Promise<void> {
   const assessment = assessPlan(inputs, tr);
   const facts = buildNarrativeContext({ profile: SAMPLE, preview, timeframe, assessment, label: makeLabeler(set), locale });
 
-  const model = config.GEMINI_PLAN_MODEL || (typeof prompt.meta.model === 'string' ? prompt.meta.model : '') || DEFAULT_TEXT_MODEL;
+  const mi = process.argv.indexOf('--model');
+  const model = (mi >= 0 ? process.argv[mi + 1] : '') || (typeof prompt.meta.model === 'string' ? prompt.meta.model : '') || DEFAULT_TEXT_MODEL;
   console.warn(`\nPlan personalisation smoke test: provider=${provider.name}, model=${model}, language=${locale}`);
   console.warn(`Validated numbers: target ${preview.calculated!.energyKcal} kcal, maintenance ${preview.tdeeKcal} kcal; ${buildBasis(preview, inputs, timeframe, tr).length} basis lines\n`);
 

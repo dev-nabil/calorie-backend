@@ -8,7 +8,7 @@ import { bearer, idem, INTEGRITY, signIn, uploadPhoto } from '../setup/helpers';
 import { buildOpenApi } from '../../src/app.setup';
 import { clock } from '../../src/common/clock';
 import { AiProvider, FakeAiProvider } from '../../src/modules/ai/ai.provider';
-import { InlineScanQueue, ScanQueue } from '../../src/modules/scans/scan-queue';
+import { ScanQueue } from '../../src/modules/scans/scan-queue';
 
 describe('QA round fixes', () => {
   let t: TestApp;
@@ -39,7 +39,7 @@ describe('QA round fixes', () => {
       return original(filter as never, update as never, opts as never);
     }) as never);
     await t.http().post('/v1/scans').set(h).set(INTEGRITY).send({ scanId, imageKey: key, imageHash: hash }).expect(202);
-    await (t.get<ScanQueue>(ScanQueue) as InlineScanQueue).drain();
+    await t.get<ScanQueue>(ScanQueue).drain();
     spy.mockRestore();
     expect(seen).toHaveLength(1);
     expect(seen[0]!.status === 'succeeded' && !seen[0]!.chargedFreeScan).toBe(false);

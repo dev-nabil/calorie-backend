@@ -10,7 +10,8 @@ import { AiService } from '../../src/modules/ai/ai.service';
 import { FakeFoodVisionProvider, FoodVisionProvider } from '../../src/modules/ai/providers/food-vision.provider';
 import type { AiUsageDailyDoc, FoodScanUsageDailyDoc } from '../../src/modules/ai/schemas/ai.schema';
 import { AppConfigService } from '../../src/modules/content/app-config.service';
-import { InlineScanQueue, ScanQueue } from '../../src/modules/scans/scan-queue';
+import { SettingsService } from '../../src/modules/settings/settings.service';
+import { ScanQueue } from '../../src/modules/scans/scan-queue';
 import type { ScanDoc } from '../../src/modules/scans/schemas/scans.schema';
 import { ScanProcessor } from '../../src/modules/scans/services/scan.processor';
 import { UsersService } from '../../src/modules/users/users.service';
@@ -34,13 +35,18 @@ describe('Food photo scanner, Gemini mocked', () => {
   let t: TestApp;
   let fake: FakeAiProvider;
   let vision: FakeFoodVisionProvider;
-  const drain = () => (t.get<ScanQueue>(ScanQueue) as InlineScanQueue).drain();
+  const drain = () => t.get<ScanQueue>(ScanQueue).drain();
   const scans = () => t.get<Model<ScanDoc>>(getModelToken('Scan'));
   const usage = () => t.get<Model<FoodScanUsageDailyDoc>>(getModelToken('FoodScanUsageDaily'));
   const config = () => t.get<AppConfigService>(AppConfigService);
+  const caps = async (requests: number, spendUsd: number) => {
+    await t.get<SettingsService>(SettingsService).set('scan.dailyRequestCap', requests);
+    await t.get<SettingsService>(SettingsService).set('scan.dailySpendUsd', spendUsd);
+  };
 
   beforeAll(async () => {
-    t = await createTestApp({ DEV_ROUTES: 'true', AI_MONTHLY_BUDGET_USD: '2', RATE_LIMIT_MULTIPLIER: '100' });
+    t = await createTestApp({ DEV_ROUTES: 'true', RATE_LIMIT_MULTIPLIER: '100' });
+    await config().set('ai.budget', { monthlyLimitUsd: 2 });
     fake = t.get<FakeAiProvider>(AiProvider);
     vision = t.get<FakeFoodVisionProvider>(FoodVisionProvider);
   });
@@ -48,7 +54,7 @@ describe('Food photo scanner, Gemini mocked', () => {
     fake.reset();
     vision.reset();
     await usage().deleteMany({});
-    await config().set('limits.foodScan', { dailyRequests: 1000, dailySpendUsd: 100 });
+    await caps(1000, 100);
   });
   afterAll(() => t.close());
 
@@ -440,7 +446,7 @@ describe('Food photo scanner, Gemini mocked', () => {
 
   describe('daily caps', () => {
     it('stops at the request cap, even when calls run at the same moment', async () => {
-      await config().set('limits.foodScan', { dailyRequests: 2, dailySpendUsd: 100 });
+      await caps(2, 100);
       const users = await Promise.all(Array.from({ length: 6 }, () => asPlus()));
       const bodies = await Promise.all(users.map((h) => body(h)));
       const accepted = await Promise.all(users.map((h, i) => post(h, bodies[i]!)));
@@ -454,7 +460,7 @@ describe('Food photo scanner, Gemini mocked', () => {
     });
 
     it('stops at the spending cap before a call that could pass it', async () => {
-      await config().set('limits.foodScan', { dailyRequests: 1000, dailySpendUsd: 0.000001 });
+      await caps(1000, 0.000001);
       const h = await asPlus();
       const res = await post(h, await body(h)).expect(503);
       expect(res.body.error).toMatchObject({ code: 'AI_UNAVAILABLE', details: { reason: 'daily_cap' } });
@@ -466,7 +472,7 @@ describe('Food photo scanner, Gemini mocked', () => {
       const h = bearer((await signIn(t)).accessToken);
       const b = await body(h);
       await post(h, b).expect(202);
-      await config().set('limits.foodScan', { dailyRequests: 0, dailySpendUsd: 0 });
+      await caps(0, 0);
       await drain();
       expect(await poll(h, b.scanId)).toMatchObject({ status: 'failed', chargedFreeScan: false, error: { code: 'AI_UNAVAILABLE' } });
       expect(vision.calls).toHaveLength(0);

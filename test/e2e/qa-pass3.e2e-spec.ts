@@ -4,7 +4,6 @@ import { buildOpenApi } from '../../src/app.setup';
 import { clock } from '../../src/common/clock';
 import { AiProvider, FakeAiProvider } from '../../src/modules/ai/ai.provider';
 import { EmailSender, type MemoryEmailSender } from '../../src/modules/auth/providers';
-import { runsInlineSweep } from '../../src/modules/scans/services/inline-sweep.service';
 
 describe('QA pass 3 regressions (B12–B18, dev clock)', () => {
   let t: TestApp;
@@ -71,12 +70,6 @@ describe('QA pass 3 regressions (B12–B18, dev clock)', () => {
     const admin = await login('admin');
     const r = await t.http().put('/v1/admin/flags').set(admin).send({ key: 'made.up', enabled: true, reason: 'typo test' }).expect(400);
     expect(r.body.error.details.known).toContain('paywall.onboarding');
-  });
-
-  it('B17: without Redis the API process runs the stuck-scan sweep (outside tests)', () => {
-    expect(runsInlineSweep({ NODE_ENV: 'development' }, null)).toBe(true);
-    expect(runsInlineSweep({ NODE_ENV: 'development' }, {})).toBe(false);
-    expect(runsInlineSweep({ NODE_ENV: 'test' }, null)).toBe(false);
   });
 
   it('B18: admin operations declare the cookie scheme and 401/403', () => {

@@ -8,7 +8,7 @@ export const AdminTotpRequestSchema = z.strictObject({ challengeId: z.string().m
 export const AdminSessionSchema = z
   .object({ adminId: z.string(), email: z.string(), role, expiresAt: z.string(), idleTimeoutSec: z.number().int() })
   .meta({ id: 'AdminSession' });
-/** TOTP on: a challenge to answer at auth/totp. TOTP off (ADMIN_TOTP_REQUIRED=false, dev only): the session is already set. */
+/** TOTP on: a challenge to answer at auth/totp. TOTP off (ADMIN_TOTP_REQUIRED=false, development only): the session is already set. */
 export const AdminLoginResponseSchema = z
   .discriminatedUnion('totpRequired', [
     z.object({ totpRequired: z.literal(true), challengeId: z.string() }),
@@ -276,3 +276,30 @@ export const AdminPatchAdminUserSchema = z
   .meta({ id: 'AdminPatchAdminUser' });
 export const AdminAcceptInviteSchema = z.strictObject({ token: z.string().min(20).max(200), password: z.string().min(12).max(200) }).meta({ id: 'AdminAcceptInvite' });
 export const AdminAcceptInviteResultSchema = z.object({ email: z.string(), totpSecret: z.string(), otpauthUrl: z.string() }).meta({ id: 'AdminAcceptInviteResult' });
+
+// ── Settings (GET/PUT /admin/settings): every non-secret runtime setting, typed by the backend registry ──
+export const AdminSettingValueSchema = z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]).meta({ id: 'AdminSettingValue' });
+export const AdminSettingSchema = z
+  .object({
+    key: z.string(),
+    group: z.string(),
+    label: z.string(),
+    description: z.string(),
+    kind: z.enum(['string', 'number', 'boolean', 'enum', 'list']),
+    options: z.array(z.string()).nullable().describe('enum only: the allowed values'),
+    min: z.number().nullable(),
+    max: z.number().nullable(),
+    value: AdminSettingValueSchema,
+    defaultValue: AdminSettingValueSchema,
+    isDefault: z.boolean().describe('true = nothing stored, the default applies'),
+    updatedAt: z.string().nullable(),
+    updatedBy: z.string().nullable(),
+  })
+  .meta({ id: 'AdminSetting' });
+export const AdminSettingsSchema = z
+  .object({
+    groups: z.array(z.object({ id: z.string(), label: z.string(), description: z.string() })),
+    items: z.array(AdminSettingSchema),
+  })
+  .meta({ id: 'AdminSettings' });
+export const AdminPutSettingSchema = z.strictObject({ reason, value: AdminSettingValueSchema }).meta({ id: 'AdminPutSetting' });

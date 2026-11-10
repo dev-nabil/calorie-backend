@@ -2,7 +2,7 @@ import { HttpStatus, Injectable, OnModuleInit } from '@nestjs/common';
 import { ERROR_CODES, ExtractionOutputSchema, type ExtractionOutput } from '../../shared';
 import { ApiError } from '../../common/errors/api-error';
 import { DEFAULT_LOCALE, parseLocale } from '../../shared/locales';
-import { AiJobHandlers } from '../ai/ai-jobs';
+import { AiJobs } from '../ai/ai-jobs';
 import { languageDirective } from '../ai/language';
 import { AiProvider } from '../ai/ai.provider';
 import { DEFAULT_TEXT_MODEL } from '../ai/ai-models';
@@ -29,11 +29,11 @@ export function schemaFromPrompt(raw: string): Record<string, unknown> | undefin
   }
 }
 
-/** Runs in the worker (queue `ai`): one extraction call for one conversation turn (plan 8.5). */
+/** An AI job (AiJobs): one extraction call for one conversation turn (plan 8.5). */
 @Injectable()
 export class ExtractionHandler implements OnModuleInit {
   constructor(
-    private readonly handlers: AiJobHandlers,
+    private readonly handlers: AiJobs,
     private readonly ai: AiService,
     private readonly provider: AiProvider,
     private readonly content: ContentService,

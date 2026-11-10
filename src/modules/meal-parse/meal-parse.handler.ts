@@ -10,7 +10,7 @@ type MealParseResponse
 import { computeTotals, normaliseItem } from '../../domain/nutrition-validator';
 import { ApiError } from '../../common/errors/api-error';
 import { DEFAULT_LOCALE, type LocaleCode } from '../../shared/locales';
-import { AiJobHandlers } from '../ai/ai-jobs';
+import { AiJobs } from '../ai/ai-jobs';
 import { languageDirective } from '../ai/language';
 import { AiProvider } from '../ai/ai.provider';
 import { DEFAULT_TEXT_MODEL } from '../ai/ai-models';
@@ -26,16 +26,16 @@ export const MEAL_PARSE_TIMEOUT_MS = 15_000;
 interface ParseJob {
   userId: string;
   req: MealParseRequest;
-  /** Reply language (jobs may run in the worker, outside the request). */
+  /** Reply language (the job may run outside the request context). */
   locale?: LocaleCode;
 }
 
-/** Runs in the worker (queue `ai`): one structured model call, validated and normalised (plan 8.4). */
+/** An AI job (AiJobs): one structured model call, validated and normalised (plan 8.4). */
 @Injectable()
 export class MealParseHandler implements OnModuleInit {
   constructor(
     @InjectModel('Profile') private readonly profiles: Model<ProfileDoc>,
-    private readonly handlers: AiJobHandlers,
+    private readonly handlers: AiJobs,
     private readonly ai: AiService,
     private readonly provider: AiProvider,
     private readonly content: ContentService,

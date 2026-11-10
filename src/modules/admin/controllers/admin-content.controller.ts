@@ -165,7 +165,7 @@ export class AdminContentController {
       throw e;
     }
     this.content.clearCache();
-    if (kind === 'milo_lines' || kind === 'conversation') await this.jobs.enqueue(PRERENDER_JOB, {}, { jobId: `prerender-${kind}-${version}` });
+    if (kind === 'milo_lines' || kind === 'conversation') await this.jobs.enqueue(PRERENDER_JOB, {}, { key: `prerender-${kind}-${version}` });
     await this.audit.log(admin, req, { action: 'content.publish', targetType: kind, targetId: String(version), reason: body.reason, diff: { from: current.version, to: version } });
     return this.get(path);
   }

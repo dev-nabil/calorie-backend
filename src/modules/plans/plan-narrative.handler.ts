@@ -1,12 +1,10 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { APP_CONFIG } from '../../config/config.module';
-import type { AppConfig } from '../../config/env';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PlanNarrativeSchema, type PlanAiStatus, type PlanNarrative } from '../../shared';
 import { checkNarrative } from '../../domain/plan-narrative';
 import { translatorFor } from '../../shared/i18n';
 import type { LocaleCode } from '../../shared/locales';
 import { languageDirective } from '../ai/language';
-import { AiJobHandlers } from '../ai/ai-jobs';
+import { AiJobs } from '../ai/ai-jobs';
 import { AiProvider } from '../ai/ai.provider';
 import { DEFAULT_TEXT_MODEL } from '../ai/ai-models';
 import { AiService, AiUnavailableError } from '../ai/ai.service';
@@ -24,7 +22,7 @@ const MAX_ATTEMPTS = 2;
 export interface PlanNarrativeJob {
   facts: string;
   avoidTerms: string[];
-  /** Reply language of the tips (jobs run in the worker, outside any request). */
+  /** Reply language of the tips (the job runs outside the request context). */
   locale: LocaleCode;
 }
 
@@ -48,7 +46,7 @@ const fail = (status: Exclude<PlanAiStatus, 'ok' | 'skipped'>, retryable: boolea
 });
 
 /**
- * Runs in the worker (queue `ai`): one structured call for the plan narrative. The answer must pass the
+ * An AI job (AiJobs): one structured call for the plan narrative. The answer must pass the
  * schema and the content rules (no figures, no allergens, no fasting); on a miss the model gets the
  * problems back once. A missing key, an open breaker, a timeout or a second miss end as an honest status:
  * nothing is ever substituted.
@@ -56,8 +54,7 @@ const fail = (status: Exclude<PlanAiStatus, 'ok' | 'skipped'>, retryable: boolea
 @Injectable()
 export class PlanNarrativeHandler implements OnModuleInit {
   constructor(
-    @Inject(APP_CONFIG) private readonly config: AppConfig,
-    private readonly handlers: AiJobHandlers,
+    private readonly handlers: AiJobs,
     private readonly ai: AiService,
     private readonly provider: AiProvider,
     private readonly content: ContentService,
@@ -72,7 +69,7 @@ export class PlanNarrativeHandler implements OnModuleInit {
 
     const prompt = await this.content.activePrompt('plan-narrative');
     if (!prompt) return fail('unavailable', false, null, job.locale);
-    const model = await this.ai.modelFor('plan', this.config.GEMINI_PLAN_MODEL || (typeof prompt.meta?.model === 'string' ? prompt.meta.model : '') || DEFAULT_MODEL);
+    const model = await this.ai.modelFor('plan', (typeof prompt.meta?.model === 'string' ? prompt.meta.model : '') || DEFAULT_MODEL);
     const timeoutMs = (prompt.params?.timeoutSec ?? 0) * 1000 || DEFAULT_TIMEOUT_MS;
     const maxOutputTokens = prompt.params?.maxOutputTokens || 3000;
     const deadline = Date.now() + PLAN_NARRATIVE_BUDGET_MS;

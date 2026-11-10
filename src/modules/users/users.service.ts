@@ -4,11 +4,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Types, type Model } from 'mongoose';
 import { APP_CONFIG } from '../../config/config.module';
 import type { AppConfig } from '../../config/env';
-import { ERROR_CODES, type Me, type UpdateMeRequest } from '../../shared';
+import { AI_LIMITS, ERROR_CODES, type Me, type UpdateMeRequest } from '../../shared';
 import { entitlementView, freeScansRemaining, hmacEmail, isVerifiedAccount } from '../../domain/entitlements';
 import { ApiError } from '../../common/errors/api-error';
 import { LOCALES, localeTag, parseLocale } from '../../shared/locales';
 import { TokenService } from '../../common/auth/token.service';
+import { AppConfigService } from '../content/app-config.service';
 import type { ScanLedgerDoc, UserDoc } from './schemas/users.schema';
 
 export const DELETION_GRACE_DAYS = 30; // BR-13
@@ -21,6 +22,7 @@ export class UsersService {
     @InjectModel('ScanLedger') private readonly ledger: Model<ScanLedgerDoc>,
     @InjectModel('Session') private readonly sessions: Model<{ userId: Types.ObjectId; revokedAt: Date | null }>,
     private readonly tokens: TokenService,
+    private readonly appConfig: AppConfigService,
   ) {}
 
   ledgerKey(email: string): string {
@@ -45,7 +47,7 @@ export class UsersService {
     return user;
   }
 
-  /** A new account starts with the free-scan count already used by this email (BR-01). */
+  /** A new account starts with the free-scan count already used by this email (BR-01). The allowance is the admin limit `free.scansLifetime`. */
   async create(input: {
     email: string;
     emailVerified: boolean;
@@ -53,13 +55,13 @@ export class UsersService {
     displayName?: string | null;
   }): Promise<UserDoc> {
     const now = clock.now();
-    const used = await this.ledgerUsed(input.email);
+    const [used, limits] = await Promise.all([this.ledgerUsed(input.email), this.appConfig.get<typeof AI_LIMITS>('limits', AI_LIMITS)]);
     const doc = await this.users.create({
       email: input.email,
       emailVerifiedAt: input.emailVerified ? now : null,
       authProviders: [{ ...input.provider, linkedAt: now }],
       displayName: input.displayName ?? null,
-      freeScans: { allowance: this.config.FREE_SCANS, used },
+      freeScans: { allowance: limits.free?.scansLifetime ?? AI_LIMITS.free.scansLifetime, used },
     });
     return doc.toObject() as UserDoc;
   }
@@ -122,7 +124,7 @@ export class UsersService {
     return user!;
   }
 
-  /** BR-13: sign out at once, block sign-in, purge after 30 days (worker job). */
+  /** BR-13: sign out at once, block sign-in, purge after 30 days (background job). */
   async requestDeletion(id: string, now = clock.now()): Promise<{ purgeAfter: Date }> {
     await this.requireActive(id);
     await this.users.updateOne({ _id: id }, { $set: { status: 'pending_deletion', deletionRequestedAt: now } });

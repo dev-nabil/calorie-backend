@@ -34,12 +34,10 @@ export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 export const HealthResponseSchema = z
   .object({
     status: z.enum(['ok', 'degraded']),
-    role: z.enum(['api', 'worker']),
     version: z.string(),
     uptimeSec: z.number(),
     checks: z.object({
       mongo: z.enum(['up', 'down']),
-      redis: z.enum(['up', 'down', 'memory']),
     }),
   })
   .meta({ id: 'HealthResponse' });

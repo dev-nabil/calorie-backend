@@ -8,7 +8,7 @@ import { isSafeKey, LocalStorageService, StorageService } from '../../infra/stor
 
 /**
  * The local storage driver's file endpoints: the presigned PUT and signed GET URLs point here
- * (`/v1/dev/uploads`, a path kept for URL compatibility). Loaded whenever STORAGE_DRIVER=local, also with
+ * (`/v1/dev/uploads`, a path kept for URL compatibility). Loaded whenever no S3 bucket is configured (local disk), also with
  * DEV_ROUTES off (a test server on Render, for example); production requires s3, so never there.
  * Every request carries an HMAC signature with an expiry, and an upload has its size and type fixed.
  */

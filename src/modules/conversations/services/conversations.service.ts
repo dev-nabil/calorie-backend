@@ -69,7 +69,7 @@ export class ConversationsService {
     const updated = await this.conversations.findOneAndUpdate({ _id: conv._id }, { $set: { lastMessageAt: new Date() }, $inc: { messageCount: 1 } }, { returnDocument: 'after' }).lean<ConversationDoc>();
     const count = updated?.messageCount ?? 0;
     if (conv.type === 'coach' && count > 0 && count % SUMMARY_EVERY === 0) {
-      await this.jobs.enqueue(SUMMARY_JOB, { conversationId: conv._id.toString() }, { jobId: `summary-${conv._id.toString()}-${count}` });
+      await this.jobs.enqueue(SUMMARY_JOB, { conversationId: conv._id.toString() }, { key: `summary-${conv._id.toString()}-${count}` });
     }
     return m._id.toString();
   }

@@ -16,7 +16,7 @@ import {
 import { CurrentUser, type AuthUser } from '../../../common/auth/auth.decorators';
 import { ApiError } from '../../../common/errors/api-error';
 import { Idempotent } from '../../../common/idempotency/idempotency.interceptor';
-import { AppAttestVerifier } from '../../../common/integrity/app-attest';
+import { IntegritySettings } from '../../../common/integrity/integrity-settings';
 import { ApiErrors, ZBody, ZParam, ZResponse } from '../../../common/zod/decorators';
 import { KvStore } from '../../../infra/kv/kv-store';
 import type { DeviceDoc } from '../../users/schemas/users.schema';
@@ -43,7 +43,7 @@ export class DevicesController {
     @InjectModel('Device') private readonly devices: Model<DeviceDoc>,
     private readonly users: UsersService,
     private readonly kv: KvStore,
-    private readonly attest: AppAttestVerifier,
+    private readonly integrity: IntegritySettings,
   ) {}
 
   @Post()
@@ -83,7 +83,7 @@ export class DevicesController {
     const ckey = `attest:chal:${u.id}:${body.challenge}`;
     if (!(await this.kv.get(ckey))) throw ApiError.forbidden(ERROR_CODES.INTEGRITY_INVALID, 'Challenge expired; ask for a new one');
     await this.kv.del(ckey);
-    const result = this.attest.verifyAttestation(Buffer.from(body.attestation, 'base64'), body.keyId, Buffer.from(body.challenge));
+    const result = (await this.integrity.appAttest()).verifyAttestation(Buffer.from(body.attestation, 'base64'), body.keyId, Buffer.from(body.challenge));
     if (!result.valid) throw ApiError.forbidden(ERROR_CODES.INTEGRITY_INVALID, 'Attestation could not be verified', { reason: result.reason });
     const d = await this.devices
       .findOneAndUpdate(

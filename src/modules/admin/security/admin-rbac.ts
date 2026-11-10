@@ -32,6 +32,8 @@ export const ADMIN_PERMISSIONS = {
   'flags.edit': [O, A],
   'experiments.edit': [O, A],
   'appVersion.edit': [O, A],
+  'settings.view': [O, A],
+  'settings.edit': [O, A],
   'waitlist.view': [O, A],
   'audit.view': [O, A],
   'adminUsers.manage': [O],

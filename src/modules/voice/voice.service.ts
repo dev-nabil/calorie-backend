@@ -7,7 +7,7 @@ import { ERROR_CODES } from '../../shared';
 import { ApiError } from '../../common/errors/api-error';
 import { StorageService } from '../../infra/storage/storage';
 import { JobHandlers } from '../../jobs/jobs.module';
-import { AiJobHandlers } from '../ai/ai-jobs';
+import { AiJobs } from '../ai/ai-jobs';
 import { DEFAULT_TTS_MODEL } from '../ai/ai-models';
 import { AiProvider, type SpeechResult } from '../ai/ai.provider';
 import { DEFAULT_VOICE, voiceOrDefault } from '../ai/providers/gemini.provider';
@@ -29,7 +29,7 @@ export class VoiceService implements OnModuleInit {
   constructor(
     @InjectModel('Message') private readonly messages: Model<MessageDoc>,
     private readonly jobs: JobHandlers,
-    private readonly aiJobs: AiJobHandlers,
+    private readonly aiJobs: AiJobs,
     private readonly ai: AiService,
     private readonly provider: AiProvider,
     private readonly storage: StorageService,
@@ -105,7 +105,7 @@ export class VoiceService implements OnModuleInit {
     return { version: lines.version, locale: want, lines: Object.fromEntries(Object.entries(keys).map(([id, k]) => [id, this.storage.signedGetUrl(k, 24 * 3600)])) };
   }
 
-  /** Worker job (queue `ai`): renders one coach reply, cached per message. */
+  /** AI job: renders one coach reply, cached per message. */
   async renderMessage({ userId, messageId }: { userId: string; messageId: string }): Promise<{ key: string; cached: boolean }> {
     const key = `u/${userId}/tts/${messageId}.wav`;
     if (await this.storage.exists(key)) return { key, cached: true };

@@ -7,9 +7,8 @@ import type { AppConfig } from '../../config/env';
 import { HealthResponseSchema, type HealthResponse } from '../../shared';
 import { Public } from '../../common/auth/auth.decorators';
 import { ZResponse } from '../../common/zod/decorators';
-import { KvStore } from '../../infra/kv/kv-store';
 
-export async function healthOf(config: AppConfig, conn: Connection, kv: KvStore): Promise<HealthResponse> {
+export async function healthOf(config: AppConfig, conn: Connection): Promise<HealthResponse> {
   let mongo: 'up' | 'down' = 'down';
   try {
     if (conn.readyState === 1 && conn.db) {
@@ -19,14 +18,7 @@ export async function healthOf(config: AppConfig, conn: Connection, kv: KvStore)
   } catch {
     mongo = 'down';
   }
-  const redis = kv.kind === 'memory' ? 'memory' : (await kv.ping()) ? 'up' : 'down';
-  return {
-    status: mongo === 'up' && redis !== 'down' ? 'ok' : 'degraded',
-    role: config.ROLE === 'worker' ? 'worker' : 'api', // `all` serves HTTP, so it reports as the API
-    version: config.APP_VERSION,
-    uptimeSec: Math.round(process.uptime()),
-    checks: { mongo, redis },
-  };
+  return { status: mongo === 'up' ? 'ok' : 'degraded', version: config.APP_VERSION, uptimeSec: Math.round(process.uptime()), checks: { mongo } };
 }
 
 @ApiTags('health')
@@ -35,13 +27,12 @@ export class HealthController {
   constructor(
     @Inject(APP_CONFIG) private readonly config: AppConfig,
     @InjectConnection() private readonly conn: Connection,
-    private readonly kv: KvStore,
   ) {}
 
   @Public()
   @Get()
   @ZResponse(200, HealthResponseSchema)
   health(): Promise<HealthResponse> {
-    return healthOf(this.config, this.conn, this.kv);
+    return healthOf(this.config, this.conn);
   }
 }

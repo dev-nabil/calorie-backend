@@ -30,6 +30,12 @@ export class AppConfigService {
     this.cache.delete(key);
   }
 
+  /** Back to the code default. */
+  async unset(key: string): Promise<void> {
+    await this.model.deleteOne({ key });
+    this.cache.delete(key);
+  }
+
   /** Value plus who changed it and when (admin panel). */
   async getDoc(key: string): Promise<{ value: unknown; updatedAt: Date | null; updatedBy: string; reason: string | null } | null> {
     const doc = await this.model.findOne({ key }).lean<{ value: unknown; updatedAt?: Date; updatedBy?: string; reason?: string | null }>();

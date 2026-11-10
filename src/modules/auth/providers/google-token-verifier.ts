@@ -1,5 +1,5 @@
 import { OAuth2Client } from 'google-auth-library';
-import type { ProviderIdentity } from './provider-identity';
+import { resolveLive, type Live, type ProviderIdentity } from './provider-identity';
 
 /** Google ID-token verification (M1-T3). */
 export abstract class GoogleTokenVerifier {
@@ -8,12 +8,13 @@ export abstract class GoogleTokenVerifier {
 
 export class GoogleAuthLibraryVerifier extends GoogleTokenVerifier {
   private readonly client = new OAuth2Client();
-  constructor(private readonly audiences: string[]) {
+  constructor(private readonly audiences: Live<string[]>) {
     super();
   }
   async verify(idToken: string): Promise<ProviderIdentity> {
-    if (!this.audiences.length) throw new Error('GOOGLE_CLIENT_IDS not configured');
-    const ticket = await this.client.verifyIdToken({ idToken, audience: this.audiences });
+    const audience = await resolveLive(this.audiences);
+    if (!audience.length) throw new Error('Google sign-in is not configured (setting auth.google.clientIds)');
+    const ticket = await this.client.verifyIdToken({ idToken, audience });
     const p = ticket.getPayload();
     if (!p?.sub) throw new Error('no subject');
     return { subject: p.sub, email: p.email?.toLowerCase() ?? null, emailVerified: p.email_verified === true, name: p.name ?? null };

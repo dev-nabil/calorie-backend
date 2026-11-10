@@ -3,7 +3,7 @@ import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, seedAdmins, signIn, uploadPhoto } from '../setup/helpers';
 import { totp } from '../../src/modules/admin/security/admin-crypto';
 import { AiProvider, FakeAiProvider } from '../../src/modules/ai/ai.provider';
-import { InlineScanQueue, ScanQueue } from '../../src/modules/scans/scan-queue';
+import { ScanQueue } from '../../src/modules/scans/scan-queue';
 import { AppConfigService } from '../../src/modules/content/app-config.service';
 
 describe('Admin M7 rest: AI settings, prompts, scans, usage, SLOs, conversations, admin users', () => {
@@ -64,7 +64,7 @@ describe('Admin M7 rest: AI settings, prompts, scans, usage, SLOs, conversations
     t.get<FakeAiProvider>(AiProvider).enqueue(Object.assign(new Error('bad'), { status: 400 }));
     const { key, hash } = await uploadPhoto(t, h);
     await t.http().post('/v1/scans').set(h).set(INTEGRITY).send({ scanId: randomUUID(), imageKey: key, imageHash: hash }).expect(202);
-    await (t.get<ScanQueue>(ScanQueue) as InlineScanQueue).drain();
+    await t.get<ScanQueue>(ScanQueue).drain();
     await t.http().get(`/v1/days/${new Date().toISOString().slice(0, 10)}`).set(h).expect(200);
     const admin = await login('admin');
     const failed = await t.http().get('/v1/admin/scans').query({ status: 'failed' }).set(admin).expect(200);

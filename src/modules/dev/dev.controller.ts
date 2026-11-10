@@ -61,7 +61,7 @@ export class DevController {
     if (!job) throw ApiError.notFound(ERROR_CODES.NOT_FOUND, `Unknown job. Use one of: ${Object.keys(DEV_JOBS).join(', ')}`);
     if (name === 'summaries' && !body.conversationId) throw new ApiError(ERROR_CODES.VALIDATION_FAILED, 'conversationId is required for summaries', 400, { field: 'conversationId' });
     const startedAt = Date.now();
-    const result = await this.jobs.dispatch(job, name === 'summaries' ? { conversationId: body.conversationId } : {});
+    const result = await this.jobs.run(job, name === 'summaries' ? { conversationId: body.conversationId } : {});
     return { name, job, result: result ?? null, ms: Date.now() - startedAt };
   }
 

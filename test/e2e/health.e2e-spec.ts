@@ -7,9 +7,9 @@ describe('GET /v1/health (M0-T3)', () => {
   });
   afterAll(() => t.close());
 
-  it('reports mongo up and the in-memory kv store', async () => {
+  it('reports mongo up and the package version', async () => {
     const res = await t.http().get('/v1/health').expect(200);
-    expect(res.body).toMatchObject({ status: 'ok', role: 'api', checks: { mongo: 'up', redis: 'memory' } });
+    expect(res.body).toMatchObject({ status: 'ok', version: expect.stringMatching(/^\d+\.\d+\.\d+/), checks: { mongo: 'up' } });
     expect(res.headers['x-request-id']).toBeDefined();
   });
 

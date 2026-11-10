@@ -18,11 +18,11 @@ import {
   type QuestionSet,
 } from '../../../domain/onboarding-engine';
 import { ApiError } from '../../../common/errors/api-error';
-import { AiJobRunner } from '../../ai/ai-jobs';
+import { AiJobs } from '../../ai/ai-jobs';
 import { ContentService } from '../../content/content.service';
 import { OnboardingService } from '../../onboarding/onboarding.service';
 import type { ConversationDoc, MessageDoc, PendingAnswer } from '../schemas/conversations.schema';
-import { EXTRACT_JOB, EXTRACT_TIMEOUT_MS } from '../extraction.handler';
+import { EXTRACT_JOB } from '../extraction.handler';
 import type { ExtractionOutput } from '../../../shared';
 
 const LOW_CONFIDENCE = 0.7; // plan 8.5 rule 4
@@ -52,7 +52,7 @@ export interface RealtimeStart {
 
 /**
  * Onboarding conversation turns (M5-T3): server-driven walk over the turn groups, model extraction
- * in the worker, confirmation for multi-answer or low-confidence turns. A reply may also answer later
+ * in an AI job, confirmation for multi-answer or low-confidence turns. A reply may also answer later
  * questions; those are saved (or held until their rules show them), so Milo never asks them again.
  */
 @Injectable()
@@ -62,7 +62,7 @@ export class OnboardingTurnsService {
     @InjectModel('Message') private readonly messages: Model<MessageDoc>,
     private readonly onboarding: OnboardingService,
     private readonly content: ContentService,
-    private readonly runner: AiJobRunner,
+    private readonly runner: AiJobs,
   ) {}
 
   private async conv(): Promise<ConvContent> {
@@ -139,7 +139,6 @@ export class OnboardingTurnsService {
           text: req.text ?? '',
         },
       },
-      EXTRACT_TIMEOUT_MS + 5000,
     );
     return (await this.finishExtraction(conv, turns, raw, snap, turn, open, out, req.inputMethod, true)).reply;
   }

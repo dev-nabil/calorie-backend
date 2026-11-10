@@ -17,9 +17,14 @@ import { DeviceSchema, ScanLedgerSchema, UserSchema } from '../../modules/users/
 import { CoachPreferenceSchema } from '../../modules/coach-preferences/schemas/coach-preferences.schema';
 import { WeeklyRecapSchema } from '../../modules/recap/schemas/weekly-recap.schema';
 import { ProductSchema } from '../../modules/foods/schemas/products.schema';
+import { JobScheduleSchema, JobSchema } from '../../jobs/job.schema';
+import { KvEntrySchema } from '../kv/kv-store';
 
 /** Every collection, registered once (plan section 6). Inject with @InjectModel('<Name>'). */
 export const MODEL_DEFINITIONS = [
+  { name: 'KvEntry', schema: KvEntrySchema },
+  { name: 'Job', schema: JobSchema },
+  { name: 'JobSchedule', schema: JobScheduleSchema },
   { name: 'User', schema: UserSchema },
   { name: 'Device', schema: DeviceSchema },
   { name: 'ScanLedger', schema: ScanLedgerSchema },

@@ -13,7 +13,7 @@ import { ApiError } from '../../common/errors/api-error';
 import { requestLocale } from '../../common/http/request-context';
 import { DailyQuota } from '../../common/rate-limit/daily-quota';
 import { KvStore } from '../../infra/kv/kv-store';
-import { AiJobRunner } from '../ai/ai-jobs';
+import { AiJobs } from '../ai/ai-jobs';
 import { AppConfigService } from '../content/app-config.service';
 import type { ProfileDoc } from '../onboarding/schemas/onboarding.schema';
 import type { PlanDoc } from '../plans/schemas/plans.schema';
@@ -63,7 +63,7 @@ export class RecapService {
     private readonly dailyLogs: DailyLogsService,
     private readonly appConfig: AppConfigService,
     private readonly quota: DailyQuota,
-    private readonly runner: AiJobRunner,
+    private readonly runner: AiJobs,
     private readonly kv: KvStore,
   ) {}
 
@@ -102,9 +102,9 @@ export class RecapService {
       };
       let result: WeeklyRecapJobResult;
       try {
-        result = await this.runner.run<WeeklyRecapJobResult>(WEEKLY_RECAP_JOB, job, WEEKLY_RECAP_TIMEOUT_MS + 5000);
+        result = await this.runner.run<WeeklyRecapJobResult>(WEEKLY_RECAP_JOB, job);
       } catch (e) {
-        // Kill switch, budget, open breaker, provider error or a worker timeout: the stats still answer.
+        // Kill switch, budget, open breaker, provider error: the stats still answer.
         if (!(e instanceof ApiError)) throw e;
         this.logger.warn({ userId, range, code: e.code, reason: e.details?.reason }, 'weekly recap without cards: AI unavailable');
         return plain;

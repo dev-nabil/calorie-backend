@@ -8,7 +8,7 @@ export interface PushMessage {
   data: Record<string, string>;
 }
 
-/** DEC-12 push; the worker sends in batches of up to 500 (M9-T1). Returns tokens FCM rejected as unregistered. */
+/** DEC-12 push; the reminders job sends in batches of up to 500 (M9-T1). Returns tokens FCM rejected as unregistered. */
 export abstract class PushSender {
   abstract sendBatch(messages: PushMessage[]): Promise<{ sent: number; invalidTokens: string[] }>;
 }

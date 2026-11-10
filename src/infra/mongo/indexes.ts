@@ -1,11 +1,11 @@
 import { Inject, Injectable, Logger, Module, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import type { Connection } from 'mongoose';
-import { APP_CONFIG } from '../config/config.module';
-import type { AppConfig } from '../config/env';
+import { APP_CONFIG } from '../../config/config.module';
+import type { AppConfig } from '../../config/env';
 
 /**
- * The API runs with autoIndex off in production; the worker creates every schema index on boot
+ * Production runs with autoIndex off; the process creates every schema index once on boot
  * (createIndexes only adds, never drops; index changes are additive, see runbook §5).
  */
 @Injectable()

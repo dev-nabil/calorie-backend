@@ -1,9 +1,9 @@
 /**
  * `pnpm start:local`: the whole API on one machine without Docker (developer and QA use only).
  * - MongoDB: in-process replica set (mongodb-memory-server) with a persistent dbPath in $LOCAL_DATA_DIR/mongo (default .local)
- * - Redis: in-memory fallback; scans run inline (no BullMQ worker needed)
+ * - Background jobs and scans run in the same process (MongoDB queue)
  * - Email: console driver (codes printed and served by GET /v1/dev/last-otp)
- * - AI: FakeAiProvider; uploads: local disk driver under .local/uploads
+ * - AI: canned answers (fake provider), even when GEMINI_API_KEY is set; uploads: local disk under .local/uploads
  * - Binds 0.0.0.0:3000 so the iOS simulator (localhost) and Android emulator (10.0.2.2) reach it.
  */
 import 'reflect-metadata';
@@ -27,20 +27,21 @@ async function main(): Promise<void> {
     replSet: { name: 'rs0', count: 1, storageEngine: 'wiredTiger' },
     instanceOpts: [{ dbPath, port: Number(process.env.LOCAL_MONGO_PORT ?? LOCAL_MONGO_PORT), storageEngine: 'wiredTiger', args: ['--setParameter', 'indexBuildMinAvailableDiskSpaceMB=0'] }],
   });
-  const config = loadConfig({
-    PORT: '3000',
-    HOST: '0.0.0.0',
-    LOG_LEVEL: 'info',
-    ...process.env,
-    NODE_ENV: 'development',
-    MONGODB_URI: replSet.getUri().replace('/?', '/nouri?'),
-    REDIS_URL: '',
-    EMAIL_DRIVER: 'console',
-    AI_PROVIDER: 'fake',
-    STORAGE_DRIVER: 'local',
-    LOCAL_STORAGE_DIR: resolve(dataDir, 'uploads'),
-    DEV_ROUTES: 'true',
-  });
+  const config = {
+    ...loadConfig({
+      PORT: '3000',
+      HOST: '0.0.0.0',
+      LOG_LEVEL: 'info',
+      ...process.env,
+      NODE_ENV: 'development',
+      MONGODB_URI: replSet.getUri().replace('/?', '/nouri?'),
+      EMAIL_API_KEY: '',
+      S3_BUCKET: '',
+      LOCAL_STORAGE_DIR: resolve(dataDir, 'uploads'),
+      DEV_ROUTES: 'true',
+    }),
+    fakeAi: true,
+  };
   const app = await NestFactory.create(AppModule.forRoot(config), { bufferLogs: true });
   configureApp(app);
   await app.listen(config.PORT, config.HOST);

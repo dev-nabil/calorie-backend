@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { APP_CONFIG } from '../../config/config.module';
 import type { AppConfig } from '../../config/env';
+import { SettingsService } from '../settings/settings.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import {
@@ -14,6 +15,7 @@ import {
   ResendEmailSender,
 } from './providers';
 
+/** Sign-in. Client IDs and the email sender are admin settings, read per call; the Resend key is a secret in the environment. */
 @Global()
 @Module({
   controllers: [AuthController],
@@ -21,19 +23,23 @@ import {
     AuthService,
     {
       provide: EmailSender,
-      inject: [APP_CONFIG],
-      useFactory: (c: AppConfig): EmailSender =>
-        c.EMAIL_DRIVER === 'resend'
-          ? new ResendEmailSender(c.EMAIL_API_KEY ?? '', c.EMAIL_FROM)
-          : c.EMAIL_DRIVER === 'memory'
+      inject: [APP_CONFIG, SettingsService],
+      useFactory: (c: AppConfig, settings: SettingsService): EmailSender =>
+        c.emailDriver === 'resend'
+          ? new ResendEmailSender(c.EMAIL_API_KEY ?? '', () => settings.get('email.from'))
+          : c.emailDriver === 'memory'
             ? new MemoryEmailSender()
             : new ConsoleEmailSender(),
     },
-    { provide: GoogleTokenVerifier, inject: [APP_CONFIG], useFactory: (c: AppConfig) => new GoogleAuthLibraryVerifier(c.GOOGLE_CLIENT_IDS) },
+    { provide: GoogleTokenVerifier, inject: [SettingsService], useFactory: (settings: SettingsService) => new GoogleAuthLibraryVerifier(() => settings.get('auth.google.clientIds')) },
     {
       provide: AppleTokenVerifier,
-      inject: [APP_CONFIG],
-      useFactory: (c: AppConfig) => new JoseAppleVerifier([c.APPLE_BUNDLE_ID, c.APPLE_SERVICE_ID].filter((v): v is string => Boolean(v))),
+      inject: [SettingsService],
+      useFactory: (settings: SettingsService) =>
+        new JoseAppleVerifier(async () => {
+          const s = await settings.many(['auth.apple.bundleId', 'auth.apple.serviceId']);
+          return [s['auth.apple.bundleId'], s['auth.apple.serviceId']].filter(Boolean);
+        }),
     },
   ],
   exports: [EmailSender],

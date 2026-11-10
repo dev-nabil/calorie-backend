@@ -11,7 +11,7 @@ export interface RateRule {
   windowSec: number;
 }
 
-/** Fixed-window counters in Redis (plan section 7, rate limits). Throws 429 with Retry-After. */
+/** Fixed-window counters in the key-value store (plan section 7, rate limits). Throws 429 with Retry-After. */
 @Injectable()
 export class RateLimiter {
   constructor(

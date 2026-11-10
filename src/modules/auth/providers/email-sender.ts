@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { requestLocale } from '../../../common/http/request-context';
 import { translatorFor } from '../../../shared/i18n';
+import { resolveLive, type Live } from './provider-identity';
 
 /** Sends the sign-in code. Production uses Resend (OQ-09); dev prints to the console. */
 export abstract class EmailSender {
@@ -37,7 +38,7 @@ export class ConsoleEmailSender extends MemoryEmailSender {
 export class ResendEmailSender extends EmailSender {
   constructor(
     private readonly apiKey: string,
-    private readonly from: string,
+    private readonly from: Live<string>,
   ) {
     super();
   }
@@ -47,7 +48,7 @@ export class ResendEmailSender extends EmailSender {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: this.from,
+        from: await resolveLive(this.from),
         to: [email],
         subject: tr('email.otp.subject', { code }),
         text: tr('email.otp.body', { code }),
@@ -62,7 +63,7 @@ export class ResendEmailSender extends EmailSender {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: this.from, to: [email], subject, text }),
+      body: JSON.stringify({ from: await resolveLive(this.from), to: [email], subject, text }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) throw new Error(`email provider returned ${res.status}`);

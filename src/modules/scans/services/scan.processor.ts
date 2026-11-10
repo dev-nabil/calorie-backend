@@ -43,7 +43,7 @@ function failureOf(e: unknown): { code: string; message: string } {
 }
 
 /**
- * Worker job for one scan (M4-T3): claim → model call through modules/ai → validate and
+ * Background job for one scan (M4-T3): claim → model call through modules/ai → validate and
  * normalise (plan 8.3) → write succeeded/rejected/failed → charge the free scan on success only.
  */
 @Injectable()
@@ -74,7 +74,7 @@ export class ScanProcessor {
       )
       .lean<ScanDoc>();
     if (!scan) return; // already done or claimed: retries never call the model twice
-    // The app gave up on this long ago (for example the worker was down): no model call, no charge.
+    // The app gave up on this long ago (for example the server was asleep or restarting): no model call, no charge.
     if (now.getTime() - new Date(scan.queuedAt).getTime() >= AI_WAIT_LIMIT_MS) {
       return this.finish(scan, 'failed', { error: { code: 'TIMEOUT', message: 'The analysis took too long' } });
     }

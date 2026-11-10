@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { WeeklyRecapOutputSchema, type RecapCard, type RecapRange, type RecapStats } from '../../shared';
 import { DEFAULT_LOCALE, type LocaleCode } from '../../shared/locales';
 import { checkRecapCards, type RecapMode } from '../../domain/weekly-recap';
-import { AiJobHandlers } from '../ai/ai-jobs';
+import { AiJobs } from '../ai/ai-jobs';
 import { AiProvider } from '../ai/ai.provider';
 import { DEFAULT_TEXT_MODEL } from '../ai/ai-models';
 import { AiService, AiUnavailableError } from '../ai/ai.service';
@@ -22,7 +22,7 @@ export interface WeeklyRecapJob {
   range: RecapRange;
   mode: RecapMode;
   stats: RecapStats;
-  /** Reply language of the cards (jobs run in the worker, outside the request). */
+  /** Reply language of the cards (the job runs outside the request context). */
   locale: LocaleCode;
   /** Prompt-ready descriptions (domain/copy-rules `describeAllergies`, `describeDietPattern`). */
   allergies: string;
@@ -39,7 +39,7 @@ export interface WeeklyRecapJobResult {
 }
 
 /**
- * Runs in the worker (queue `ai`): one structured call writes the story cards from the stats, then every card is checked
+ * An AI job (AiJobs): one structured call writes the story cards from the stats, then every card is checked
  * (numbers, judging words, habits-only, allergens). Unavailable AI throws AI_UNAVAILABLE; the service degrades to stats only.
  */
 @Injectable()
@@ -47,7 +47,7 @@ export class WeeklyRecapHandler implements OnModuleInit {
   private readonly logger = new Logger('WeeklyRecap');
 
   constructor(
-    private readonly handlers: AiJobHandlers,
+    private readonly handlers: AiJobs,
     private readonly ai: AiService,
     private readonly provider: AiProvider,
     private readonly content: ContentService,

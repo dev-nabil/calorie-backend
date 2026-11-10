@@ -20,7 +20,7 @@ interface AdminPrincipal {
   status: AdminUserDoc['status'];
 }
 
-/** Server-side admin sessions in Redis (opaque id cookie, CSRF double submit, sliding idle timeout). */
+/** Server-side admin sessions in the key-value store (opaque id cookie, CSRF double submit, sliding idle timeout). */
 @Injectable()
 export class AdminSessions {
   constructor(
@@ -42,7 +42,7 @@ export class AdminSessions {
     if (!raw) return null;
     const s = JSON.parse(raw) as AdminSessionData;
     const now = clock.now().getTime();
-    // Idle and absolute limits use the (dev-shiftable) clock as well as the Redis TTL.
+    // Idle and absolute limits use the (dev-shiftable) clock as well as the key TTL.
     if (now - s.createdAt > ADMIN_ABSOLUTE_SEC * 1000 || now - s.lastSeenAt > ADMIN_IDLE_SEC * 1000) {
       await this.kv.del(key(sid));
       return null;

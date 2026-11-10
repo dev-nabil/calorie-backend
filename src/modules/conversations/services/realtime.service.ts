@@ -1,9 +1,7 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types, type Model } from 'mongoose';
 import { z } from 'zod';
-import { APP_CONFIG } from '../../../config/config.module';
-import type { AppConfig } from '../../../config/env';
 import { ERROR_CODES, type MiloReply, type RealtimeSession, type RealtimeToolRequest, type RealtimeToolResult, type RealtimeUsageRequest } from '../../../shared';
 import { localeInfo } from '../../../shared/locales';
 import { requestLocale } from '../../../common/http/request-context';
@@ -70,7 +68,6 @@ const ConfirmAnswersArgs = z.object({ accept: z.boolean() });
 export class RealtimeService {
   constructor(
     @InjectModel('Conversation') private readonly conversations: Model<ConversationDoc>,
-    @Inject(APP_CONFIG) private readonly config: AppConfig,
     private readonly users: UsersService,
     private readonly onboarding: OnboardingTurnsService,
     private readonly content: ContentService,
@@ -117,7 +114,7 @@ export class RealtimeService {
       synonymsJson: start.synonymsJson,
     })}`;
 
-    const model = await this.ai.modelFor('realtime', this.config.GEMINI_REALTIME_MODEL || DEFAULT_REALTIME_MODEL);
+    const model = await this.ai.modelFor('realtime', DEFAULT_REALTIME_MODEL);
     // A voice setting left over from before Gemini (a name from before Gemini) is not a Gemini voice: the default is used instead.
     const voice = voiceOrDefault(await this.appConfig.get<string>('ai.realtime.voice', DEFAULT_VOICE));
     const breaker = this.ai.breaker('realtime');
@@ -176,7 +173,7 @@ export class RealtimeService {
   /** The app reports the tokens of a finished session so the monthly budget guard sees the cost. */
   async usage(userId: string, conversationId: string, u: RealtimeUsageRequest): Promise<void> {
     await this.find(userId, conversationId);
-    const model = await this.ai.modelFor('realtime', this.config.GEMINI_REALTIME_MODEL || DEFAULT_REALTIME_MODEL);
+    const model = await this.ai.modelFor('realtime', DEFAULT_REALTIME_MODEL);
     const p = REALTIME_PRICES[model] ?? LIVE_PRICE;
     const freshAudioIn = Math.max(0, u.inputAudioTokens - u.cachedInputTokens);
     const cost = (freshAudioIn * p.audioIn + u.inputTextTokens * p.textIn + u.cachedInputTokens * p.cachedIn + u.outputAudioTokens * p.audioOut + u.outputTextTokens * p.textOut) / 1_000_000;

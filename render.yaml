@@ -1,10 +1,14 @@
-# Render Blueprint: the Nouri API as ONE free web service (native Node, no Docker).
+# Render Blueprint: the Nouri API as ONE free web service (native Node, no Docker, no Redis, no worker).
+# The same process serves HTTP and runs every background job from a MongoDB queue.
 # Step by step, what each value means, and how to go to production: DEPLOY-RENDER.md.
 #
-# This is a TEST server profile. NODE_ENV=development because production mode refuses to boot
-# without Redis, S3/R2, Resend, Turnstile and device integrity (src/config/env.ts). The dev-only
-# parts that would be unsafe on a public URL are switched off below (DEV_ROUTES, Swagger), the
-# secrets are generated, and sign-in verifiers fail closed when their IDs are missing.
+# Only secrets and the database URL are environment variables. Everything else (models, scan caps,
+# Google/Apple client IDs, email sender, integrity, barcode lookups, admin URL) is an admin setting:
+# admin panel → Settings, stored in MongoDB.
+#
+# This is a TEST server profile: NODE_ENV=development, because production mode also requires Resend,
+# Turnstile and S3/R2 keys (src/config/env.ts). The dev-only parts that would be unsafe on a public URL
+# are switched off below (DEV_ROUTES, Swagger).
 #
 # Values marked `sync: false` are asked for in the Render dashboard when the Blueprint is created.
 # Never put a real secret in this file.
@@ -25,14 +29,10 @@ services:
       # ── Mode ───────────────────────────────────────────────────────────────
       - key: NODE_ENV
         value: development
-      - key: ROLE
-        value: all # API + queue processors in one process (free plan has no background workers)
       - key: DEV_ROUTES
         value: "false" # /v1/dev/* (read the last sign-in code, move the clock) must never be public
       - key: SWAGGER_ENABLED
         value: "false"
-      - key: LOG_LEVEL
-        value: info
       # Skip the 100 MB test MongoDB download during the build (mongodb-memory-server is a dev tool).
       - key: MONGOMS_DISABLE_POSTINSTALL
         value: "1"
@@ -40,8 +40,6 @@ services:
       # ── Database (MongoDB Atlas free M0) ──────────────────────────────────
       - key: MONGODB_URI
         sync: false # mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/nouri?retryWrites=true&w=majority
-      - key: REDIS_URL
-        sync: false # optional: leave empty (in-memory, scans run inline) or paste a Key Value / Upstash URL
 
       # ── Secrets: generated once by Render. Do not rotate LEDGER_PEPPER. ──
       - key: JWT_ACCESS_SECRET
@@ -53,30 +51,15 @@ services:
       - key: LEDGER_PEPPER
         generateValue: true
 
-      # ── AI (Gemini) ───────────────────────────────────────────────────────
-      - key: AI_PROVIDER
-        value: gemini
+      # ── Keys (paste in the dashboard) ─────────────────────────────────────
       - key: GEMINI_API_KEY
         sync: false
-      - key: AI_MONTHLY_BUDGET_USD
-        value: "10"
-      - key: GEMINI_FOOD_MODEL
-        value: gemini-3.5-flash-lite
-
-      # ── Sign-in ───────────────────────────────────────────────────────────
-      # Google: the Firebase project's WEB client ID (public, not a secret).
-      - key: GOOGLE_CLIENT_IDS
-        value: 110926860028-6mpqr1u59dl1hnl7olnhckel3beak0b2.apps.googleusercontent.com
-      # Email codes: console = the code is printed in the Render log. Switch to resend for real mail.
-      - key: EMAIL_DRIVER
-        value: console
       - key: EMAIL_API_KEY
-        sync: false
-      - key: EMAIL_FROM
-        sync: false
+        sync: false # Resend; empty = sign-in codes are printed in the Render log
+      - key: CORS_ORIGINS
+        sync: false # the admin panel / website origins, e.g. https://nouri-web.example.com
 
       # ── Photos ────────────────────────────────────────────────────────────
-      # local = the service's own disk, which Render wipes on every deploy and spin-down.
-      # For photos that last, use Cloudflare R2 (free tier): STORAGE_DRIVER=s3 + the S3_* keys.
-      - key: STORAGE_DRIVER
-        value: local
+      # Without S3 keys photos go to the service's own disk, which Render wipes on every deploy and
+      # spin-down. For photos that last, add Cloudflare R2 (free tier): S3_ENDPOINT, S3_REGION=auto,
+      # S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY.

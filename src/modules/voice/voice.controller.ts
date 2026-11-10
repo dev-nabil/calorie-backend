@@ -9,11 +9,11 @@ import { RequireIntegrity } from '../../common/integrity/integrity';
 import { ApiErrors, ZBody, ZResponse } from '../../common/zod/decorators';
 import { DailyQuota } from '../../common/rate-limit/daily-quota';
 import { StorageService } from '../../infra/storage/storage';
-import { AiJobRunner } from '../ai/ai-jobs';
+import { AiJobs } from '../ai/ai-jobs';
 import { CONFIG_DEFAULTS } from '../app-config/app-config.defaults';
 import { AppConfigService } from '../content/app-config.service';
 import { UsersService } from '../users/users.service';
-import { SPEECH_JOB, TTS_TIMEOUT_MS, VoiceService } from './voice.service';
+import { SPEECH_JOB, VoiceService } from './voice.service';
 
 @ApiTags('voice')
 @Controller()
@@ -22,7 +22,7 @@ export class VoiceController {
     private readonly voice: VoiceService,
     private readonly users: UsersService,
     private readonly appConfig: AppConfigService,
-    private readonly runner: AiJobRunner,
+    private readonly runner: AiJobs,
     private readonly storage: StorageService,
     private readonly quota: DailyQuota,
   ) {}
@@ -51,7 +51,7 @@ export class VoiceController {
     const limits = await this.appConfig.get('limits', AI_LIMITS);
     const perDay = (limits.plus as { spokenRepliesPerDay?: number }).spokenRepliesPerDay ?? 50;
     await this.quota.assertAvailable('tts', u.id, user.timezone, perDay, true, 'Daily spoken replies used up');
-    const r = await this.runner.run<{ key: string; cached: boolean }>(SPEECH_JOB, { userId: u.id, messageId: body.messageId }, TTS_TIMEOUT_MS + 5000);
+    const r = await this.runner.run<{ key: string; cached: boolean }>(SPEECH_JOB, { userId: u.id, messageId: body.messageId });
     if (!r.cached) await this.quota.consume('tts', u.id, user.timezone);
     return { url: this.storage.signedGetUrl(r.key, 3600), cached: r.cached };
   }

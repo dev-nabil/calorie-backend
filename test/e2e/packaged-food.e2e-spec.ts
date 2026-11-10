@@ -5,11 +5,11 @@ import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, signIn, uploadPhoto } from '../setup/helpers';
 import { AiProvider, FakeAiProvider } from '../../src/modules/ai/ai.provider';
 import { FakeFoodVisionProvider, FoodVisionProvider } from '../../src/modules/ai/providers/food-vision.provider';
-import { AppConfigService } from '../../src/modules/content/app-config.service';
+import { SettingsService } from '../../src/modules/settings/settings.service';
 import { FakeProductDatabase, ProductDatabase } from '../../src/modules/foods/providers/product-database.provider';
 import type { ProductDoc } from '../../src/modules/foods/schemas/products.schema';
 import { LABEL_EXAMPLE } from '../../src/domain/nutrition-validator/fixtures';
-import { InlineScanQueue, ScanQueue } from '../../src/modules/scans/scan-queue';
+import { ScanQueue } from '../../src/modules/scans/scan-queue';
 import type { ScanDoc } from '../../src/modules/scans/schemas/scans.schema';
 import { UsersService } from '../../src/modules/users/users.service';
 
@@ -29,7 +29,7 @@ describe('Packaged food: barcode lookup and label scans', () => {
   let fake: FakeAiProvider;
   let vision: FakeFoodVisionProvider;
   let db: FakeProductDatabase;
-  const drain = () => (t.get<ScanQueue>(ScanQueue) as InlineScanQueue).drain();
+  const drain = () => t.get<ScanQueue>(ScanQueue).drain();
   const products = () => t.get<Model<ProductDoc>>(getModelToken('Product'));
   const scans = () => t.get<Model<ScanDoc>>(getModelToken('Scan'));
 
@@ -45,7 +45,8 @@ describe('Packaged food: barcode lookup and label scans', () => {
     db.reset();
     db.products.set(NUTELLA.barcode, structuredClone(NUTELLA));
     await products().deleteMany({});
-    await t.get<AppConfigService>(AppConfigService).set('limits.foodScan', { dailyRequests: 1000, dailySpendUsd: 100 });
+    await t.get<SettingsService>(SettingsService).set('scan.dailyRequestCap', 1000);
+    await t.get<SettingsService>(SettingsService).set('scan.dailySpendUsd', 100);
   });
   afterAll(() => t.close());
 

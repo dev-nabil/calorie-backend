@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, INTEGRITY, samplePhoto, signIn, uploadPhoto } from '../setup/helpers';
-import { InlineScanQueue, ScanQueue } from '../../src/modules/scans/scan-queue';
+import { ScanQueue } from '../../src/modules/scans/scan-queue';
 
 // A test server with local photo storage and the dev routes OFF (render.yaml): food scans must still work.
 describe('Local storage uploads without dev routes (Render test profile)', () => {
   let t: TestApp;
   beforeAll(async () => {
-    t = await createTestApp({ DEV_ROUTES: 'false', STORAGE_DRIVER: 'local' });
+    t = await createTestApp({ DEV_ROUTES: 'false' });
   });
   afterAll(() => t.close());
 
@@ -18,7 +18,7 @@ describe('Local storage uploads without dev routes (Render test profile)', () =>
     const { key, hash } = await uploadPhoto(t, h, 'render-plate');
     const scanId = randomUUID();
     await t.http().post('/v1/scans').set(h).set(INTEGRITY).send({ scanId, imageKey: key, imageHash: hash, category: 'lunch' }).expect(202);
-    await (t.get<ScanQueue>(ScanQueue) as InlineScanQueue).drain();
+    await t.get<ScanQueue>(ScanQueue).drain();
     const done = await t.http().get(`/v1/scans/${scanId}`).set(h).expect(200);
     expect(done.body.status).toBe('succeeded');
   });

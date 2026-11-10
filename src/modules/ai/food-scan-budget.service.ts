@@ -1,10 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import { clock } from '../../common/clock';
-import { APP_CONFIG } from '../../config/config.module';
-import type { AppConfig } from '../../config/env';
 import { AppConfigService } from '../content/app-config.service';
+import { SettingsService } from '../settings/settings.service';
 import { AiUnavailableError } from './ai.service';
 import { geminiCostUsd, knownGeminiPrice, type GeminiPrice, type GeminiTokens } from './gemini-pricing';
 import type { FoodScanUsageDailyDoc } from './schemas/ai.schema';
@@ -32,33 +31,39 @@ function secondsToUtcMidnight(now: Date): number {
 }
 
 /**
- * Daily request and spending caps for Gemini scans. Each call reserves its worst case with one atomic
- * update before it starts, so any number of API and worker processes cannot pass a cap together.
+ * Daily request and spending caps for Gemini scans (admin settings scan.dailyRequestCap and
+ * scan.dailySpendUsd). Each call reserves its worst case with one atomic update before it starts, so
+ * any number of processes cannot pass a cap together.
  * A crash between reserve and settle leaves the hold in place until the day ends: the cap errs low.
  */
 @Injectable()
 export class FoodScanBudget {
   constructor(
-    @Inject(APP_CONFIG) private readonly config: AppConfig,
     @InjectModel('FoodScanUsageDaily') private readonly usage: Model<FoodScanUsageDailyDoc>,
+    private readonly settings: SettingsService,
     private readonly appConfig: AppConfigService,
   ) {}
 
-  price(model: string): GeminiPrice {
-    const { GEMINI_FOOD_INPUT_USD_PER_M: input, GEMINI_FOOD_OUTPUT_USD_PER_M: output } = this.config;
+  /**
+   * An admin price (app_config `ai.price.<model>`) wins over the built-in table. Setting scan.model refuses
+   * a model without either, so a real scan is never priced at zero; zero only serves the fake provider.
+   */
+  async price(model: string): Promise<GeminiPrice> {
+    const custom = await this.appConfig.get<Partial<GeminiPrice> | null>(`ai.price.${model}`, null);
     const known = knownGeminiPrice(model);
-    // An unpriced model is refused at boot when a key is set; the fallback only serves the fake provider.
-    return { inputPerM: input ?? known?.inputPerM ?? 0, cachedPerM: known?.cachedPerM ?? input ?? 0, outputPerM: output ?? known?.outputPerM ?? 0 };
+    const inputPerM = custom?.inputPerM ?? known?.inputPerM ?? 0;
+    return { inputPerM, cachedPerM: custom?.cachedPerM ?? known?.cachedPerM ?? inputPerM, outputPerM: custom?.outputPerM ?? known?.outputPerM ?? 0 };
   }
 
   async limits(): Promise<FoodScanLimits> {
-    const defaults = { dailyRequests: this.config.GEMINI_FOOD_DAILY_REQUEST_CAP, dailySpendUsd: this.config.GEMINI_FOOD_DAILY_SPEND_USD };
-    return { ...defaults, ...(await this.appConfig.get<Partial<FoodScanLimits>>('limits.foodScan', {})) };
+    const s = await this.settings.many(['scan.dailyRequestCap', 'scan.dailySpendUsd']);
+    return { dailyRequests: s['scan.dailyRequestCap'], dailySpendUsd: s['scan.dailySpendUsd'] };
   }
 
-  private reserveMicroUsd(model: string): number {
-    const worst = { inputTokens: RESERVED_INPUT_TOKENS, cachedTokens: 0, outputTokens: this.config.GEMINI_FOOD_MAX_OUTPUT_TOKENS, thoughtTokens: 0 };
-    return Math.ceil(geminiCostUsd(worst, this.price(model)) * MICRO);
+  private async reserveMicroUsd(model: string, maxOutputTokens?: number): Promise<number> {
+    const outputTokens = maxOutputTokens ?? (await this.settings.get('scan.maxOutputTokens'));
+    const worst = { inputTokens: RESERVED_INPUT_TOKENS, cachedTokens: 0, outputTokens, thoughtTokens: 0 };
+    return Math.ceil(geminiCostUsd(worst, await this.price(model)) * MICRO);
   }
 
   private closed(now: Date): AiUnavailableError {
@@ -70,14 +75,14 @@ export class FoodScanBudget {
     const limits = await this.limits();
     const day = await this.usage.findById(dayOf(now)).lean<FoodScanUsageDailyDoc>();
     const requests = (day?.requests ?? 0) + (day?.reservedRequests ?? 0);
-    const micro = (day?.spendMicroUsd ?? 0) + (day?.reservedMicroUsd ?? 0) + this.reserveMicroUsd(model);
+    const micro = (day?.spendMicroUsd ?? 0) + (day?.reservedMicroUsd ?? 0) + (await this.reserveMicroUsd(model));
     if (requests >= limits.dailyRequests || micro > limits.dailySpendUsd * MICRO) throw this.closed(now);
   }
 
-  async reserve(model: string, now = clock.now()): Promise<FoodScanHold> {
+  async reserve(model: string, maxOutputTokens?: number, now = clock.now()): Promise<FoodScanHold> {
     const limits = await this.limits();
     const date = dayOf(now);
-    const microUsd = this.reserveMicroUsd(model);
+    const microUsd = await this.reserveMicroUsd(model, maxOutputTokens);
     await this.usage.updateOne({ _id: date }, { $setOnInsert: { requests: 0 } }, { upsert: true }).catch((e: { code?: number }) => {
       if (e.code !== 11000) throw e; // two first calls of the day: the other one created it
     });

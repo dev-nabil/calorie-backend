@@ -10,7 +10,7 @@ import type { ConversationDoc, MessageDoc } from '../schemas/conversations.schem
 export const SUMMARY_JOB = 'conversation_summary';
 export const SUMMARY_EVERY = 20; // plan 8.6: rolling summary every 20 messages
 
-/** Worker job: folds older messages into conversations.summary (sent with every coach turn). */
+/** Background job: folds older messages into conversations.summary (sent with every coach turn). */
 @Injectable()
 export class ConversationSummaries implements OnModuleInit {
   constructor(

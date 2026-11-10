@@ -5,7 +5,7 @@ import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, signIn, uploadPhoto } from '../setup/helpers';
 import { AiProvider, FakeAiProvider } from '../../src/modules/ai/ai.provider';
 import { AppConfigService } from '../../src/modules/content/app-config.service';
-import { InlineScanQueue, ScanQueue } from '../../src/modules/scans/scan-queue';
+import { ScanQueue } from '../../src/modules/scans/scan-queue';
 import { ScanProcessor } from '../../src/modules/scans/services/scan.processor';
 import { UsersService } from '../../src/modules/users/users.service';
 import { GoogleTokenVerifier } from '../../src/modules/auth/providers';
@@ -14,7 +14,7 @@ import { GoogleTokenVerifier } from '../../src/modules/auth/providers';
 describe('Scans (M4-T3)', () => {
   let t: TestApp;
   let fake: FakeAiProvider;
-  const drain = () => (t.get<ScanQueue>(ScanQueue) as InlineScanQueue).drain();
+  const drain = () => t.get<ScanQueue>(ScanQueue).drain();
 
   beforeAll(async () => {
     t = await createTestApp({ DEV_ROUTES: 'true' }, (b) =>

@@ -45,7 +45,7 @@ export class AdminAuthController {
     private readonly limiter: RateLimiter,
     private readonly audit: AuditService,
   ) {
-    if (!config.ADMIN_TOTP_REQUIRED) new Logger('AdminAuth').warn('ADMIN_TOTP_REQUIRED=false: admin sign-in skips the two-factor step (development only)');
+    if (!config.adminTotpRequired) new Logger('AdminAuth').warn('ADMIN_TOTP_REQUIRED=false: admin sign-in skips the two-factor step (development only)');
   }
 
   @Public()
@@ -58,9 +58,9 @@ export class AdminAuthController {
     await this.limiter.consume({ key: `admin:login:ip:${req.ip}`, limit: 20, windowSec: 900 }, { key: `admin:login:email:${email}`, limit: 10, windowSec: 900 });
     const admin = await this.admins.findOne({ email, status: 'active' }).lean<AdminUserDoc>();
     const ok = verifyPassword(body.password, admin?.passwordHash ?? DUMMY_HASH) && Boolean(admin?.passwordHash);
-    if (!admin || !ok || (this.config.ADMIN_TOTP_REQUIRED && !admin.totpSecretEnc)) throw ApiError.unauthenticated(ERROR_CODES.UNAUTHENTICATED, 'Email or password is incorrect');
+    if (!admin || !ok || (this.config.adminTotpRequired && !admin.totpSecretEnc)) throw ApiError.unauthenticated(ERROR_CODES.UNAUTHENTICATED, 'Email or password is incorrect');
     if (needsRehash(admin.passwordHash!)) await this.admins.updateOne({ _id: admin._id }, { $set: { passwordHash: hashPassword(body.password) } });
-    if (!this.config.ADMIN_TOTP_REQUIRED) return { totpRequired: false as const, session: sessionView(await this.signIn(admin, req, res)) };
+    if (!this.config.adminTotpRequired) return { totpRequired: false as const, session: sessionView(await this.signIn(admin, req, res)) };
     const challengeId = randomBytes(24).toString('base64url');
     await this.kv.set(`admin:chal:${challengeId}`, admin._id.toString(), CHALLENGE_TTL);
     return { challengeId, totpRequired: true as const };

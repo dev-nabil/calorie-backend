@@ -54,7 +54,7 @@ describe('OpenFoodFactsDatabase', () => {
     }) as typeof fetch;
     return calls;
   };
-  const db = new OpenFoodFactsDatabase('https://off.test/', 'Nouri/test', 1000);
+  const db = new OpenFoodFactsDatabase(async () => ({ enabled: true, baseUrl: 'https://off.test/', userAgent: 'Nouri/test', timeoutMs: 1000 }));
 
   it('names itself and asks for the product and its nutrients separately', async () => {
     const calls: Array<{ url: string; init: RequestInit }> = [];

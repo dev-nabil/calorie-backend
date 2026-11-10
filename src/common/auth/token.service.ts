@@ -16,7 +16,7 @@ const revokedFamilyKey = (family: string) => `auth:revokedFamily:${family}`;
 /**
  * Access tokens (15 min, HS256) and refresh-token secrets (DEC-05). Refresh tokens are
  * `<sessionId>.<secret>`; only an HMAC of the secret is stored. Revocation uses a per-user
- * `revokedBefore` timestamp in Redis checked on every request (S-08).
+ * `revokedBefore` timestamp in the key-value store checked on every request (S-08).
  */
 @Injectable()
 export class TokenService {

@@ -17,7 +17,7 @@ export class ExportController {
 
   @Get('export')
   @HttpCode(202)
-  @ZResponse(202, ExportResponseSchema, 'Builds the JSON export in the worker and emails a 24-hour link')
+  @ZResponse(202, ExportResponseSchema, 'Builds the JSON export in a background job and emails a 24-hour link')
   @ApiErrors(401, 403, 429)
   async export(@CurrentUser() u: AuthUser) {
     await this.users.requireActive(u.id);

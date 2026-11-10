@@ -26,7 +26,7 @@ import { percentile, requestMetrics } from '../../../common/metrics/request-metr
 import { ApiErrors, ZBody, ZParam, ZQuery, ZResponse } from '../../../common/zod/decorators';
 import { AiProvider, type AiTask } from '../../ai/ai.provider';
 import { DEFAULT_TEXT_MODEL, DEFAULT_TTS_MODEL } from '../../ai/ai-models';
-import { AiService } from '../../ai/ai.service';
+import { AiService, DEFAULT_MONTHLY_BUDGET_USD } from '../../ai/ai.service';
 import type { AiUsageDailyDoc } from '../../ai/schemas/ai.schema';
 import { AppConfigService } from '../../content/app-config.service';
 import { DYNAMIC_MARKER } from '../../content/content.loader';
@@ -48,7 +48,7 @@ const TASK_FOR: Record<string, { task: AiTask | 'chat'; feature: 'vision' | 'ext
   'onboarding-extract': { task: 'onboarding_extract', feature: 'extract' },
   coach: { task: 'chat', feature: 'chat' },
 };
-const BUDGET_DEFAULTS = { monthlyLimitUsd: 0, alertPct: 80, downgradePct: 95 };
+const BUDGET_DEFAULTS = { monthlyLimitUsd: DEFAULT_MONTHLY_BUDGET_USD, alertPct: 80, downgradePct: 95 };
 const iso = (d: Date | null | undefined) => (d ? new Date(d).toISOString() : null);
 
 function toPrompt(p: PromptDoc) {

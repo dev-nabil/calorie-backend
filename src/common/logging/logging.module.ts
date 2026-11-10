@@ -26,7 +26,6 @@ const SAFE_ID = /^[A-Za-z0-9._-]{8,128}$/;
             paths: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-device-integrity"]'],
             remove: true,
           },
-          customProps: () => ({ role: config.ROLE }),
           autoLogging: config.NODE_ENV !== 'test',
           transport:
             config.NODE_ENV === 'development' ? { target: 'pino-pretty', options: { singleLine: true } } : undefined,

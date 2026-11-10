@@ -163,8 +163,8 @@ async function main(): Promise<void> {
     f.configured = true;
     provider = f;
   } else {
-    if (config.AI_PROVIDER !== 'gemini' || !config.GEMINI_API_KEY) {
-      console.error('Not configured. In .env set  AI_PROVIDER=gemini  and  GEMINI_API_KEY=<your key>, then run this again.');
+    if (!config.GEMINI_API_KEY) {
+      console.error('Not configured. In .env set  GEMINI_API_KEY=<your key>, then run this again.');
       process.exit(2);
     }
     provider = new GeminiProvider(config.GEMINI_API_KEY);

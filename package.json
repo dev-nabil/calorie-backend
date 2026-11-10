@@ -2,7 +2,7 @@
   "name": "nouri-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Nouri NestJS API and BullMQ worker (ROLE=api|worker|all)",
+  "description": "Nouri NestJS API: one process serves HTTP and runs background jobs (MongoDB queue). No Redis, no worker.",
   "packageManager": "pnpm@10.27.0",
   "engines": {
     "node": ">=22"
@@ -11,8 +11,6 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
-    "start:worker": "ROLE=worker PORT=4001 nest start --watch",
-    "start:prod:worker": "ROLE=worker node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src test",
     "content:validate": "node content/scripts/validate.mjs",
@@ -42,10 +40,8 @@
     "@opentelemetry/resources": "3.0.0",
     "@opentelemetry/sdk-metrics": "3.0.0",
     "@opentelemetry/sdk-node": "0.300.0",
-    "bullmq": "5.81.5",
     "disposable-email-domains": "1.0.62",
     "google-auth-library": "11.3.2",
-    "ioredis": "5.11.1",
     "jose": "6.2.15",
     "mongoose": "9.11.4",
     "nestjs-pino": "5.3.1",
@@ -79,7 +75,6 @@
     "onlyBuiltDependencies": [
       "@swc/core",
       "mongodb-memory-server",
-      "msgpackr-extract",
       "@nestjs/core"
     ]
   }

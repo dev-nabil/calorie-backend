@@ -14,6 +14,7 @@ import { RateLimiter } from '../../../common/rate-limit/rate-limiter.service';
 import { ApiErrors, ZBody, ZParam, ZResponse } from '../../../common/zod/decorators';
 import { KvStore } from '../../../infra/kv/kv-store';
 import { EmailSender } from '../../auth/providers';
+import { SettingsService } from '../../settings/settings.service';
 import { encryptSecret, hashPassword, newTotpSecret, otpauthUrl } from '../security/admin-crypto';
 import { Admin } from './admin-auth.controller';
 import { AdminSessions } from '../services/admin-sessions.service';
@@ -32,6 +33,7 @@ const view = (a: AdminUserDoc) => ({ id: a._id.toString(), email: a.email, role:
 export class AdminTeamController {
   constructor(
     @Inject(APP_CONFIG) private readonly config: AppConfig,
+    private readonly settings: SettingsService,
     @InjectModel('AdminUser') private readonly admins: Model<AdminUserDoc>,
     private readonly kv: KvStore,
     private readonly email: EmailSender,
@@ -50,7 +52,7 @@ export class AdminTeamController {
     const doc = (await this.admins.create({ email, role: body.role, status: 'invited' })).toObject() as AdminUserDoc;
     const token = randomBytes(32).toString('base64url');
     await this.kv.set(inviteKey(token), doc._id.toString(), INVITE_TTL_SEC);
-    await this.email.sendLink(email, 'admin_invite', `${this.config.ADMIN_APP_URL}/accept-invite?token=${token}`);
+    await this.email.sendLink(email, 'admin_invite', `${await this.settings.get('admin.appUrl')}/accept-invite?token=${token}`);
     await this.audit.log(admin, req, { action: 'admin_user.invite', targetType: 'admin_user', targetId: doc._id.toString(), reason: body.reason, diff: { email, role: body.role } });
     return view(doc);
   }

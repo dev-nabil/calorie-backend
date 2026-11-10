@@ -14,13 +14,13 @@ import { integrityOk, RequireIntegrity } from '../../common/integrity/integrity'
 import { DailyQuota } from '../../common/rate-limit/daily-quota';
 import { ApiErrors, ZBody, ZResponse } from '../../common/zod/decorators';
 import { StorageService } from '../../infra/storage/storage';
-import { AiJobRunner } from '../ai/ai-jobs';
+import { AiJobs } from '../ai/ai-jobs';
 import { AppConfigService } from '../content/app-config.service';
 import type { ScanDoc } from '../scans/schemas/scans.schema';
 import type { MealDoc } from '../tracking/schemas/tracking.schema';
 import { ownsKey } from '../uploads/uploads.keys';
 import { UsersService } from '../users/users.service';
-import { FRIDGE_CHEF_JOB, FRIDGE_CHEF_TIMEOUT_MS, type FridgeChefJob } from './fridge-chef.handler';
+import { FRIDGE_CHEF_JOB, type FridgeChefJob } from './fridge-chef.handler';
 
 @ApiTags('fridge-chef')
 @ApiBearerAuth()
@@ -31,7 +31,7 @@ export class FridgeChefController {
   constructor(
     @InjectModel('Scan') private readonly scans: Model<ScanDoc>,
     @InjectModel('Meal') private readonly meals: Model<MealDoc>,
-    private readonly runner: AiJobRunner,
+    private readonly runner: AiJobs,
     private readonly users: UsersService,
     private readonly quota: DailyQuota,
     private readonly appConfig: AppConfigService,
@@ -65,11 +65,11 @@ export class FridgeChefController {
       const perDay = limits.plus?.fridgePerDay ?? AI_LIMITS.plus.fridgePerDay;
       await this.quota.assertAvailable('fridge', u.id, user.timezone, perDay, true, 'Fridge chef is used up for today. Try again tomorrow.');
       const job: FridgeChefJob = { userId: u.id, uploadKey: key, locale: requestLocale() };
-      const result = await this.runner.run<FridgeChefResponse>(FRIDGE_CHEF_JOB, job, FRIDGE_CHEF_TIMEOUT_MS + 5000);
+      const result = await this.runner.run<FridgeChefResponse>(FRIDGE_CHEF_JOB, job);
       await this.quota.consume('fridge', u.id, user.timezone); // successful answers only (OQ-38)
       return result;
     } finally {
-      // The worker deletes the photo right after the model call; this covers refusals before it and a worker that timed out.
+      // The handler deletes the photo right after the model call; this covers refusals before it.
       if (own && !inUse) await this.storage.delete(key).catch((e: unknown) => this.logger.warn({ err: (e as Error).message }, 'fridge photo not deleted'));
     }
   }

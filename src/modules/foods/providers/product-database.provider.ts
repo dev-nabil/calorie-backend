@@ -74,20 +74,29 @@ export function productFromOpenFoodFacts(barcode: string, p: Json, lang: string)
   };
 }
 
-/** Open Food Facts API v2. Read-only and keyless; it asks for a User-Agent naming the app. */
+export interface OpenFoodFactsOptions {
+  enabled: boolean;
+  baseUrl: string;
+  userAgent: string;
+  timeoutMs: number;
+}
+
+/**
+ * Open Food Facts API v2. Read-only and keyless; it asks for a User-Agent naming the app. The options are
+ * the admin settings foods.barcode.*, read per lookup; switched off, every lookup is unavailable, so the
+ * app offers a label scan.
+ */
 export class OpenFoodFactsDatabase extends ProductDatabase {
   readonly name = 'Open Food Facts';
 
-  constructor(
-    private readonly baseUrl: string,
-    private readonly userAgent: string,
-    private readonly timeoutMs: number,
-  ) {
+  constructor(private readonly options: () => Promise<OpenFoodFactsOptions>) {
     super();
   }
 
   async lookup(barcode: string, lang: string): Promise<ProductLookup> {
-    const [meta, nutrients] = await Promise.all([this.fetchFields(barcode, PRODUCT_FIELDS), this.fetchFields(barcode, NUTRIENT_FIELDS)]);
+    const o = await this.options();
+    if (!o.enabled) return { unavailable: true };
+    const [meta, nutrients] = await Promise.all([this.fetchFields(o, barcode, PRODUCT_FIELDS), this.fetchFields(o, barcode, NUTRIENT_FIELDS)]);
     if (meta === 'unavailable') return { unavailable: true };
     if (meta === 'not_found') return { found: false };
     // Never cache a product without its nutrition because one half failed.
@@ -96,11 +105,11 @@ export class OpenFoodFactsDatabase extends ProductDatabase {
     return { found: true, product: productFromOpenFoodFacts(barcode, product, lang) };
   }
 
-  private async fetchFields(barcode: string, fields: string[]): Promise<Json | 'not_found' | 'unavailable'> {
-    const url = `${this.baseUrl.replace(/\/$/, '')}/api/v2/product/${encodeURIComponent(barcode)}.json?fields=${fields.join(',')}`;
+  private async fetchFields(o: OpenFoodFactsOptions, barcode: string, fields: string[]): Promise<Json | 'not_found' | 'unavailable'> {
+    const url = `${o.baseUrl.replace(/\/$/, '')}/api/v2/product/${encodeURIComponent(barcode)}.json?fields=${fields.join(',')}`;
     let res: Response;
     try {
-      res = await fetch(url, { headers: { 'User-Agent': this.userAgent, Accept: 'application/json' }, signal: AbortSignal.timeout(this.timeoutMs) });
+      res = await fetch(url, { headers: { 'User-Agent': o.userAgent, Accept: 'application/json' }, signal: AbortSignal.timeout(o.timeoutMs) });
     } catch {
       return 'unavailable';
     }
@@ -130,13 +139,5 @@ export class FakeProductDatabase extends ProductDatabase {
     if (this.unavailable) return Promise.resolve({ unavailable: true });
     const product = this.products.get(barcode);
     return Promise.resolve(product ? { found: true, product } : { found: false });
-  }
-}
-
-/** Switched off by PRODUCT_DB_ENABLED=false: every lookup is unavailable, so the app offers a label scan. */
-export class DisabledProductDatabase extends ProductDatabase {
-  readonly name = 'none';
-  lookup(): Promise<ProductLookup> {
-    return Promise.resolve({ unavailable: true });
   }
 }

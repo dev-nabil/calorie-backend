@@ -11,7 +11,7 @@ import { AccountService } from '../../src/modules/account/account.service';
 import { EmailSender, type MemoryEmailSender } from '../../src/modules/auth/providers';
 import { UsersService } from '../../src/modules/users/users.service';
 import { KvStore } from '../../src/infra/kv/kv-store';
-import { AppAttestVerifier } from '../../src/common/integrity/app-attest';
+import { IntegritySettings } from '../../src/common/integrity/integrity-settings';
 
 const fx = JSON.parse(readFileSync(resolve(__dirname, '../fixtures/integrity/app-attest.fixture.json'), 'utf8'));
 const sha = (...b: Buffer[]) => createHash('sha256').update(Buffer.concat(b)).digest();
@@ -85,10 +85,10 @@ describe('Devices, export and purge (M1-T5, M1-T8)', () => {
   });
 });
 
-describe('INTEGRITY_DRIVER=device with App Attest', () => {
+describe('integrity.mode=device with App Attest', () => {
   let t: TestApp;
   beforeAll(async () => {
-    t = await createTestApp({ INTEGRITY_DRIVER: 'device', INTEGRITY_ENFORCE: 'true', APPLE_APP_ATTEST_TEAM_ID: 'TEAMID1234', APPLE_BUNDLE_ID: 'app.nouri.test', APP_ATTEST_ROOT_PEM: fx.rootPem });
+    t = await createTestApp({ APP_ATTEST_ROOT_PEM: fx.rootPem }, undefined, { 'integrity.mode': 'device', 'integrity.enforce': true, 'integrity.apple.teamId': 'TEAMID1234', 'auth.apple.bundleId': 'app.nouri.test' });
   });
   afterAll(() => t.close());
 
@@ -98,7 +98,7 @@ describe('INTEGRITY_DRIVER=device with App Attest', () => {
     const devices = t.get<Model<unknown>>(getModelToken('Device'));
     const users = t.get<UsersService>(UsersService);
     const user = await users.create({ email: 'ios@example.com', emailVerified: true, provider: { provider: 'email', subject: 'ios@example.com', emailVerified: true } });
-    const att = t.get<AppAttestVerifier>(AppAttestVerifier);
+    const att = await t.get<IntegritySettings>(IntegritySettings).appAttest();
     const pem = att.verifyAttestation(Buffer.from(fx.attestation, 'base64'), fx.keyId, Buffer.from(fx.challenge)).publicKeyPem;
     await devices.create({ userId: user._id, deviceId: 'iphone', platform: 'ios', integrity: { keyId: 'kid1', publicKeyPem: pem, counter: 0, verifiedAt: new Date() } });
     const ts = String(Date.now());

@@ -10,6 +10,8 @@ import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/app.setup';
 import { loadConfig, type AppConfig } from '../../src/config/env';
+import type { SettingKey } from '../../src/modules/settings/settings.registry';
+import { SettingsService } from '../../src/modules/settings/settings.service';
 
 export interface TestApp {
   app: INestApplication;
@@ -19,10 +21,14 @@ export interface TestApp {
   close(): Promise<void>;
 }
 
-/** Boots the full API against the shared in-memory replica set, one database per call. */
+/** Admin settings every test app starts with (sign-in audiences of the test tokens). */
+const TEST_SETTINGS: Partial<Record<SettingKey, unknown>> = { 'auth.google.clientIds': ['test-google-client'], 'auth.apple.bundleId': 'app.nouri.test' };
+
+/** Boots the full API against the shared in-memory replica set, one database per call. `settings` are admin settings stored before the first request. */
 export async function createTestApp(
   env: Record<string, string> = {},
   customise?: (b: TestingModuleBuilder) => TestingModuleBuilder,
+  settings: Partial<Record<SettingKey, unknown>> = {},
 ): Promise<TestApp> {
   const base = process.env.TEST_MONGO_URI;
   if (!base) throw new Error('TEST_MONGO_URI missing: run e2e tests through jest (global setup)');
@@ -32,9 +38,6 @@ export async function createTestApp(
     NODE_ENV: 'test',
     LOG_LEVEL: 'silent',
     MONGODB_URI: base.replace('/?', `/${db}?`),
-    EMAIL_DRIVER: 'memory',
-    GOOGLE_CLIENT_IDS: 'test-google-client',
-    APPLE_BUNDLE_ID: 'app.nouri.test',
     LOCAL_STORAGE_DIR: uploads,
     ...env,
   });
@@ -46,6 +49,8 @@ export async function createTestApp(
   await app.init();
   const conn = app.get<Connection>(getConnectionToken());
   await conn.syncIndexes();
+  const store = app.get(SettingsService);
+  for (const [key, value] of Object.entries({ ...TEST_SETTINGS, ...settings })) await store.set(key as SettingKey, value);
   return {
     app,
     config,

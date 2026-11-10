@@ -105,7 +105,7 @@ export class MealsService implements OnModuleInit {
     this.handlers.register(THUMBNAIL_JOB, (p) => this.thumbnail(p as { mealId: string; key: string }));
   }
 
-  /** M4-T8 worker job: 320 px and 1024 px re-encoded copies; the meal then serves those. */
+  /** M4-T8 background job: 320 px and 1024 px re-encoded copies; the meal then serves those. */
   async thumbnail({ mealId, key }: { mealId: string; key: string }): Promise<void> {
     const original = await this.storage.get(key);
     if (!original) return;
@@ -231,7 +231,7 @@ export class MealsService implements OnModuleInit {
       throw e;
     }
     await this.dailyLogs.recompute(uid, day.date);
-    if (photo) await this.jobs.enqueue(THUMBNAIL_JOB, { mealId: doc._id.toString(), key: photo.key }, { jobId: `thumb-${doc._id.toString()}` });
+    if (photo) await this.jobs.enqueue(THUMBNAIL_JOB, { mealId: doc._id.toString(), key: photo.key }, { key: `thumb-${doc._id.toString()}` });
     return this.toMeal(doc.toObject() as MealDoc);
   }
 

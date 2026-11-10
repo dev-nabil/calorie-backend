@@ -13,7 +13,7 @@
 ```sh
 # local smoke (start:local running; uses the dev OTP route)
 k6 run -e BASE=http://localhost:3000 -e DEV_OTP=1 -e PEAK=20 infra/k6/nouri.js
-# staging (worker scaled as production, AI_PROVIDER=fake, RATE_LIMIT_MULTIPLIER raised for the run)
+# staging (real Gemini: raise scan.dailyRequestCap / scan.dailySpendUsd first; RATE_LIMIT_MULTIPLIER raised for the run)
 k6 run -e BASE=https://api.staging.example -e TOKENS=tokens.json -e PEAK=5000 infra/k6/nouri.js
 ```
 
