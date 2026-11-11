@@ -48,9 +48,9 @@ export const EnvSchema = z
     LEDGER_PEPPER: z.string().min(16).default(DEV_SECRET + '-ledger'),
     /** The one Google key for every AI feature. Empty (development only) = AI features say they are not switched on. */
     GEMINI_API_KEY: z.string().optional(),
-    /** Resend. Empty (development only) = sign-in codes are printed in the log. */
+    /** Resend. Empty = no mail is sent, sign-in codes are printed in the log. */
     EMAIL_API_KEY: z.string().optional(),
-    /** Cloudflare Turnstile for the waitlist form. Empty (development only) = any token passes. */
+    /** Cloudflare Turnstile for the waitlist form. Empty = the bot check is off, any token passes. */
     TURNSTILE_SECRET: z.string().optional(),
     /** Server-side purchase checks. Empty = stub verifier. */
     REVENUECAT_API_KEY: z.string().optional(),
@@ -60,7 +60,7 @@ export const EnvSchema = z
     /** Google Play Integrity decoder. The package name is the admin setting integrity.android.package. */
     PLAY_INTEGRITY_SERVICE_ACCOUNT_JSON: z.string().optional(),
 
-    // ── Photo storage: bucket and both keys set = S3/R2, otherwise local disk (refused in production) ──
+    // ── Photo storage: bucket and both keys set = S3/R2, otherwise local disk (wiped on every Render deploy) ──
     S3_ENDPOINT: z.string().optional(),
     S3_REGION: z.string().optional(),
     S3_BUCKET: z.string().optional(),
@@ -99,9 +99,9 @@ export const EnvSchema = z
     for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'OTP_PEPPER', 'LEDGER_PEPPER'] as const) {
       if (env[key].startsWith(DEV_SECRET)) issue(key, 'required in production');
     }
-    for (const key of ['GEMINI_API_KEY', 'EMAIL_API_KEY', 'TURNSTILE_SECRET', 'S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const) {
-      if (!env[key]) issue(key, 'required in production');
-    }
+    // EMAIL_API_KEY, TURNSTILE_SECRET and S3_* are optional even in production: each has a working fallback
+    // (codes printed in the log, any bot-check token passes, photos on local disk). Only the Gemini key is required.
+    if (!env.GEMINI_API_KEY) issue('GEMINI_API_KEY', 'required in production');
     if (env.ADMIN_TOTP_REQUIRED === false) issue('ADMIN_TOTP_REQUIRED', 'must be true in production');
     if (env.DEV_ROUTES) issue('DEV_ROUTES', 'not allowed in production');
     if (env.RATE_LIMIT_MULTIPLIER !== 1) issue('RATE_LIMIT_MULTIPLIER', 'must be 1 in production');

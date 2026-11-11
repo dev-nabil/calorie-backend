@@ -6,8 +6,8 @@
 # Google/Apple client IDs, email sender, integrity, barcode lookups, admin URL) is an admin setting:
 # admin panel → Settings, stored in MongoDB.
 #
-# This is a TEST server profile: NODE_ENV=development, because production mode also requires Resend,
-# Turnstile and S3/R2 keys (src/config/env.ts). The dev-only parts that would be unsafe on a public URL
+# This is a TEST server profile: NODE_ENV=development, because production mode refuses DEV_FIXED_OTP and
+# ADMIN_TOTP_REQUIRED=false and turns the dev tools off (src/config/env.ts). The dev-only parts that would be unsafe on a public URL
 # are switched off below (DEV_ROUTES, Swagger).
 #
 # Values marked `sync: false` are asked for in the Render dashboard when the Blueprint is created.

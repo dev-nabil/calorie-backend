@@ -33,14 +33,22 @@ describe('config (M0-T3)', () => {
     expect(loadConfig({ MONGODB_URI: DB, NODE_ENV: 'test' })).toMatchObject({ emailDriver: 'memory', fakeAi: true, devRoutes: false });
   });
 
-  it('refuses dev secrets and missing keys in production', () => {
+  it('refuses dev secrets and a missing Gemini key in production', () => {
     expect(() => loadConfig({ MONGODB_URI: DB, NODE_ENV: 'production' })).toThrow(ConfigError);
     try {
       loadConfig({ MONGODB_URI: DB, NODE_ENV: 'production' });
     } catch (e) {
       const msg = (e as Error).message;
-      for (const k of ['JWT_ACCESS_SECRET', 'GEMINI_API_KEY', 'EMAIL_API_KEY', 'TURNSTILE_SECRET', 'S3_BUCKET']) expect(msg).toContain(k);
+      for (const k of ['JWT_ACCESS_SECRET', 'GEMINI_API_KEY']) expect(msg).toContain(k);
+      for (const k of ['EMAIL_API_KEY', 'TURNSTILE_SECRET', 'S3_BUCKET']) expect(msg).not.toContain(k);
     }
+  });
+
+  it('boots in production without email, Turnstile or S3 keys, on the fallbacks', () => {
+    const { EMAIL_API_KEY: _e, TURNSTILE_SECRET: _t, S3_BUCKET: _b, S3_ACCESS_KEY_ID: _i, S3_SECRET_ACCESS_KEY: _s, ...bare } = PRODUCTION;
+    const c = loadConfig(bare);
+    expect(c).toMatchObject({ isProduction: true, adminTotpRequired: true, emailDriver: 'console', storageDriver: 'local' });
+    expect(c.TURNSTILE_SECRET).toBeUndefined();
   });
 
   it('accepts a complete production environment', () => {

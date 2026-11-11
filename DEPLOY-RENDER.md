@@ -144,8 +144,11 @@ All of these have free tiers.
 The free plan is not suitable for real users: it sleeps, and its disk and memory reset. For a launch:
 
 1. Use a paid instance (Starter or larger) so it never sleeps. No Redis or worker is needed.
-2. Set `NODE_ENV=production`. The API then refuses to start until all of these are set:
-   the 4 secrets, `GEMINI_API_KEY`, `EMAIL_API_KEY`, `TURNSTILE_SECRET` and the R2 bucket and keys.
+2. Set `NODE_ENV=production`. The API then refuses to start until the 4 secrets and `GEMINI_API_KEY` are set.
+   `EMAIL_API_KEY`, `TURNSTILE_SECRET` and the R2 bucket and keys are optional, but without them sign-in codes
+   are only printed in the log (nobody gets an email), the waitlist bot check is off, and photos sit on the
+   instance's own disk, which Render wipes on every deploy. Set all three before real users.
+   `DEV_FIXED_OTP` and `ADMIN_TOTP_REQUIRED=false` are still refused: remove them from the dashboard.
    Remove `DEV_ROUTES` and `SWAGGER_ENABLED`; production turns both off by itself.
    In production the admin settings `integrity.mode` and `integrity.enforce` default to `device` and
    on: set `integrity.apple.teamId` (and `PLAY_INTEGRITY_SERVICE_ACCOUNT_JSON` in the environment for
