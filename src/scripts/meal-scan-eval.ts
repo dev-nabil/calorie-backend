@@ -74,7 +74,7 @@ export async function runEval(
         context: '',
         image: { bytes, mimeType: 'image/jpeg' },
         resolution: opts.resolution ?? 'high',
-        thinkingLevel: 'minimal',
+        thinkingLevel: 'low',
         maxOutputTokens: 4096,
         timeoutMs: 25_000,
       });
@@ -129,7 +129,7 @@ async function main(): Promise<void> {
   const prompt = loadContentBundle(content).prompts.filter((p) => p.key === 'meal-scan').sort((a, b) => b.version - a.version)[0];
   const resolution = arg('resolution', 'high') as 'low' | 'medium' | 'high';
   const report = await runEval(loadFixtures(join(root, 'fixtures')), provider, {
-    model: arg('model', 'gemini-3.5-flash-lite')!,
+    model: arg('model', 'gemini-3.8-flash')!,
     imageDir: join(root, 'images'),
     resolution,
     records: new FoodRecordsService({ CONTENT_DIR: content } as never).index,

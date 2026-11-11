@@ -8,7 +8,7 @@ const per100 = z.number().min(0).nullable();
 
 /** One food in the model's reply. Keys are short because every one is billed as output on every item. */
 export const MealAnalysisItemOutputSchema = z.strictObject({
-  name: z.string().min(1).describe('Display name in the requested language'),
+  name: z.string().min(1).describe('Most specific display name supported by the image, in the requested language; edible food and drink only'),
   en: z.string().min(1).describe('Plain lowercase English name, for example "white rice"'),
   ves: z.enum(SCAN_VESSELS).describe('What the food is in: pot = cooking pot, saucepan, handi; pan = korai, wok, frying pan; none = no vessel. Written before g so the weight follows the real size'),
   cm: z.number().nullable().describe('Real inner width of that vessel in cm, judged from its kind and from things of known size beside it, never from how much of the photo it fills; null for none'),
@@ -21,9 +21,9 @@ export const MealAnalysisItemOutputSchema = z.strictObject({
     .strictObject({ kcal: per100, p: per100, c: per100, f: per100, fib: per100, sug: per100, na: per100 })
     .describe('Per 100 g: kcal; protein, carbs, fat, fibre, sugar in g; sodium in mg. null when unknown, never 0 as a guess'),
   rich: z.array(z.enum(RICH_IN_KEYS)).describe('Up to 4 vitamins or minerals this food is a good source of in a normal serving, strongest first; empty when none'),
-  conf: z.number().describe('0 to 1 for identity and portion together'),
+  conf: z.number().describe('0 to 1 combining food recognition confidence and portion estimate confidence (>= 0.8 high, 0.5 to 0.79 medium, < 0.5 low)'),
   pt: z.strictObject({ x: z.number(), y: z.number() }).nullable().describe('Item centre, 0 to 1; null when not visible'),
-  note: z.string().nullable().describe('Main assumption for this item, or null'),
+  note: z.string().nullable().describe('Household serving size and portion label (small/medium/large), up to 3 possible matches when uncertain, nutrient range when uncertain, or main assumption; null when none'),
 });
 
 /**
@@ -32,7 +32,7 @@ export const MealAnalysisItemOutputSchema = z.strictObject({
  * lengths, so sizes are enforced by normaliseAnalysis instead: an over-long reply is trimmed, not failed.
  */
 export const MealAnalysisOutputSchema = z.strictObject({
-  status: z.enum(SCAN_OUTCOMES),
+  status: z.enum(SCAN_OUTCOMES).describe('"ok" when edible food/drink is clearly visible; "no_food" when no food is present; "unclear" when image quality is too poor to estimate reliably'),
   box_2d: z
     .array(z.number().int())
     .nullable()
@@ -40,7 +40,7 @@ export const MealAnalysisOutputSchema = z.strictObject({
   mealName: z.string().nullable(),
   items: z.array(MealAnalysisItemOutputSchema),
   assumptions: z.array(z.string()),
-  question: z.string().nullable().describe('One short clarification, or what is wrong with the photo'),
+  question: z.string().nullable().describe('What non-food object was detected ("no_food"), short retake instruction ("unclear", e.g. "Move closer and keep the whole meal inside the frame."), or one short clarification/confirmation ("ok"); otherwise null'),
   retake: z.enum(RETAKE_REASONS).nullable(),
 });
 export type MealAnalysisOutput = z.infer<typeof MealAnalysisOutputSchema>;

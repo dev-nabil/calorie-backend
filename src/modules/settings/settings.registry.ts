@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { AppConfig } from '../../config/env';
-import { DEFAULT_REALTIME_MODEL, DEFAULT_TEXT_MODEL } from '../ai/ai-models';
+import { DEFAULT_REALTIME_MODEL, DEFAULT_SCAN_MODEL } from '../ai/ai-models';
 
 /**
  * Every runtime setting an admin can change (GET/PUT /v1/admin/settings). Each key is its own app_config
@@ -64,11 +64,11 @@ export const SETTINGS = {
     description: 'Gemini model for photo and label scans. Only models with a known price (built in, or ai.price.<model>) are accepted, so the spending cap keeps working.',
     kind: 'string',
     schema: geminiModel,
-    default: DEFAULT_TEXT_MODEL,
+    default: DEFAULT_SCAN_MODEL,
   }),
   'scan.dailyRequestCap': num('scans', 'Daily request cap', 'Gemini scan calls per UTC day for the whole service, retries included. 0 stops scans.', 500, 0, 1_000_000),
   'scan.dailySpendUsd': num('scans', 'Daily spending cap (USD)', 'Gemini scan spend per UTC day for the whole service. Each call reserves its worst case first, so the cap is never passed.', 1, 0, 1000, true),
-  'scan.thinkingLevel': choice('scans', 'Thinking level', 'How much the model may think before answering. Thinking bills as output.', ['minimal', 'low', 'medium', 'high'], 'minimal'),
+  'scan.thinkingLevel': choice('scans', 'Thinking level', 'How much the model may think before answering. Thinking bills as output.', ['minimal', 'low', 'medium', 'high'], 'low'),
   'scan.imageResolution': choice('scans', 'Image resolution', 'Image token charge on Gemini 3: about 280 / 560 / 1120 tokens, whatever the file size.', ['low', 'medium', 'high'], 'high'),
   'scan.imageMaxEdgePx': num('scans', 'Image longest edge (px)', 'The photo is resized to this before it is sent.', 1024, 512, 2048),
   'scan.maxOutputTokens': num('scans', 'Max output tokens', 'Thinking included. About 110 tokens per food item; 15 items fit in 2,560.', 4096, 512, 16_384),

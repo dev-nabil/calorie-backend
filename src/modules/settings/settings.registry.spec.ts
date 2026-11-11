@@ -15,10 +15,10 @@ describe('settings registry', () => {
   });
 
   it('keeps the former environment defaults', () => {
-    expect(settingDefault('scan.model', dev)).toBe('gemini-3.5-flash-lite');
+    expect(settingDefault('scan.model', dev)).toBe('gemini-3.8-flash');
     expect(settingDefault('scan.dailyRequestCap', dev)).toBe(500);
     expect(settingDefault('scan.dailySpendUsd', dev)).toBe(1);
-    expect(settingDefault('scan.thinkingLevel', dev)).toBe('minimal');
+    expect(settingDefault('scan.thinkingLevel', dev)).toBe('low');
   });
 
   it('turns integrity checks on by default in production only', () => {
