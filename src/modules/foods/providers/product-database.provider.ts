@@ -1,6 +1,6 @@
 import { sanitisePer100g } from '../../../domain/food-nutrition';
 import { KJ_PER_KCAL, SODIUM_MG_PER_G_SALT } from '../../../domain/nutrition-validator';
-import type { NutrientValues } from '../../../shared';
+import type { FoodProcessing, NutrientValues } from '../../../shared';
 
 /** A product as a database knows it. Values per 100 g (or 100 ml); null when unknown. */
 export interface ProductRecord {
@@ -11,6 +11,8 @@ export interface ProductRecord {
   servingText: string | null;
   packG: number | null;
   per100g: NutrientValues;
+  /** From the NOVA group; null or absent when the database does not know it. */
+  processing?: FoodProcessing | null;
 }
 
 /** `unavailable`: the database could not be asked (network, timeout, 5xx). Not the same as an unknown barcode. */
@@ -25,7 +27,7 @@ export abstract class ProductDatabase {
  * Open Food Facts drops the serving and pack fields from a reply that also asks for `nutriments`
  * (seen 9 Nov 2026, API v2 and v3), so the two halves are fetched side by side.
  */
-const PRODUCT_FIELDS = ['code', 'product_name', 'product_name_en', 'product_name_bn', 'generic_name', 'brands', 'serving_size', 'serving_quantity', 'serving_quantity_unit', 'product_quantity', 'product_quantity_unit'];
+const PRODUCT_FIELDS = ['code', 'product_name', 'product_name_en', 'product_name_bn', 'generic_name', 'brands', 'serving_size', 'serving_quantity', 'serving_quantity_unit', 'product_quantity', 'product_quantity_unit', 'nova_group'];
 const NUTRIENT_FIELDS = ['nutriments'];
 
 type Json = Record<string, unknown>;
@@ -44,6 +46,15 @@ const grams = (qty: unknown, unit: unknown): number | null => {
   if (u === 'cl') return q * 10;
   return null;
 };
+
+/** NOVA group (1 unprocessed or minimally processed … 4 ultra-processed) → how processed the food is. */
+export function processingFromNova(v: unknown): FoodProcessing | null {
+  const g = num(v);
+  if (g === 1) return 'whole';
+  if (g === 2 || g === 3) return 'processed';
+  if (g === 4) return 'ultra_processed';
+  return null;
+}
 
 /** Open Food Facts product JSON → record. Energy falls back to kJ and sodium to salt, as on the label. */
 export function productFromOpenFoodFacts(barcode: string, p: Json, lang: string): ProductRecord {
@@ -71,6 +82,7 @@ export function productFromOpenFoodFacts(barcode: string, p: Json, lang: string)
     servingText: text(p.serving_size, 60),
     packG: grams(p.product_quantity, p.product_quantity_unit ?? 'g'),
     per100g: sanitisePer100g(raw).per100g,
+    processing: processingFromNova(p.nova_group),
   };
 }
 

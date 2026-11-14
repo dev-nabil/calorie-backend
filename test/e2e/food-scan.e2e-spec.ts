@@ -22,10 +22,10 @@ const LUNCH = {
   box_2d: [250, 200, 750, 800],
   mealName: 'Rice, dal and fish curry',
   items: [
-    { name: 'White rice', en: 'white rice', ves: 'plate', cm: 26, pcs: 1, g: 200, prep: 'boiled', role: 'single', of: null, n: { kcal: 130, p: 2.7, c: 28, f: 0.3, fib: 0.4, sug: 0, na: 1 }, rich: [], conf: 0.85, pt: { x: 0.3, y: 0.6 }, note: null },
-    { name: 'Dal', en: 'dal', ves: 'plate', cm: 26, pcs: 1, g: 120, prep: 'curried', role: 'mixed_dish', of: null, n: { kcal: 120, p: 7, c: 15, f: 4, fib: 4, sug: 1, na: 300 }, rich: ['folate', 'iron', 'potassium'], conf: 0.8, pt: { x: 0.6, y: 0.3 }, note: null },
-    { name: 'Fish curry', en: 'fish curry', ves: 'plate', cm: 26, pcs: 1, g: 150, prep: 'curried', role: 'mixed_dish', of: null, n: { kcal: 110, p: 12, c: 4, f: 5, fib: 0.5, sug: 1, na: 350 }, rich: ['vitaminB12', 'vitaminD'], conf: 0.7, pt: { x: 0.7, y: 0.7 }, note: 'Oil assumed' },
-    { name: 'Shak bhaji', en: 'greens stir fry', ves: 'plate', cm: 26, pcs: 1, g: 80, prep: 'fried', role: 'single', of: null, n: { kcal: 70, p: 2, c: 5, f: 5, fib: 2, sug: null, na: null }, rich: ['vitaminA', 'vitaminK', 'vitaminC', 'iron'], conf: 0.6, pt: null, note: null },
+    { name: 'White rice', en: 'white rice', ves: 'plate', cm: 26, pcs: 1, g: 200, prep: 'boiled', proc: 'whole', role: 'single', of: null, n: { kcal: 130, p: 2.7, c: 28, f: 0.3, fib: 0.4, sug: 0, na: 1 }, rich: [], conf: 0.85, pt: { x: 0.3, y: 0.6 }, note: null },
+    { name: 'Dal', en: 'dal', ves: 'plate', cm: 26, pcs: 1, g: 120, prep: 'curried', proc: 'whole', role: 'mixed_dish', of: null, n: { kcal: 120, p: 7, c: 15, f: 4, fib: 4, sug: 1, na: 300 }, rich: ['folate', 'iron', 'potassium'], conf: 0.8, pt: { x: 0.6, y: 0.3 }, note: null },
+    { name: 'Fish curry', en: 'fish curry', ves: 'plate', cm: 26, pcs: 1, g: 150, prep: 'curried', proc: 'whole', role: 'mixed_dish', of: null, n: { kcal: 110, p: 12, c: 4, f: 5, fib: 0.5, sug: 1, na: 350 }, rich: ['vitaminB12', 'vitaminD'], conf: 0.7, pt: { x: 0.7, y: 0.7 }, note: 'Oil assumed' },
+    { name: 'Shak bhaji', en: 'greens stir fry', ves: 'plate', cm: 26, pcs: 1, g: 80, prep: 'fried', proc: 'whole', role: 'single', of: null, n: { kcal: 70, p: 2, c: 5, f: 5, fib: 2, sug: null, na: null }, rich: ['vitaminA', 'vitaminK', 'vitaminC', 'iron'], conf: 0.6, pt: null, note: null },
   ],
   assumptions: ['Oil in the curry is assumed to be typical.'],
   question: null,
@@ -95,7 +95,7 @@ describe('Food photo scanner, Gemini mocked', () => {
       const { scan } = await scanLunch(h);
       expect(vision.calls).toHaveLength(1);
       const sent = vision.calls[0]!;
-      expect(sent).toMatchObject({ model: 'gemini-3.5-flash-lite', thinkingLevel: 'minimal', resolution: 'high', maxOutputTokens: 4096 });
+      expect(sent).toMatchObject({ model: 'gemini-3.8-flash', thinkingLevel: 'low', resolution: 'high', maxOutputTokens: 4096 });
       expect(sent.context.length).toBeLessThan(200);
       expect(sent.image.mimeType).toBe('image/jpeg');
       expect(scan).toMatchObject({ status: 'succeeded', result: { outcome: 'ok', isEstimate: true, assumptions: ['Oil in the curry is assumed to be typical.'] } });
@@ -111,6 +111,7 @@ describe('Food photo scanner, Gemini mocked', () => {
       expect(greens).toMatchObject({ source: { type: 'ai_estimate' }, per100g: { sugarG: null, sodiumMg: null }, sugarG: null, sodiumMg: null, kcal: 56 });
       expect(scan.result.totals.kcal).toBe(222 + dal.kcal + 140 + 56);
       expect([rice.richIn, dal.richIn, greens.richIn]).toEqual([[], ['folate', 'iron', 'potassium'], ['vitaminA', 'vitaminK', 'vitaminC', 'iron']]);
+      expect(scan.result.items.map((i: { processing: string }) => i.processing)).toEqual(['whole', 'whole', 'whole', 'whole']);
     });
 
     it('reports a total as incomplete when one item lacks the nutrient', async () => {
@@ -125,8 +126,8 @@ describe('Food photo scanner, Gemini mocked', () => {
       const h = await asPlus();
       const { b } = await scanLunch(h);
       const doc = await scans().findById(b.scanId).lean<ScanDoc>();
-      expect(doc).toMatchObject({ model: 'gemini-3.5-flash-lite', promptKey: 'meal-scan', promptVersion: 6, providerAttempts: 1, usage: { inputTokens: 1600, outputTokens: 420 } });
-      expect(doc!.usage.costUsd).toBeCloseTo((1600 * 0.3 + 420 * 2.5) / 1e6, 8);
+      expect(doc).toMatchObject({ model: 'gemini-3.8-flash', promptKey: 'meal-scan', promptVersion: 7, providerAttempts: 1, usage: { inputTokens: 1600, outputTokens: 420 } });
+      expect(doc!.usage.costUsd).toBeCloseTo((1600 * 0.75 + 420 * 3.75) / 1e6, 8);
       expect(doc!.modelLatencyMs).not.toBeNull();
       expect(JSON.stringify(doc)).not.toMatch(/base64|\/9j\//);
     });
@@ -153,6 +154,7 @@ describe('Food photo scanner, Gemini mocked', () => {
       expect(fixed.body.staleItems).toEqual([]);
       const unknown = await recalc(h, scan.scanId, { items: [{ id: 'i2', name: 'Ilish bhuna' }] }).expect(200);
       expect(unknown.body.items[2].source.type).toBe('adjusted_estimate');
+      expect(unknown.body.items[2].processing).toBeNull(); // another food: its tag no longer applies
       expect(unknown.body.staleItems).toEqual(['i2']);
     });
 
@@ -160,8 +162,9 @@ describe('Food photo scanner, Gemini mocked', () => {
       const h = await asPlus();
       const { scan } = await scanLunch(h);
       const per100g = { kcal: 50, proteinG: 1, carbsG: 10, fatG: 0, fiberG: 1, sugarG: 2, sodiumMg: 5 };
-      const res = await recalc(h, scan.scanId, { items: [{ id: 'i3', excluded: true }], addedItems: [{ name: 'Salad', grams: 100, per100g }] }).expect(200);
+      const res = await recalc(h, scan.scanId, { items: [{ id: 'i3', excluded: true }], addedItems: [{ name: 'Salad', grams: 100, per100g, processing: 'whole' }] }).expect(200);
       expect(res.body.totals.kcal).toBe(scan.result.totals.kcal - 56 + 50);
+      expect(res.body.items.at(-1).processing).toBe('whole');
       expect(res.body.totals.incomplete).not.toContain('sodiumMg'); // only the removed food lacked it
     });
 
@@ -186,10 +189,13 @@ describe('Food photo scanner, Gemini mocked', () => {
       expect((await t.http().get(`/v1/days/${date}`).set(h).expect(200)).body.meals).toEqual([]);
       const tampered = mealFrom(scan);
       tampered.items[0] = { ...tampered.items[0]!, kcal: 1, grams: 100 };
+      Object.assign(tampered.items[0], { processing: 'ultra_processed' });
       const saved = await t.http().post('/v1/meals').set(h).set(idem()).send(tampered).expect(201);
       expect(saved.body.items[0]).toMatchObject({ grams: 100, kcal: 111, sugarG: null, preparation: 'boiled', scanItemId: 'i0', per100g: { kcal: 111 }, source: { recordId: 'fct_bd:01_0041' } });
       expect(saved.body.totals.incomplete).toEqual(expect.arrayContaining(['sugarG', 'sodiumMg']));
       expect(saved.body.items[1].richIn).toEqual(['folate', 'iron', 'potassium']);
+      // How processed a scanned food is comes from the stored scan, not the client.
+      expect(saved.body.items[0].processing).toBe('whole');
       expect(vision.calls).toHaveLength(1);
     });
 
@@ -215,8 +221,18 @@ describe('Food photo scanner, Gemini mocked', () => {
     it('lets a meal with an unknown energy value be saved as null', async () => {
       const h = bearer((await signIn(t)).accessToken);
       const res = await t.http().post('/v1/meals').set(h).set(idem()).send({ loggedAt: new Date().toISOString(), timezone: 'UTC', category: 'snack', name: 'Mystery', source: 'manual', items: [{ name: 'Mystery', grams: 50, kcal: null, proteinG: null, carbsG: null, fatG: null }] }).expect(201);
-      expect(res.body.items[0]).toMatchObject({ kcal: null, source: { type: 'user_entered' } });
+      expect(res.body.items[0]).toMatchObject({ kcal: null, source: { type: 'user_entered' }, processing: null });
       expect(res.body.totals).toMatchObject({ kcal: null, incomplete: expect.arrayContaining(['kcal']) });
+    });
+
+    it('keeps how processed a described food is, as the parser said', async () => {
+      const h = bearer((await signIn(t)).accessToken);
+      const per100g = { kcal: 42, proteinG: 0, carbsG: 10.6, fatG: 0, fiberG: 0, sugarG: 10.6, sodiumMg: 4 };
+      const item = { name: 'Cola', grams: 330, kcal: 139, proteinG: 0, carbsG: 35, fatG: 0, per100g, processing: 'ultra_processed', addedByUser: true };
+      const res = await t.http().post('/v1/meals').set(h).set(idem()).send({ loggedAt: new Date().toISOString(), timezone: 'UTC', category: 'snack', name: 'Cola', source: 'text', items: [item] }).expect(201);
+      expect(res.body.items[0]).toMatchObject({ processing: 'ultra_processed', source: { type: 'ai_estimate' } });
+      const renamed = await t.http().patch(`/v1/meals/${res.body.id}`).set(h).send({ items: [{ ...item, processing: 'whole' }] }).expect(200);
+      expect(renamed.body.items[0].processing).toBe('whole');
     });
 
     it('edits keep the source, and a saved portion change recalculates from the basis', async () => {
@@ -502,17 +518,17 @@ describe('Food photo scanner, Gemini mocked', () => {
       const ai = t.get<AiService>(AiService);
       const rows = t.get<Model<AiUsageDailyDoc>>(getModelToken('AiUsageDaily'));
       const date = new Date().toISOString().slice(0, 10);
-      await rows.create({ date, feature: 'chat', model: 'gemini-3.8-flash', requests: 1, costUsd: 1.94 });
+      await rows.create({ date, feature: 'chat', model: 'gemini-3.5-flash-lite', requests: 1, costUsd: 1.94 });
       await expect(ai.assertAvailable('chat')).rejects.toMatchObject({ reason: 'budget' });
       const h = await asPlus();
       await post(h, await body(h)).expect(202);
       await drain();
       const spent = await ai.monthSpend();
       expect(spent).toBeCloseTo(1.94, 6);
-      const gemini = await rows.findOne({ date, model: 'gemini-3.5-flash-lite' }).lean<AiUsageDailyDoc>();
+      const gemini = await rows.findOne({ date, model: 'gemini-3.8-flash' }).lean<AiUsageDailyDoc>();
       expect(gemini?.feature).toBe('vision');
       expect(gemini?.costUsd).toBeGreaterThan(0);
-      await rows.deleteMany({ feature: 'chat', model: 'gemini-3.8-flash' });
+      await rows.deleteMany({ feature: 'chat', model: 'gemini-3.5-flash-lite' });
     });
   });
 });

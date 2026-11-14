@@ -1,4 +1,4 @@
-import { OpenFoodFactsDatabase, productFromOpenFoodFacts } from './product-database.provider';
+import { OpenFoodFactsDatabase, processingFromNova, productFromOpenFoodFacts } from './product-database.provider';
 
 describe('Open Food Facts mapping', () => {
   it('reads the per-100-gram values, serving and pack weight', () => {
@@ -11,6 +11,7 @@ describe('Open Food Facts mapping', () => {
         serving_quantity: 15,
         product_quantity: 400,
         product_quantity_unit: 'g',
+        nova_group: 4,
         nutriments: { 'energy-kcal_100g': 539, proteins_100g: 6.3, carbohydrates_100g: 57.5, fat_100g: 30.9, sugars_100g: 56.3, sodium_100g: 0.043, salt_100g: 0.1075 },
       },
       'en',
@@ -23,7 +24,12 @@ describe('Open Food Facts mapping', () => {
       servingText: '15 g',
       packG: 400,
       per100g: { kcal: 539, proteinG: 6.3, carbsG: 57.5, fatG: 30.9, fiberG: null, sugarG: 56.3, sodiumMg: 43 },
+      processing: 'ultra_processed',
     });
+  });
+
+  it('maps the NOVA group to how processed the food is, unknown as null', () => {
+    expect([1, 2, 3, 4, '1', undefined, null, 0, 5, 'x'].map(processingFromNova)).toEqual(['whole', 'processed', 'processed', 'ultra_processed', 'whole', null, null, null, null, null]);
   });
 
   it('prefers the name in the user language and falls back to kJ and salt', () => {

@@ -1,5 +1,5 @@
 import { Schema } from 'mongoose';
-import type { NutrientValues } from '../../../shared';
+import type { FoodProcessing, NutrientValues } from '../../../shared';
 
 /**
  * products: Open Food Facts answers cached by barcode (not user data, so no userId). An unknown barcode is
@@ -14,6 +14,8 @@ export interface ProductDoc {
   servingText: string | null;
   packG: number | null;
   per100g: NutrientValues | null;
+  /** Absent on products cached before it was read. */
+  processing?: FoodProcessing | null;
   source: string;
   fetchedAt: Date;
   expiresAt: Date;
@@ -29,6 +31,7 @@ export const ProductSchema = new Schema<ProductDoc>(
     servingText: { type: String, default: null },
     packG: { type: Number, default: null },
     per100g: { type: Schema.Types.Mixed, default: null },
+    processing: { type: String, default: null },
     source: { type: String, required: true },
     fetchedAt: { type: Date, required: true },
     expiresAt: { type: Date, required: true },

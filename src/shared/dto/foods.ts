@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { NutrientValuesSchema, NutritionSourceSchema, RichInSchema } from './meals';
+import { FoodProcessingSchema, NutrientValuesSchema, NutritionSourceSchema, RichInSchema } from './meals';
 
 /** GET /foods/barcode/{code}: a packaged product and the basis for logging it. */
 export const BarcodeProductSchema = z
@@ -14,6 +14,7 @@ export const BarcodeProductSchema = z
     packG: z.number().nullable().describe('Net weight or volume of the pack'),
     per100g: NutrientValuesSchema.describe('Per 100 g (or 100 ml); null when unknown, never 0 as a guess'),
     richIn: RichInSchema,
+    processing: FoodProcessingSchema.describe('Open Food Facts NOVA group 1 → whole, 2 or 3 → processed, 4 → ultra_processed; from your own label scan when that is the source; null when unknown'),
     source: NutritionSourceSchema.nullable().describe('product_database (Open Food Facts) or package_label (your own label scan); null when not found'),
   })
   .meta({ id: 'BarcodeProduct' });

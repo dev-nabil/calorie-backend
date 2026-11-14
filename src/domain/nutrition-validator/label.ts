@@ -99,6 +99,7 @@ export function normaliseLabel(
     source: labelSource(opts.barcode ?? null),
     otherNutrients: [],
     richIn: [...new Set(out.rich)].slice(0, MAX_RICH_IN),
+    processing: out.proc,
     preparation: null,
     role: 'single',
     excluded: false,

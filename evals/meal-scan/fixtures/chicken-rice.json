@@ -45,6 +45,7 @@
         "pcs": 1,
         "g": 150,
         "prep": "grilled",
+        "proc": "whole",
         "role": "single",
         "of": null,
         "n": {
@@ -75,6 +76,7 @@
         "pcs": 1,
         "g": 160,
         "prep": "boiled",
+        "proc": "whole",
         "role": "single",
         "of": null,
         "n": {
@@ -102,6 +104,7 @@
         "pcs": 1,
         "g": 5,
         "prep": "unknown",
+        "proc": "processed",
         "role": "single",
         "of": null,
         "n": {

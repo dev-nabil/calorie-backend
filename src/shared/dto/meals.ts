@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FOOD_PREPARATIONS, MEAL_CATEGORIES, MEAL_SOURCES, NUTRIENT_KEYS, NUTRITION_SOURCE_TYPES, OTHER_NUTRIENT_KEYS, RICH_IN_KEYS } from '../enums';
+import { FOOD_PREPARATIONS, FOOD_PROCESSING, MEAL_CATEGORIES, MEAL_SOURCES, NUTRIENT_KEYS, NUTRITION_SOURCE_TYPES, OTHER_NUTRIENT_KEYS, RICH_IN_KEYS } from '../enums';
 import {
   ITEM_GRAMS_MAX,
   ITEM_GRAMS_MIN,
@@ -55,6 +55,12 @@ export const RichInSchema = z
   .describe('Vitamins and minerals this food is a good source of, strongest first. Names only, no amounts; empty when unknown')
   .meta({ id: 'RichIn' });
 
+export const FoodProcessingSchema = z
+  .enum(FOOD_PROCESSING)
+  .nullable()
+  .describe('How processed the food is, judged from what it is: whole (whole or minimally processed, natural sugar), processed (added sugar, salt or oil, refined, or juice) or ultra_processed (industrial products with additives). null when unknown')
+  .meta({ id: 'FoodProcessing' });
+
 /** A part of the photo, as shares of its width and height (0 to 1, from the top-left of the upright photo). */
 export const CropRectSchema = z
   .object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1), w: z.number().min(0).max(1), h: z.number().min(0).max(1) })
@@ -89,6 +95,7 @@ export const MealItemInputSchema = z
     excluded: z.boolean().optional(),
     addedByUser: z.boolean().optional(),
     preparation: z.enum(FOOD_PREPARATIONS).optional(),
+    processing: FoodProcessingSchema.optional().describe('For items with neither scanItemId nor barcode (described or hand-added); the server takes it from the scan or the product otherwise'),
     scanItemId: z.string().max(16).optional().describe('AnalysedItem.id: the server rebuilds this item from the stored scan, ignoring the numbers sent here'),
     per100g: Per100gInputSchema.optional().describe('Basis for items not from a scan; item values are then computed from it'),
     barcode: z
@@ -121,6 +128,7 @@ export const MealItemSchema = z
     source: NutritionSourceSchema.nullable(),
     otherNutrients: z.array(OtherNutrientSchema),
     richIn: RichInSchema,
+    processing: FoodProcessingSchema,
     scaled: z
       .object({ grams: z.number(), kcal: known, proteinG: known, carbsG: known, fatG: known })
       .describe('Values after the portion multiplier'),

@@ -48,6 +48,7 @@
         "pcs": 1,
         "g": 200,
         "prep": "raw",
+        "proc": "whole",
         "role": "single",
         "of": null,
         "n": {
@@ -76,6 +77,7 @@
         "pcs": 1,
         "g": 40,
         "prep": "raw",
+        "proc": "processed",
         "role": "single",
         "of": null,
         "n": {
@@ -103,6 +105,7 @@
         "pcs": 1,
         "g": 14,
         "prep": "raw",
+        "proc": "processed",
         "role": "single",
         "of": null,
         "n": {

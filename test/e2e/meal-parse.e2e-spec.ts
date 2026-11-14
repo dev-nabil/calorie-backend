@@ -21,6 +21,7 @@ describe('POST /v1/meals/parse (M4-T4)', () => {
     expect(res.body.mealName).toBe('Scrambled eggs on toast');
     expect(res.body.items).toHaveLength(2);
     expect(res.body.items[0]).toMatchObject({ name: 'Scrambled eggs', point: null, kcalRecomputed: false });
+    expect(res.body.items.map((i: { processing: string }) => i.processing)).toEqual(['whole', 'processed']);
     expect(res.body.totals.kcal).toBe(266);
     expect(fake.calls[0]).toMatchObject({ task: 'meal_parse' });
     expect(fake.calls[0]!.context).toContain('two scrambled eggs on toast');

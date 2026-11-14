@@ -274,7 +274,7 @@ export class ScansService implements OnModuleInit {
     const staleItems: string[] = [];
     const items: AnalysedItem[] = doc.result.items.map((base) => {
       const correction = corrections.get(base.id);
-      if (!correction) return base;
+      if (!correction) return { ...base, processing: base.processing ?? null };
       const { item, stale } = applyItemCorrection(base, correction, this.records.index);
       if (stale) staleItems.push(item.id);
       return item;
@@ -291,7 +291,8 @@ export class ScansService implements OnModuleInit {
       mode: d.mode ?? 'meal',
       barcode: d.barcode ?? null,
       category: d.category ?? null,
-      result: d.result ?? null,
+      // Scans stored before `processing` existed have none: unknown.
+      result: d.result ? { ...d.result, items: d.result.items.map((i) => ({ ...i, processing: i.processing ?? null })) } : null,
       error: d.error ? { code: d.error.code, message: d.error.message } : null,
       deduped: Boolean(d.deduped),
       chargedFreeScan: Boolean(d.chargedFreeScan),

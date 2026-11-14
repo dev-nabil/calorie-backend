@@ -135,8 +135,8 @@ export abstract class AiProvider {
 export const PARSE_EXAMPLE = {
   mealName: 'Scrambled eggs on toast',
   items: [
-    { name: 'Scrambled eggs', portion: '2 eggs', grams: 120, kcal: 180, proteinG: 12.5, carbsG: 1.5, fatG: 13.5, fiberG: 0, confidence: 0.8 },
-    { name: 'Wholemeal toast', portion: '1 slice', grams: 36, kcal: 86, proteinG: 3.6, carbsG: 15, fatG: 1, fiberG: 2.2, confidence: 0.8 },
+    { name: 'Scrambled eggs', portion: '2 eggs', grams: 120, kcal: 180, proteinG: 12.5, carbsG: 1.5, fatG: 13.5, fiberG: 0, processing: 'whole', confidence: 0.8 },
+    { name: 'Wholemeal toast', portion: '1 slice', grams: 36, kcal: 86, proteinG: 3.6, carbsG: 15, fatG: 1, fiberG: 2.2, processing: 'processed', confidence: 0.8 },
   ],
   notes: 'Assumed eggs scrambled with a splash of milk.',
   clarifyingQuestion: null,
@@ -266,7 +266,7 @@ export class FakeAiProvider extends AiProvider {
     if (this.mode === 'not_food') {
       const output = {
         meal_scan: { status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: "That doesn't look like food.", retake: null },
-        label_scan: { ...structuredClone(LABEL_EXAMPLE), status: 'no_food', name: null, en: null, rich: [], question: 'I cannot see a nutrition table.' },
+        label_scan: { ...structuredClone(LABEL_EXAMPLE), status: 'no_food', name: null, en: null, rich: [], proc: null, question: 'I cannot see a nutrition table.' },
         meal_parse: { mealName: '', items: [], notes: null, clarifyingQuestion: 'What did you eat?' },
         onboarding_extract: { answers: [], ack: 'Sorry, I missed that.', clarify: 'Could you say that another way?', userQuestion: null },
         plan_narrative: structuredClone(PLAN_NARRATIVE_EXAMPLE),

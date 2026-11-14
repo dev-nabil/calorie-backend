@@ -38,10 +38,10 @@ describe('Admin M7 rest: AI settings, prompts, scans, usage, SLOs, conversations
   it('prompts: list, create a version, edit the draft, activate and roll back, test in the playground', async () => {
     const admin = await login('admin');
     const list = await t.http().get('/v1/admin/prompts').query({ key: 'meal-parse' }).set(admin).expect(200);
-    expect(list.body[0]).toMatchObject({ key: 'meal-parse', version: 1, active: true });
+    expect(list.body[0]).toMatchObject({ key: 'meal-parse', version: 2, active: true });
     const v1 = list.body[0];
     const v2 = await t.http().post('/v1/admin/prompts').set(admin).send({ key: 'meal-parse', staticPrefix: v1.staticPrefix + '\nBe concise.', content: v1.content, model: '', params: { temperature: 1, maxOutputTokens: 900 }, notes: 'concise', reason: 'try concise wording' }).expect(201);
-    expect(v2.body).toMatchObject({ version: 2, active: false });
+    expect(v2.body).toMatchObject({ version: 3, active: false });
     await t.http().patch(`/v1/admin/prompts/${v2.body.id}`).set(admin).send({ notes: 'concise v2', reason: 'note update' }).expect(200);
     expect((await t.http().patch(`/v1/admin/prompts/${v1.id}`).set(admin).send({ content: 'x', reason: 'edit active' }).expect(409)).body.error.code).toBe('CONFLICT');
     const act = await t.http().post(`/v1/admin/prompts/${v2.body.id}/activate`).set(admin).send({ reason: 'ship concise' }).expect(200);
@@ -53,7 +53,7 @@ describe('Admin M7 rest: AI settings, prompts, scans, usage, SLOs, conversations
     expect(fake.calls[0]!.instructions).toContain('Be concise.');
     await t.http().post(`/v1/admin/prompts/${v1.id}/activate`).set(admin).send({ reason: 'roll back' }).expect(200);
     const after = await t.http().get('/v1/admin/prompts').query({ key: 'meal-parse' }).set(admin).expect(200);
-    expect(after.body.find((p: { active: boolean }) => p.active).version).toBe(1);
+    expect(after.body.find((p: { active: boolean }) => p.active).version).toBe(2);
     const test = await t.http().post('/v1/admin/prompts/test').set(admin).send({ promptId: v2.body.id, input: 'two eggs' }).expect(200);
     expect(JSON.parse(test.body.output).mealName).toBe('Scrambled eggs on toast');
     expect(test.body.usage.inputTokens).toBeGreaterThan(0);

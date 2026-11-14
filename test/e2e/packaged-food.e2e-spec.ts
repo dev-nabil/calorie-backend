@@ -21,6 +21,7 @@ const NUTELLA = {
   servingText: '15 g',
   packG: 400,
   per100g: { kcal: 539, proteinG: 6.3, carbsG: 57.5, fatG: 30.9, fiberG: null, sugarG: 56.3, sodiumMg: 43 },
+  processing: 'ultra_processed' as const,
 };
 const LOCAL = '8941100500118';
 
@@ -123,9 +124,9 @@ describe('Packaged food: barcode lookup and label scans', () => {
       expect(vision.calls[0]!.mode).toBe('label');
       expect(scan).toMatchObject({ status: 'succeeded', mode: 'label', barcode: null, result: { outcome: 'ok', isEstimate: false, mealName: 'Bisk Club Chocolate Biscuits' } });
       expect(scan.result.items).toHaveLength(1);
-      expect(scan.result.items[0]).toMatchObject({ grams: 25, kcal: 120, per100g: { kcal: 480 }, source: { type: 'package_label' } });
+      expect(scan.result.items[0]).toMatchObject({ grams: 25, kcal: 120, per100g: { kcal: 480 }, source: { type: 'package_label' }, processing: 'ultra_processed' });
       const doc = await scans().findById(scan.scanId).lean<ScanDoc>();
-      expect(doc).toMatchObject({ promptKey: 'label-scan', promptVersion: 1 });
+      expect(doc).toMatchObject({ promptKey: 'label-scan', promptVersion: 2 });
     });
 
     it('rejects a photo without a nutrition table, free of charge', async () => {
@@ -161,6 +162,7 @@ describe('Packaged food: barcode lookup and label scans', () => {
         servingText: '3 biscuits (25 g)',
         packG: 75,
         per100g: { kcal: 480 },
+        processing: 'ultra_processed',
         source: { type: 'package_label', reference: LOCAL },
       });
       expect((await lookup(await asPlus(), LOCAL).expect(200)).body.found).toBe(false);
@@ -181,7 +183,7 @@ describe('Packaged food: barcode lookup and label scans', () => {
         .send(meal([{ name: 'Nutella', grams: 30, kcal: 1, proteinG: 0, carbsG: 0, fatG: 0, barcode: NUTELLA.barcode }]))
         .expect(201);
       expect(r.body.source).toBe('barcode');
-      expect(r.body.items[0]).toMatchObject({ grams: 30, kcal: 162, fatG: 9.3, per100g: { kcal: 539 }, source: { type: 'product_database', reference: NUTELLA.barcode } });
+      expect(r.body.items[0]).toMatchObject({ grams: 30, kcal: 162, fatG: 9.3, per100g: { kcal: 539 }, processing: 'ultra_processed', source: { type: 'product_database', reference: NUTELLA.barcode } });
       expect(r.body.totals.kcal).toBe(162);
     });
 

@@ -23,6 +23,7 @@ import {
   MAX_MEAL_ITEMS,
   MealAnalysisOutputSchema,
   type AnalysedItem,
+  type FoodProcessing,
   type MealAnalysis,
   type MealAnalysisOutput,
   type NutrientTotals,
@@ -128,6 +129,8 @@ export interface ParsedItemInput {
   carbsG: number;
   fatG: number;
   fiberG: number | null;
+  /** How processed the food is; null when the parser did not say. */
+  processing?: FoodProcessing | null;
   confidence: number;
   point: { x: number; y: number } | null;
 }
@@ -163,6 +166,7 @@ export function normaliseItem(item: ParsedItemInput, index = 0): AnalysedItem {
     source: AI_ESTIMATE,
     otherNutrients: [],
     richIn: [],
+    processing: item.processing ?? null,
     preparation: null,
     role: 'single',
     excluded: false,
@@ -199,6 +203,7 @@ function scanItem(raw: OutputItem, i: number, index: FoodIndex): AnalysedItem {
     source: record ? recordSource(index, record) : AI_ESTIMATE,
     otherNutrients: otherNutrientsFor(record, grams),
     richIn: [...new Set(raw.rich)].slice(0, MAX_RICH_IN),
+    processing: raw.proc,
     preparation: raw.prep,
     role: raw.role === 'component' ? 'component' : (record?.kind ?? raw.role),
     excluded: false,

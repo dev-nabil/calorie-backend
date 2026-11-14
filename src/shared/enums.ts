@@ -84,6 +84,15 @@ export type ScanStatus = (typeof SCAN_STATUSES)[number];
 export const FOOD_PREPARATIONS = ['boiled', 'steamed', 'fried', 'deep_fried', 'grilled', 'roasted', 'baked', 'curried', 'stewed', 'raw', 'mixed', 'unknown'] as const;
 export type FoodPreparation = (typeof FOOD_PREPARATIONS)[number];
 
+/**
+ * How processed a food is, judged from what the food is (not from its numbers), so the app can grade the food
+ * itself. `whole`: whole or minimally processed foods and home dishes cooked mainly from them; their sugar is
+ * natural. `processed`: changed by added sugar, salt, oil or refining, or sugar freed from the fruit (any juice).
+ * `ultra_processed`: industrial products with additives (soft drinks, chips, instant noodles, biscuits).
+ */
+export const FOOD_PROCESSING = ['whole', 'processed', 'ultra_processed'] as const;
+export type FoodProcessing = (typeof FOOD_PROCESSING)[number];
+
 /** `mixed_dish` already contains its ingredients; a `component` belongs to one and is not counted again. */
 export const FOOD_ROLES = ['single', 'mixed_dish', 'component'] as const;
 export type FoodRole = (typeof FOOD_ROLES)[number];

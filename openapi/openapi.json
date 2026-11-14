@@ -10652,6 +10652,17 @@
         },
         "description": "Vitamins and minerals this food is a good source of, strongest first. Names only, no amounts; empty when unknown"
       },
+      "FoodProcessing": {
+        "nullable": true,
+        "description": "How processed the food is, judged from what it is: whole (whole or minimally processed, natural sugar), processed (added sugar, salt or oil, refined, or juice) or ultra_processed (industrial products with additives). null when unknown",
+        "type": "string",
+        "enum": [
+          "whole",
+          "processed",
+          "ultra_processed",
+          null
+        ]
+      },
       "CropRect": {
         "type": "object",
         "properties": {
@@ -10845,6 +10856,14 @@
               "unknown"
             ]
           },
+          "processing": {
+            "description": "For items with neither scanItemId nor barcode (described or hand-added); the server takes it from the scan or the product otherwise",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FoodProcessing"
+              }
+            ]
+          },
           "scanItemId": {
             "description": "AnalysedItem.id: the server rebuilds this item from the stored scan, ignoring the numbers sent here",
             "type": "string",
@@ -10974,6 +10993,9 @@
           "richIn": {
             "$ref": "#/components/schemas/RichIn"
           },
+          "processing": {
+            "$ref": "#/components/schemas/FoodProcessing"
+          },
           "scaled": {
             "type": "object",
             "properties": {
@@ -11027,6 +11049,7 @@
           "source",
           "otherNutrients",
           "richIn",
+          "processing",
           "scaled"
         ]
       },
@@ -12034,6 +12057,9 @@
           "richIn": {
             "$ref": "#/components/schemas/RichIn"
           },
+          "processing": {
+            "$ref": "#/components/schemas/FoodProcessing"
+          },
           "preparation": {
             "nullable": true,
             "type": "string",
@@ -12108,6 +12134,7 @@
           "source",
           "otherNutrients",
           "richIn",
+          "processing",
           "preparation",
           "role",
           "excluded",
@@ -12420,6 +12447,14 @@
                 },
                 "excluded": {
                   "type": "boolean"
+                },
+                "processing": {
+                  "description": "From the POST /meals/parse item",
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/FoodProcessing"
+                    }
+                  ]
                 }
               },
               "required": [
@@ -16576,6 +16611,10 @@
           "richIn": {
             "$ref": "#/components/schemas/RichIn"
           },
+          "processing": {
+            "description": "Open Food Facts NOVA group 1 → whole, 2 or 3 → processed, 4 → ultra_processed; from your own label scan when that is the source; null when unknown",
+            "$ref": "#/components/schemas/FoodProcessing"
+          },
           "source": {
             "nullable": true,
             "description": "product_database (Open Food Facts) or package_label (your own label scan); null when not found",
@@ -16598,6 +16637,7 @@
           "packG",
           "per100g",
           "richIn",
+          "processing",
           "source"
         ]
       },

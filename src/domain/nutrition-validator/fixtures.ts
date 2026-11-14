@@ -9,6 +9,7 @@ export const PLAN_EXAMPLE_ANALYSIS = {
       en: 'grilled chicken breast',
       ves: 'plate', cm: 26, pcs: 1, g: 150,
       prep: 'grilled',
+      proc: 'whole',
       role: 'single',
       of: null,
       n: { kcal: 165, p: 31, c: 0, f: 3.6, fib: 0, sug: 0, na: 74 },
@@ -22,6 +23,7 @@ export const PLAN_EXAMPLE_ANALYSIS = {
       en: 'long grain rice',
       ves: 'plate', cm: 26, pcs: 1, g: 160,
       prep: 'boiled',
+      proc: 'whole',
       role: 'single',
       of: null,
       n: { kcal: 130, p: 2.7, c: 28.1, f: 0.3, fib: 0.4, sug: 0.1, na: 1 },
@@ -35,6 +37,7 @@ export const PLAN_EXAMPLE_ANALYSIS = {
       en: 'cooking oil',
       ves: 'plate', cm: 26, pcs: 1, g: 5,
       prep: 'unknown',
+      proc: 'processed',
       role: 'single',
       of: null,
       n: { kcal: 900, p: 0, c: 0, f: 100, fib: 0, sug: 0, na: 0 },
@@ -49,7 +52,7 @@ export const PLAN_EXAMPLE_ANALYSIS = {
   retake: null,
 } as const;
 
-/** A biscuit pack's nutrition table as Gemini would copy it (label-scan.v1): printed per 100 g, serving 25 g. */
+/** A biscuit pack's nutrition table as Gemini would copy it (label-scan.v2): printed per 100 g, serving 25 g. */
 export const LABEL_EXAMPLE = {
   status: 'ok',
   name: 'Bisk Club Chocolate Biscuits',
@@ -60,6 +63,7 @@ export const LABEL_EXAMPLE = {
   packG: 75,
   n: { kcal: 480, kj: 2010, p: 6.5, c: 66, f: 21, fib: 2, sug: 28, na: null, salt: 0.6 },
   rich: [],
+  proc: 'ultra_processed',
   question: null,
   retake: null,
 } as const;

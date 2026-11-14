@@ -11,6 +11,7 @@ import {
   type NutrientValues,
   type NutritionSource,
   type OtherNutrient,
+  type FoodProcessing,
   type RichInKey,
   type WeightSource,
   type CropRect,
@@ -35,6 +36,8 @@ export interface StoredMealItem {
   otherNutrients: OtherNutrient[];
   /** Vitamins and minerals the food is a good source of; missing on meals logged before it existed. */
   richIn?: RichInKey[];
+  /** Absent on items stored before it existed. */
+  processing?: FoodProcessing | null;
   confidence: number | null;
   edited: boolean;
   excluded: boolean;
@@ -78,6 +81,7 @@ const ItemSchema = new Schema<StoredMealItem>(
     source: { type: Schema.Types.Mixed, default: null },
     otherNutrients: { type: Schema.Types.Mixed, default: () => [] },
     richIn: { type: [String], default: () => [] },
+    processing: { type: String, default: null },
     confidence: { type: Number, default: null },
     edited: { type: Boolean, default: false },
     excluded: { type: Boolean, default: false },

@@ -10,6 +10,7 @@ import {
   type AnalysedItem,
   type CreateMealRequest,
   type CropRect,
+  type FoodProcessing,
   type Meal,
   type MealItemInput,
   type MealTotals,
@@ -46,6 +47,7 @@ export interface ProductBasis {
   per100g: NutrientValues;
   source: NutritionSource;
   richIn: RichInKey[];
+  processing: FoodProcessing | null;
 }
 
 export interface MealProductSource {
@@ -80,6 +82,7 @@ function fromScanItem(item: AnalysedItem, input: MealItemInput): StoredMealItem 
     source: item.source,
     otherNutrients: item.otherNutrients,
     richIn: item.richIn ?? [],
+    processing: item.processing ?? null,
     confidence: item.confidence,
     edited: Boolean(input.edited),
     excluded: Boolean(input.excluded),
@@ -159,6 +162,7 @@ export class MealsService implements OnModuleInit {
           source: product.source,
           otherNutrients: [],
           richIn: product.richIn,
+          processing: product.processing,
           confidence: i.confidence ?? null,
           edited: Boolean(i.edited),
           excluded: Boolean(i.excluded),
@@ -188,6 +192,8 @@ export class MealsService implements OnModuleInit {
         source: renamed ? ADJUSTED_ESTIMATE : (prior?.source ?? (i.per100g ? AI_ESTIMATE : USER_ENTERED)),
         otherNutrients: prior && prior.grams > 0 ? prior.otherNutrients.map((o) => ({ ...o, amount: r1((o.amount * grams) / prior.grams) })) : [],
         richIn: prior && !renamed ? (prior.richIn ?? []) : [],
+        // Described and hand-added foods carry the parser's value; a renamed food is another food.
+        processing: renamed ? null : (prior?.processing ?? i.processing ?? null),
         confidence: i.confidence ?? null,
         edited: Boolean(i.edited),
         excluded: Boolean(i.excluded),
@@ -339,6 +345,7 @@ export class MealsService implements OnModuleInit {
           source: i.source ?? null,
           otherNutrients: i.otherNutrients ?? [],
           richIn: i.richIn ?? [],
+          processing: i.processing ?? null,
           confidence: i.confidence ?? null,
           scaled: { grams: r1(s.grams), kcal: r0OrNull(s.kcal), proteinG: r1OrNull(s.proteinG), carbsG: r1OrNull(s.carbsG), fatG: r1OrNull(s.fatG) },
         };

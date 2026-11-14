@@ -8,6 +8,7 @@ import {
   NUTRIENT_KEYS,
   type AnalysedItem,
   type FoodPreparation,
+  type FoodProcessing,
   type MealTotals,
   type NutrientKey,
   type NutrientValues,
@@ -167,7 +168,7 @@ export function isInsideDish(dishName: string, itemName: string): boolean {
 }
 
 /** A food added by text after the scan: the client holds its basis, the server still does the arithmetic. */
-export function addedItem(a: { name: string; grams: number; per100g: NutrientValues; excluded?: boolean }, index: number): AnalysedItem {
+export function addedItem(a: { name: string; grams: number; per100g: NutrientValues; excluded?: boolean; processing?: FoodProcessing | null }, index: number): AnalysedItem {
   const grams = clamp(a.grams, ITEM_GRAMS_MIN, ITEM_GRAMS_MAX);
   return {
     id: `a${index}`,
@@ -180,6 +181,7 @@ export function addedItem(a: { name: string; grams: number; per100g: NutrientVal
     source: AI_ESTIMATE,
     otherNutrients: [],
     richIn: [],
+    processing: a.processing ?? null,
     preparation: null,
     role: 'single',
     excluded: Boolean(a.excluded),
@@ -243,6 +245,8 @@ export function applyItemCorrection(base: AnalysedItem, c: ItemCorrection, index
       otherNutrients,
       // A renamed food is another food: the old one's vitamins no longer apply. Scans stored before richIn have none.
       richIn: renamed && !fromPack ? [] : (base.richIn ?? []),
+      // Same for how processed it is. Scans stored before processing have none.
+      processing: renamed && !fromPack ? null : (base.processing ?? null),
       excluded: c.excluded ?? base.excluded,
       ...nutrientsForGrams(per100g, grams),
     },

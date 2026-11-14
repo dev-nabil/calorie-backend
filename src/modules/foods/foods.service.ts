@@ -63,10 +63,10 @@ export class FoodsService implements OnModuleInit {
   /** Trusted basis for saving a meal item: never reaches the outside database. */
   async basisFor(userId: Types.ObjectId, barcode: string): Promise<ProductBasis | null> {
     const own = await this.ownLabel(userId, barcode);
-    if (own?.source) return { per100g: own.per100g, source: own.source, richIn: own.richIn };
+    if (own?.source) return { per100g: own.per100g, source: own.source, richIn: own.richIn, processing: own.processing };
     const cached = await this.products.findById(barcode).lean<ProductDoc>();
     if (!cached?.found || !cached.per100g) return null;
-    return { per100g: cached.per100g, source: this.dbSource(barcode), richIn: [] };
+    return { per100g: cached.per100g, source: this.dbSource(barcode), richIn: [], processing: cached.processing ?? null };
   }
 
   /** The newest succeeded label scan of this pack by this user. */
@@ -91,6 +91,7 @@ export class FoodsService implements OnModuleInit {
       packG: printed.ok ? size(printed.value.packG) : null,
       per100g: item.per100g,
       richIn: item.richIn ?? [],
+      processing: item.processing ?? null,
       source: { type: 'package_label', recordId: null, name: null, reference: barcode },
     };
   }
@@ -105,6 +106,7 @@ export class FoodsService implements OnModuleInit {
       servingText: p?.servingText ?? null,
       packG: p?.packG ?? null,
       per100g: p?.per100g ?? null,
+      processing: p?.processing ?? null,
       source: this.db.name,
       fetchedAt: now,
       expiresAt: new Date(now.getTime() + (p ? FOUND_TTL_MS : NOT_FOUND_TTL_MS)),
@@ -124,6 +126,7 @@ export class FoodsService implements OnModuleInit {
       packG: d.packG,
       per100g,
       richIn: [],
+      processing: d.processing ?? null,
       source: d.found ? this.dbSource(d._id) : null,
     };
   }

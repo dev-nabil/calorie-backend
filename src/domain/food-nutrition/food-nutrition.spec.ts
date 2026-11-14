@@ -28,6 +28,7 @@ const food = (over: Partial<MealAnalysisOutput['items'][number]> = {}): MealAnal
   pcs: 1,
   g: 100,
   prep: 'unknown',
+  proc: 'whole',
   role: 'single',
   of: null,
   n: { kcal: 100, p: 5, c: 10, f: 4.4, fib: 1, sug: 1, na: 10 },
@@ -230,6 +231,25 @@ describe('user corrections', () => {
   it('re-matches on preparation', () => {
     const egg = normaliseAnalysis(out([food({ name: 'Egg', en: 'boiled egg', prep: 'boiled', g: 50 })]), { records: index }).analysis.items[0]!;
     expect(applyItemCorrection(egg, { preparation: 'fried' }, index).stale).toBe(true);
+  });
+});
+
+describe('how processed a food is', () => {
+  it('takes the model\'s tag', () => {
+    const items = normaliseAnalysis(out([food({ proc: 'whole' }), food({ name: 'Cola', en: 'cola', proc: 'ultra_processed' })])).analysis.items;
+    expect(items.map((i) => i.processing)).toEqual(['whole', 'ultra_processed']);
+  });
+
+  it('keeps it on a portion or preparation change and drops it when the food is renamed', () => {
+    const dal = normaliseAnalysis(out([food({ name: 'Dal', en: 'dal', prep: 'curried', proc: 'whole' })]), { records: index }).analysis.items[0]!;
+    expect(applyItemCorrection(dal, { grams: 250 }, index).item.processing).toBe('whole');
+    expect(applyItemCorrection(dal, { preparation: 'fried' }, index).item.processing).toBe('whole');
+    expect(applyItemCorrection(dal, { name: 'jilapi' }, index).item.processing).toBeNull();
+  });
+
+  it('treats a scan stored before the field existed as unknown', () => {
+    const old = { ...normaliseAnalysis(out([food()])).analysis.items[0]!, processing: undefined } as unknown as AnalysedItem;
+    expect(applyItemCorrection(old, { grams: 150 }, index).item.processing).toBeNull();
   });
 });
 

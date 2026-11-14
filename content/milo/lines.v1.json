@@ -232,7 +232,7 @@
     "safety.noDeadline": { "text": "I'd rather not set a deadline. Steady habits tend to last longer." },
     "safety.disclaimer": { "text": "Nouri gives general nutrition information. It is not a medical device and does not give medical advice." },
 
-    "permission.camera": { "title": "Camera access", "text": "Nouri uses the camera to photograph your meals and estimate what's on the plate. A photo is only taken when you tap the shutter. You can always describe a meal instead." },
+    "permission.camera": { "title": "Camera access", "text": "Nouri uses the camera to photograph your meals and estimate what's on the plate. A photo is taken when you tap the shutter, or by itself when Auto is on and you hold the phone steady over your food (close up is fine). You can always describe a meal instead." },
     "permission.camera.allow": { "text": "Allow camera" },
     "permission.camera.notNow": { "text": "Not now" },
     "permission.camera.denied": { "title": "Camera is off", "text": "To scan meals, turn on camera access for Nouri in your phone's Settings. You can still describe a meal or add it by hand." },

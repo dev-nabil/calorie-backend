@@ -66,7 +66,7 @@ export class MealParseHandler implements OnModuleInit {
           text: req.text,
         }),
         timeoutMs: MEAL_PARSE_TIMEOUT_MS,
-        maxOutputTokens: 900,
+        maxOutputTokens: 1100,
       }),
     );
     const parsed = MealParseOutputSchema.safeParse(res.output);

@@ -635,7 +635,7 @@
     },
     "permission.camera": {
       "title": "Camera access",
-      "text": "Nouri uses the camera to photograph your meals and estimate what's on the plate. A photo is only taken when you tap the shutter. You can always describe a meal instead."
+      "text": "Nouri uses the camera to photograph your meals and estimate what's on the plate. A photo is taken when you tap the shutter, or by itself when Auto is on and you hold the phone steady over your food (close up is fine). You can always describe a meal instead."
     },
     "permission.camera.allow": {
       "text": "Allow camera"
