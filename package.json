@@ -22,6 +22,8 @@
     "start:local": "tsc -p tsconfig.build.json && node dist/scripts/local.js",
     "plan:smoke": "tsc -p tsconfig.build.json && node dist/scripts/plan-smoke.js",
     "coach:smoke": "tsc -p tsconfig.build.json && node dist/scripts/coach-smoke.js",
+    "describe:smoke": "tsc -p tsconfig.build.json && node dist/scripts/describe-smoke.js",
+    "transcribe:smoke": "tsc -p tsconfig.build.json && node dist/scripts/transcribe-smoke.js",
     "env:doctor": "tsc -p tsconfig.build.json && node dist/scripts/env-doctor.js",
     "admin:seed": "tsc -p tsconfig.build.json && node dist/scripts/admin-seed.js",
     "eval:meal-scan": "tsc -p tsconfig.build.json && node dist/scripts/meal-scan-eval.js"

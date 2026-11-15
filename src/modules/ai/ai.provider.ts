@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FridgeChefOutputSchema, LabelScanOutputSchema, MealAnalysisOutputSchema, MealParseOutputSchema, PlanNarrativeOutputSchema, WeeklyRecapOutputSchema } from '../../shared';
+import { FridgeChefOutputSchema, LabelScanOutputSchema, MealAnalysisOutputSchema, MealDescribeOutputSchema, MealParseOutputSchema, MealTranscribeOutputSchema, PlanNarrativeOutputSchema, WeeklyRecapOutputSchema } from '../../shared';
 import { LABEL_EXAMPLE, PLAN_EXAMPLE_ANALYSIS } from '../../domain/nutrition-validator/fixtures';
 import { SILENT_WAV } from './providers/wav';
 
@@ -9,7 +9,7 @@ export interface AiUsage {
   cachedTokens: number;
 }
 
-export type AiTask = 'meal_scan' | 'label_scan' | 'meal_parse' | 'onboarding_extract' | 'plan_narrative' | 'weekly_recap' | 'fridge_chef';
+export type AiTask = 'meal_scan' | 'label_scan' | 'meal_parse' | 'meal_describe' | 'meal_transcribe' | 'onboarding_extract' | 'plan_narrative' | 'weekly_recap' | 'fridge_chef';
 
 /** How much a thinking model may think before it answers. Thinking tokens bill as output and count against `maxOutputTokens`. */
 export type ThinkingEffort = 'minimal' | 'low' | 'medium' | 'high';
@@ -26,6 +26,8 @@ export interface StructuredRequest {
   thinking?: ThinkingEffort;
   /** One photo sent with the context (fridge chef). Already re-encoded: orientation applied, metadata dropped, edge capped. */
   image?: { bytes: Buffer; mimeType: 'image/jpeg'; resolution?: 'low' | 'medium' | 'high' };
+  /** One recording sent with the context (spoken food logging). Never stored. */
+  audio?: { bytes: Buffer; mimeType: string };
 }
 
 export interface ChatRequest {
@@ -98,6 +100,8 @@ export const JSON_SCHEMAS: Record<AiTask, Record<string, unknown>> = {
   meal_scan: z.toJSONSchema(MealAnalysisOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
   label_scan: z.toJSONSchema(LabelScanOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
   meal_parse: z.toJSONSchema(MealParseOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
+  meal_describe: z.toJSONSchema(MealDescribeOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
+  meal_transcribe: z.toJSONSchema(MealTranscribeOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
   onboarding_extract: {}, // filled from the prompt file (content/prompts/onboarding-extract.v1.md) at runtime
   plan_narrative: planNarrativeJsonSchema(),
   weekly_recap: z.toJSONSchema(WeeklyRecapOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
@@ -140,6 +144,19 @@ export const PARSE_EXAMPLE = {
   ],
   notes: 'Assumed eggs scrambled with a splash of milk.',
   clarifyingQuestion: null,
+};
+
+/** Fake answer for POST /meals/describe: two foods, one with a stated weight (values per 100 g; the server multiplies). */
+export const DESCRIBE_EXAMPLE = {
+  status: 'ok',
+  mealName: 'Chicken pizza and cola',
+  category: null,
+  day: null,
+  items: [
+    { name: 'Chicken pizza', en: 'chicken pizza', portion: '215 g', stated: true, qty: 215, unit: 'g', g: 215, prep: 'baked', proc: 'processed', n: { kcal: 250, p: 12, c: 28, f: 10, fib: 2, sug: 3, na: 560 }, conf: 0.8, assume: 'Assumed regular crust' },
+    { name: 'Cola', en: 'cola', portion: '1 can', stated: true, qty: 1, unit: 'piece', g: 330, prep: 'raw', proc: 'ultra_processed', n: { kcal: 42, p: 0, c: 10.6, f: 0, fib: 0, sug: 10.6, na: 4 }, conf: 0.8, assume: null },
+  ],
+  question: null,
 };
 
 /** Small rule-based stand-in for onboarding extraction so local voice/typing demos work without a model. */
@@ -268,6 +285,8 @@ export class FakeAiProvider extends AiProvider {
         meal_scan: { status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: "That doesn't look like food.", retake: null },
         label_scan: { ...structuredClone(LABEL_EXAMPLE), status: 'no_food', name: null, en: null, rich: [], proc: null, question: 'I cannot see a nutrition table.' },
         meal_parse: { mealName: '', items: [], notes: null, clarifyingQuestion: 'What did you eat?' },
+        meal_describe: { status: 'not_food', mealName: null, category: null, day: null, items: [], question: 'What did you eat?' },
+        meal_transcribe: { status: 'silence', text: '', language: null },
         onboarding_extract: { answers: [], ack: 'Sorry, I missed that.', clarify: 'Could you say that another way?', userQuestion: null },
         plan_narrative: structuredClone(PLAN_NARRATIVE_EXAMPLE),
         weekly_recap: structuredClone(RECAP_EXAMPLE),
@@ -279,6 +298,8 @@ export class FakeAiProvider extends AiProvider {
       meal_scan: () => structuredClone(PLAN_EXAMPLE_ANALYSIS),
       label_scan: () => structuredClone(LABEL_EXAMPLE),
       meal_parse: () => structuredClone(PARSE_EXAMPLE),
+      meal_describe: () => structuredClone(DESCRIBE_EXAMPLE),
+      meal_transcribe: () => ({ status: 'ok', text: 'I ate 215 g of chicken pizza and a can of cola', language: 'en' }),
       onboarding_extract: () => fakeExtract(req.context),
       plan_narrative: () => structuredClone(PLAN_NARRATIVE_EXAMPLE),
       weekly_recap: () => structuredClone(RECAP_EXAMPLE),

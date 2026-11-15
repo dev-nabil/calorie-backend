@@ -92,7 +92,8 @@ const IMAGE_RESOLUTION: Record<NonNullable<StructuredRequest['image']>['resoluti
  * The parts of a structured request: the photo first (Google's advice for one image with a text prompt), then the context.
  * Per-image resolution exists on Gemini 3 only; Gemini 2.5 takes the image at its default.
  */
-export function structuredParts(req: Pick<StructuredRequest, 'context' | 'image' | 'model'>): Part[] {
+export function structuredParts(req: Pick<StructuredRequest, 'context' | 'image' | 'audio' | 'model'>): Part[] {
+  if (req.audio) return [{ inlineData: { data: req.audio.bytes.toString('base64'), mimeType: req.audio.mimeType } }, { text: req.context }];
   if (!req.image) return [{ text: req.context }];
   const resolution = req.image.resolution && !req.model.startsWith('gemini-2.') ? { mediaResolution: { level: IMAGE_RESOLUTION[req.image.resolution] } } : {};
   return [{ inlineData: { data: req.image.bytes.toString('base64'), mimeType: req.image.mimeType }, ...resolution }, { text: req.context }];

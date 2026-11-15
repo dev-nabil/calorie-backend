@@ -2934,6 +2934,310 @@
         ]
       }
     },
+    "/v1/meals/describe": {
+      "post": {
+        "operationId": "MealParseController_describe",
+        "parameters": [
+          {
+            "name": "X-Device-Integrity",
+            "in": "header",
+            "description": "`appattest.<keyId>.<assertion base64url>` or `playintegrity.<token>`, over the client data `${METHOD} ${path} ${X-Integrity-Timestamp}` (required in production, DEC-19)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Integrity-Timestamp",
+            "in": "header",
+            "description": "Milliseconds since epoch used in the signed client data (±5 minutes)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MealDescribeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A reviewable draft from a description: foods, amounts, server-computed values; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MealDescribeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "meals"
+        ]
+      }
+    },
+    "/v1/meals/transcribe": {
+      "post": {
+        "operationId": "MealParseController_transcribe",
+        "parameters": [
+          {
+            "name": "X-Device-Integrity",
+            "in": "header",
+            "description": "`appattest.<keyId>.<assertion base64url>` or `playintegrity.<token>`, over the client data `${METHOD} ${path} ${X-Integrity-Timestamp}` (required in production, DEC-19)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Integrity-Timestamp",
+            "in": "header",
+            "description": "Milliseconds since epoch used in the signed client data (±5 minutes)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "The recording itself (for example 16 kHz mono WAV); at most 2 MB",
+          "content": {
+            "audio/wav": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/x-wav": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/mp4": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/m4a": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/aac": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/mpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/ogg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/flac": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The spoken words as editable text; nothing is analysed or saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MealTranscribeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "meals"
+        ]
+      }
+    },
     "/v1/conversations": {
       "post": {
         "operationId": "ConversationsController_create",
@@ -16640,6 +16944,357 @@
           "processing",
           "source"
         ]
+      },
+      "DescribeDraftItem": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "grams": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2000
+          },
+          "portion": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 60
+          },
+          "per100g": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Per100gInput"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "grams"
+        ],
+        "additionalProperties": false
+      },
+      "MealDescribeRequest": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "The newest message: a meal description, an answer to the question, or a correction (\"Actually, it was 150 g\")"
+          },
+          "history": {
+            "description": "Earlier messages of this logging session, oldest first",
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          "draft": {
+            "description": "The unsaved result the user is correcting; the answer replaces it as a whole. Never a saved meal",
+            "type": "object",
+            "properties": {
+              "mealName": {
+                "nullable": true,
+                "type": "string",
+                "maxLength": 120
+              },
+              "items": {
+                "minItems": 1,
+                "maxItems": 15,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DescribeDraftItem"
+                }
+              }
+            },
+            "required": [
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          "category": {
+            "description": "The meal slot selected in the app",
+            "type": "string",
+            "enum": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "snack"
+            ]
+          },
+          "inputMethod": {
+            "type": "string",
+            "enum": [
+              "typed",
+              "voice"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "DescribedItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable within one scan; send it back as scanItemId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "canonicalName": {
+            "nullable": true,
+            "description": "English name used to look up records",
+            "type": "string"
+          },
+          "portion": {
+            "nullable": true,
+            "type": "string"
+          },
+          "grams": {
+            "type": "number"
+          },
+          "kcal": {
+            "nullable": true,
+            "type": "number"
+          },
+          "proteinG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "carbsG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "fatG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "fiberG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sugarG": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sodiumMg": {
+            "nullable": true,
+            "type": "number"
+          },
+          "per100g": {
+            "description": "Basis for every value on this item; portion changes recalculate from it",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NutrientValues"
+              }
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/NutritionSource"
+          },
+          "otherNutrients": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OtherNutrient"
+            }
+          },
+          "richIn": {
+            "$ref": "#/components/schemas/RichIn"
+          },
+          "processing": {
+            "$ref": "#/components/schemas/FoodProcessing"
+          },
+          "preparation": {
+            "nullable": true,
+            "type": "string",
+            "enum": [
+              "boiled",
+              "steamed",
+              "fried",
+              "deep_fried",
+              "grilled",
+              "roasted",
+              "baked",
+              "curried",
+              "stewed",
+              "raw",
+              "mixed",
+              "unknown",
+              null
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "single",
+              "mixed_dish",
+              "component"
+            ]
+          },
+          "excluded": {
+            "type": "boolean",
+            "description": "Left out of totals, for example an ingredient of a mixed dish"
+          },
+          "countedIn": {
+            "nullable": true,
+            "description": "id of the mixed dish that already contains this item",
+            "type": "string"
+          },
+          "assumption": {
+            "nullable": true,
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number"
+          },
+          "point": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Point"
+              }
+            ],
+            "type": "object"
+          },
+          "kcalRecomputed": {
+            "type": "boolean",
+            "description": "kcal recomputed from macros (rule 4)"
+          },
+          "quantityStated": {
+            "type": "boolean",
+            "description": "The user gave this amount; false when the serving was assumed (see assumption)"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "canonicalName",
+          "portion",
+          "grams",
+          "kcal",
+          "proteinG",
+          "carbsG",
+          "fatG",
+          "fiberG",
+          "sugarG",
+          "sodiumMg",
+          "per100g",
+          "source",
+          "otherNutrients",
+          "richIn",
+          "processing",
+          "preparation",
+          "role",
+          "excluded",
+          "countedIn",
+          "assumption",
+          "confidence",
+          "point",
+          "kcalRecomputed",
+          "quantityStated"
+        ]
+      },
+      "MealDescribeResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "needs_info",
+              "not_food"
+            ]
+          },
+          "mealName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DescribedItem"
+            },
+            "description": "Values for the amount eaten, computed by the server from per100g"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/MealTotals"
+          },
+          "clarifyingQuestion": {
+            "nullable": true,
+            "description": "One short follow-up; the app keeps the draft and sends the answer with it",
+            "type": "string"
+          },
+          "category": {
+            "nullable": true,
+            "description": "Meal named in the text, if any",
+            "type": "string",
+            "enum": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "snack",
+              null
+            ]
+          },
+          "day": {
+            "nullable": true,
+            "description": "Day named in the text, if any",
+            "type": "string",
+            "enum": [
+              "today",
+              "yesterday",
+              null
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "mealName",
+          "items",
+          "totals",
+          "clarifyingQuestion",
+          "category",
+          "day"
+        ],
+        "description": "Not saved; review then POST /meals with source \"text\""
+      },
+      "MealTranscribeResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "silence",
+              "unclear"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "description": "Editable text for the composer (at most 500 characters); empty unless status is ok"
+          },
+          "language": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "text",
+          "language"
+        ],
+        "description": "Speech to text only; nothing is analysed or saved. Send the text to POST /meals/describe"
       },
       "ContentDocument": {
         "type": "object",

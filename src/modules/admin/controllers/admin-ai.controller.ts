@@ -45,6 +45,8 @@ const TASK_FOR: Record<string, { task: AiTask | 'chat'; feature: 'vision' | 'ext
   'meal-scan': { task: 'meal_scan', feature: 'vision' },
   'label-scan': { task: 'label_scan', feature: 'vision' },
   'meal-parse': { task: 'meal_parse', feature: 'extract' },
+  'meal-describe': { task: 'meal_describe', feature: 'extract' },
+  'meal-transcribe': { task: 'meal_transcribe', feature: 'extract' },
   'onboarding-extract': { task: 'onboarding_extract', feature: 'extract' },
   coach: { task: 'chat', feature: 'chat' },
 };

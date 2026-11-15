@@ -31,6 +31,7 @@ import {
 
 export { PLAN_EXAMPLE_ANALYSIS } from './fixtures';
 export { cropFromBox } from './crop';
+export { describeValuesSane, explicitWeights, normaliseDescribe, type DescribeOptions } from './describe';
 export { labelGrams, labelPer100g, labelSource, labelValues, normaliseLabel, parseLabelOutput, KJ_PER_KCAL, SODIUM_MG_PER_G_SALT, SINGLE_PACK_MAX_G, type LabelNormaliseResult, type LabelParseResult } from './label';
 
 export { KCAL_TOLERANCE };
