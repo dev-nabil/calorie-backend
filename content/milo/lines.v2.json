@@ -111,7 +111,7 @@
       "text": "Finish later"
     },
     "setup.estimateToggle": {
-      "text": "This is an estimate"
+      "text": "I'm not sure of the exact number"
     },
     "setup.info.fasting": {
       "title": "About eating windows",
@@ -169,10 +169,10 @@
       "text": "Goal summary"
     },
     "plan.reveal.noDeadline": {
-      "text": "Gradual progress. Any time estimate is a guide, not a deadline. Trends matter more than any single day."
+      "text": "Gradual progress. Any timeframe is a guide, not a deadline. Trends matter more than any single day."
     },
     "plan.reveal.disclaimer": {
-      "text": "This is an estimate to start from, not medical advice. No deadline is set, and you can adjust it any time."
+      "text": "This is a starting point, not medical advice. No deadline is set, and you can adjust it any time."
     },
     "plan.reveal.cta.start": {
       "text": "Start my day"
@@ -190,7 +190,7 @@
       "text": "We used your age, height, weight, sex input and activity level."
     },
     "plan.how.equation": {
-      "text": "We estimated your daily energy with the Mifflin–St Jeor equation, then multiplied it by an activity factor of {activityFactor}."
+      "text": "We worked out your daily energy with the Mifflin–St Jeor equation, then multiplied it by an activity factor of {activityFactor}."
     },
     "plan.how.adjust.lose": {
       "text": "For gradual weight loss we lowered it by 10%."
@@ -199,7 +199,7 @@
       "text": "For gradual weight gain we raised it by 10%."
     },
     "plan.how.adjust.maintain": {
-      "text": "There is no goal adjustment, so this is a maintenance estimate."
+      "text": "There is no goal adjustment, so this is your maintenance level."
     },
     "plan.how.floor": {
       "text": "Your target never goes below {floorKcal} kcal a day."
@@ -208,7 +208,7 @@
       "text": "Protein is set at 1.6 g per kg of body weight, fat at 27% of energy, and carbohydrates make up the rest."
     },
     "plan.how.targetWeight": {
-      "text": "Your target weight is shown on your goal card. It doesn't change these numbers. We only use it to estimate how long steady progress may take."
+      "text": "Your target weight is shown on your goal card. It doesn't change these numbers. We only use it to work out how long steady progress may take."
     },
     "plan.adjust.title": {
       "text": "Adjust targets"
@@ -229,7 +229,7 @@
       "text": "We'll focus on habits: meals, water and routine. No calorie target is set."
     },
     "plan.habits.addDetails": {
-      "text": "If you'd like an energy estimate later, add the missing details in Settings."
+      "text": "If you'd like your energy needs worked out later, add the missing details in Settings."
     },
     "today.greeting.morning": {
       "text": "Good morning, {name}"
@@ -302,7 +302,7 @@
       "text": "Finding foods in your photo…"
     },
     "analysing.step.2": {
-      "text": "Estimating portions…"
+      "text": "Working out portions…"
     },
     "analysing.step.3": {
       "text": "Preparing your nutrition breakdown…"
@@ -329,7 +329,7 @@
       "text": "Retake"
     },
     "scan.result.estimated": {
-      "text": "kcal estimated"
+      "text": "kcal"
     },
     "scan.result.portion": {
       "text": "Portion"
@@ -347,7 +347,7 @@
       "text": "Add to diary · {kcal} kcal"
     },
     "scan.result.reviewNote": {
-      "text": "These are estimates. Check the foods and portions before you save."
+      "text": "Check the foods and portions before you save."
     },
     "scan.edit.title": {
       "title": "Edit foods",
@@ -367,7 +367,7 @@
     },
     "scan.consent": {
       "title": "Before your first scan",
-      "text": "To estimate nutrition, your photo is sent securely to our AI provider. You review every result before it's saved, and the photo is removed after you delete the meal."
+      "text": "To work out nutrition, your photo is sent securely to our AI provider. You review every result before it's saved, and the photo is removed after you delete the meal."
     },
     "scan.consent.accept": {
       "text": "Got it"
@@ -635,7 +635,7 @@
     },
     "permission.camera": {
       "title": "Camera access",
-      "text": "Nouri uses the camera to photograph your meals and estimate what's on the plate. A photo is taken when you tap the shutter, or by itself when Auto is on and you hold the phone steady over your food (close up is fine). You can always describe a meal instead."
+      "text": "Nouri uses the camera to photograph your meals and work out what's on the plate. A photo is taken when you tap the shutter, or by itself when Auto is on and you hold the phone steady over your food (close up is fine). You can always describe a meal instead."
     },
     "permission.camera.allow": {
       "text": "Allow camera"
@@ -657,7 +657,7 @@
       "text": "One quick check"
     },
     "eligibility.sub": {
-      "text": "A calorie estimate isn't right for everyone. Your answers stay private and only decide whether we show one."
+      "text": "A calorie target isn't right for everyone. Your answers stay private and only decide whether we show one."
     },
     "eligibility.pregnantOrBreastfeeding": {
       "text": "I'm pregnant or breastfeeding"

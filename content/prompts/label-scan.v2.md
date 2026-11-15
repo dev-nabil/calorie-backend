@@ -34,7 +34,7 @@ name: brand and product name if visible anywhere in the photo, as printed. Other
 en: plain lowercase English for the kind of product: "chocolate biscuits", "instant noodles", "mango juice". null if you cannot tell.
 rich: vitamins and minerals printed at 15% or more of the daily value per serving, strongest first, at most 4. Empty when the label lists none.
 proc: how processed the product is, from its name, kind, and ingredient list when visible. "whole": a single whole or minimally processed food (plain milk, plain yogurt, rice, dal, oats, nuts, frozen vegetables, dried fruit with nothing added). "processed": a simple food changed by added sugar, salt, or oil, or juice (cheese, plain bread, canned fish, 100% fruit juice, honey, ghee). "ultra_processed": an industrial product with additives such as flavourings, sweeteners, colours, emulsifiers, or preservatives (soft drinks, juice drinks, chips, instant noodles, biscuits, cakes, chocolate, candy, sausages, sugary cereals). null when you cannot tell.
-question: null when status is "ok", unless one short note matters (for example "Values are for the prepared product"). Write it in the requested language.
+question: null when status is "ok", unless one short note matters (for example "Values are for the prepared product"). Write it in the requested language. Never write the words "estimate", "estimated", "estimating" or "estimation" (in Bangla: আনুমানিক, অনুমান) in it.
 
 <!-- DYNAMIC CONTEXT BELOW: not cached -->
 

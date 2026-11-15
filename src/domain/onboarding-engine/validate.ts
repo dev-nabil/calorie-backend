@@ -161,7 +161,9 @@ function validateWeight(q: QuestionDef, value: AnswerValue): AnswerValue {
   }
   // target_weight has no estimate flag (limits.estimateFlag false): always false.
   const estimateAllowed = q.limits?.estimateFlag !== false;
-  return { kg: Math.round(kg * 10) / 10, unit, isEstimate: estimateAllowed ? value.isEstimate === true : false };
+  // Kept to the gram: a weight typed in pounds (150.3 lb = 68.175 kg) must come back
+  // as the same pounds; 0.1 kg would turn it into 150.1 lb.
+  return { kg: Math.round(kg * 1000) / 1000, unit, isEstimate: estimateAllowed ? value.isEstimate === true : false };
 }
 
 function validateNumber(q: QuestionDef, value: AnswerValue): AnswerValue {

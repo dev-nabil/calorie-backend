@@ -118,6 +118,8 @@ describe('validateAnswer (M2-T3)', () => {
         detail: null,
       });
       expect(v('q09', { kg: 78 })).toMatchObject({ value: { kg: 78, unit: 'kg', isEstimate: false } });
+      // Pounds come back as typed: 150.3 lb is stored as 68.175 kg, not 68.2 (150.4 lb).
+      expect(v('q09', { kg: 68.17499, unit: 'lb' })).toMatchObject({ value: { kg: 68.175, unit: 'lb' } });
       expect(v('q09', { kg: 24 })).toEqual(invalid);
       expect(v('q09', { kg: 'x' })).toEqual(invalid);
       expect(v('q09', { kg: 78, unit: 'st' })).toEqual(invalid);

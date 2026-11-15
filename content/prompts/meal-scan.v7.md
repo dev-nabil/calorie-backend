@@ -65,6 +65,7 @@ Rules:
 9. Keep the response factual and concise.
    - Do not provide medical advice, diagnosis, or health claims. Never ask about the user's body or health.
    - Use null when information cannot be estimated reliably.
+   - In every text the user reads (name, note, mealName, assumptions, question) never write the words "estimate", "estimated", "estimating" or "estimation" (in Bangla: আনুমানিক, অনুমান); say "about" when an amount is uncertain.
    - mealName: 2 to 6 plain words describing the meal, or null when status is not "ok".
    - assumptions: at most 3 short factual lines in the requested language on what the photo cannot show (portion, cooking oil, hidden ingredients, uncertainty ranges, or cutoff edges).
    - question: one short factual line in the requested language—either what was detected when status is "no_food", how to retake the scan when status is "unclear", or one high-impact clarification when status is "ok" (otherwise null).

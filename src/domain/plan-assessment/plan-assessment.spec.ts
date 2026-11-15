@@ -108,7 +108,7 @@ describe('estimateTimeframe', () => {
     expect(t.changeKg).toBe(8);
     expect(t.estimatedWeeks).toEqual({ min: 40, max: 50 });
     expect(t.verdict).toBe('no_request');
-    expect(t.message).toMatch(/estimate, not a deadline/);
+    expect(t.message).toMatch(/a guide, not a deadline/);
     expect(t.safeMinWeeks).toBe(10); // 1% of 82 kg = 0.82 kg/week
   });
 
@@ -158,8 +158,9 @@ describe('buildBasis and noticeFor', () => {
     expect(text).toMatch(/Mifflin-St Jeor/);
     expect(text).toMatch(/10% below/);
     expect(text).toMatch(/never go below/);
-    expect(text).toMatch(/estimates/);
-    expect(text).toMatch(/weight as an estimate/);
+    expect(text).toMatch(/People differ by 10%/);
+    expect(text).toMatch(/weight is not exact/);
+    expect(text).not.toMatch(/estimat/i);
     expect(text).toMatch(/allergies or intolerances/);
     expect(text).toMatch(/not a deadline/);
   });

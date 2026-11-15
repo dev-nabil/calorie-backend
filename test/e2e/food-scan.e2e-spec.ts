@@ -5,6 +5,7 @@ import sharp from 'sharp';
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, signIn, uploadPhoto } from '../setup/helpers';
 import { StorageService } from '../../src/infra/storage/storage';
+import { AI_LIMITS } from '../../src/shared/constants';
 import { AiProvider, FakeAiProvider } from '../../src/modules/ai/ai.provider';
 import { AiService } from '../../src/modules/ai/ai.service';
 import { FakeFoodVisionProvider, FoodVisionProvider } from '../../src/modules/ai/providers/food-vision.provider';
@@ -448,13 +449,13 @@ describe('Food photo scanner, Gemini mocked', () => {
       expect(vision.calls).toHaveLength(1);
     });
 
-    it('enforces the Plus daily limit', async () => {
+    it('enforces the Plus daily limit, as saved by the admin AI settings', async () => {
       const h = await asPlus();
-      await config().set('limits.plus.scansPerDay', 1);
+      await config().set('limits', { ...AI_LIMITS, plus: { ...AI_LIMITS.plus, scansPerDay: 1 } });
       await post(h, await body(h)).expect(202);
       await drain();
-      expect((await post(h, await body(h)).expect(402)).body.error.details).toMatchObject({ plan: 'plus', period: 'day' });
-      await config().set('limits.plus.scansPerDay', 30);
+      expect((await post(h, await body(h)).expect(402)).body.error.details).toMatchObject({ plan: 'plus', period: 'day', limit: 1 });
+      await config().unset('limits');
     });
 
     it('rate limits one account', async () => {

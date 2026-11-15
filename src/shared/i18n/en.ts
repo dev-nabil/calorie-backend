@@ -13,7 +13,7 @@ export const en = {
   'plan.missing.lifeStage': 'Tell me whether you are pregnant or breastfeeding, so your goal fits you.',
   'plan.missing.height': 'Your height is needed for the calorie equation.',
   'plan.missing.weight': 'Your current weight is needed for the calorie equation.',
-  'plan.missing.activity': 'Pick the movement level closest to a normal week. "Not sure" cannot be used for an estimate.',
+  'plan.missing.activity': 'Pick the movement level closest to a normal week. "Not sure" cannot be used to work out your needs.',
   'plan.issue.bmi_implausible': 'That height and weight look unlikely together. Please check both, including the unit.',
   'plan.issue.loss_goal_underweight': 'At this height and weight I cannot set a weight-loss goal. Pick a different main goal, or correct your weight if it is wrong.',
   'plan.issue.target_equals_current': 'Your target is the same as your current weight. Choose a different target, or leave it blank.',
@@ -22,7 +22,7 @@ export const en = {
   'plan.issue.target_bmi_low': 'That target would be below the healthy weight range for your height. Choose a higher target, or leave it blank.',
   'plan.issue.large_change': 'That is a big change. It can help to aim for a smaller first target and revisit it.',
   'plan.issue.allergies_unknown': 'You have not told us about food allergies or intolerances, so ideas are not filtered for them. You can add them now.',
-  'plan.issue.weight_is_estimate': 'Your weight is an estimate, so your targets are too. Update it when you can.',
+  'plan.issue.weight_is_estimate': 'Your weight isn\'t exact, so your targets may be a little off. Update it when you can.',
   // ── Plan: notices for outcomes without a calorie plan ──
   'plan.notice.life_stage.title': 'A goal for this stage of life',
   'plan.notice.life_stage.body':
@@ -34,7 +34,7 @@ export const en = {
   'plan.notice.needs_input.blocking.body':
     'Some of your answers do not fit together. I will not guess which one is right, so please check them. You can also continue with habits only.',
   'plan.notice.needs_input.missing.title': 'A few details are missing',
-  'plan.notice.needs_input.missing.body': 'I need these to work out a calorie estimate, and I will not guess them. You can add them now or continue with habits only.',
+  'plan.notice.needs_input.missing.body': 'I need these to work out your calories, and I will not guess them. You can add them now or continue with habits only.',
   // ── Plan: time estimate ──
   'plan.verb.lose.ing': 'losing',
   'plan.verb.gain.ing': 'gaining',
@@ -47,12 +47,12 @@ export const en = {
   },
   'plan.range.same': (p) => `about ${p.a} to ${p.b}`,
   'plan.range.single': (p) => `about ${p.a}`,
-  'plan.timeframe.no_request': (p) => `At this pace, ${p.verb} ${p.change} kg could take ${p.eta}. That is an estimate, not a deadline, and progress is never a straight line.`,
+  'plan.timeframe.no_request': (p) => `At this pace, ${p.verb} ${p.change} kg could take ${p.eta}. That is a guide, not a deadline, and progress is never a straight line.`,
   'plan.timeframe.faster_than_safe': (p) =>
     `${p.req} would mean ${p.verb} more than about ${p.maxPace} kg a week, which is faster than I plan for. A steadier plan takes at least ${p.safeMin}, and at this pace you can expect ${p.eta}. Please allow more time or choose a smaller target.`,
   'plan.timeframe.faster_than_plan': (p) =>
     `At this steady pace, ${p.verb} ${p.change} kg would take ${p.eta}, longer than the ${p.req} you hoped for. I do not push harder than this automatically. You can allow more time, choose a smaller target, or adjust the targets yourself within the safe limits.`,
-  'plan.timeframe.realistic': (p) => `Your ${p.req} fits this pace: ${p.verb} ${p.change} kg could take ${p.eta}. That is an estimate, not a deadline.`,
+  'plan.timeframe.realistic': (p) => `Your ${p.req} fits this pace: ${p.verb} ${p.change} kg could take ${p.eta}. That is a guide, not a deadline.`,
   'plan.timeframe.slower_than_plan': (p) => `You have allowed ${p.req}, which is longer than the ${p.eta} this pace needs. That is fine: there is no rush.`,
   // ── Plan: how the numbers were made ──
   'plan.activity.seated': 'mostly seated',
@@ -60,17 +60,17 @@ export const en = {
   'plan.activity.active': 'active',
   'plan.activity.intense': 'very active',
   'plan.basis.resting': (p) =>
-    `Your resting energy (about ${p.bmr} kcal) comes from the Mifflin-St Jeor equation, using your age, height, weight and sex input. Because you are ${p.activity}, we multiplied it by ${p.factor} to estimate what you use in a day: about ${p.tdee} kcal.`,
+    `Your resting energy (about ${p.bmr} kcal) comes from the Mifflin-St Jeor equation, using your age, height, weight and sex input. Because you are ${p.activity}, we multiplied it by ${p.factor} to work out what you use in a day: about ${p.tdee} kcal.`,
   'plan.basis.below': (p) => `Your daily target is ${p.pct}% below that, a gentle gap that is meant to be sustainable.`,
   'plan.basis.above': (p) => `Your daily target is ${p.pct}% above that, a gentle surplus that is meant to be sustainable.`,
-  'plan.basis.matches': 'Your daily target matches that estimate, so it is meant to hold your weight steady.',
+  'plan.basis.matches': 'Your daily target matches that number, so it is meant to hold your weight steady.',
   'plan.basis.adjusted': (p) => `You adjusted your daily target to ${p.kcal} kcal. The calculation above is where it started from.`,
   'plan.basis.floor': (p) => `Targets never go below ${p.floor} kcal a day.`,
   'plan.basis.macros': 'Protein is set at 1.6 g per kg of body weight (kept between 15% and 30% of energy), fat at 27% of energy, and carbohydrate makes up the rest.',
-  'plan.basis.estimates': 'These are estimates. People differ by 10% or more, so treat the first two weeks as a trial and adjust if you feel hungry, tired or are not seeing a trend.',
-  'plan.basis.weightEstimate': 'You gave your weight as an estimate, so every number here is a little less certain.',
+  'plan.basis.estimates': 'People differ by 10% or more, so treat the first two weeks as a trial and adjust if you feel hungry, tired or are not seeing a trend.',
+  'plan.basis.weightEstimate': 'You said your weight is not exact, so every number here is a little less certain.',
   'plan.basis.allergiesUnknown': 'You have not told us about food allergies or intolerances, so ideas are not filtered for them.',
-  'plan.basis.timeframe': (p) => `Time estimates assume about ${p.kcalPerKg} kcal per kg of body weight change and allow for progress slowing down. They are a guide, not a deadline.`,
+  'plan.basis.timeframe': (p) => `Timeframes assume about ${p.kcalPerKg} kcal per kg of body weight change and allow for progress slowing down. They are a guide, not a deadline.`,
   // ── Plan: AI status and service messages ──
   'plan.ai.not_configured': 'Personalised tips are not switched on yet. Your numbers are ready, and the tips can be added later.',
   'plan.ai.unavailable': 'Milo is resting, so your personalised tips are not ready. Your numbers are fine. Try again in a moment.',
@@ -135,7 +135,7 @@ export const enErrors: Record<ErrorCode, ErrMsg> = {
   AI_UNAVAILABLE: 'Milo is resting. Try again soon.',
   IMAGE_INVALID: 'That photo could not be used. Try another one.',
   NO_FOOD_DETECTED: 'Milo could not find any food in this photo.',
-  IMAGE_UNCLEAR: 'This photo is too unclear to estimate. Try another one.',
+  IMAGE_UNCLEAR: 'This photo is too unclear to analyse. Try another one.',
   NO_LABEL_DETECTED: 'No nutrition table was found. Take a photo of the table on the back of the pack.',
   AI_LIMIT_REACHED: 'Daily limit reached. Try again tomorrow.',
   CONVERSATION_NOT_FOUND: 'We could not find that conversation.',

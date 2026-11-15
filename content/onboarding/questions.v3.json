@@ -985,9 +985,9 @@
       "max": null,
       "exclusive": [],
       "reviewLabel": "Calculation preference",
-      "text": "Which sex input should we use if you choose a calorie estimate?",
+      "text": "Which sex input should we use if you choose a calorie target?",
       "note": "Some calorie equations use this input. You can continue with habit tracking without it.",
-      "miloLine": "Only used if you choose a calorie estimate. Nothing is assumed.",
+      "miloLine": "Only used if you choose a calorie target. Nothing is assumed.",
       "miloLineNoName": null,
       "hint": "Optional",
       "skipLabel": null,
@@ -1016,7 +1016,7 @@
         },
         {
           "id": "none",
-          "label": "Do not use a sex-based estimate",
+          "label": "Do not use a sex-based calculation",
           "icon": "x",
           "freeText": false
         }
@@ -1215,7 +1215,7 @@
       "exclusive": [],
       "reviewLabel": "Target weight",
       "text": "Is there a weight you would like to work toward?",
-      "note": "Optional. It never changes your daily targets. We use it to estimate how long steady progress may take.",
+      "note": "Optional. It never changes your daily targets. We use it to work out how long steady progress may take.",
       "miloLine": "Not sure yet is fine. We will focus on steady habits, not a deadline.",
       "miloLineNoName": null,
       "hint": "Optional",
@@ -2655,7 +2655,7 @@
       "reviewLabel": "Logging tools",
       "text": "How would you prefer to add meals?",
       "note": null,
-      "miloLine": "You can always switch. Photos and estimates are reviewable before saving.",
+      "miloLine": "You can always switch. Photos and results are reviewable before saving.",
       "miloLineNoName": null,
       "hint": "Choose any that apply",
       "skipLabel": null,

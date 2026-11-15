@@ -147,7 +147,9 @@ export class ScansService implements OnModuleInit {
     await this.foodScan.assertAvailable();
 
     const ledgerUsed = await this.users.ledgerUsed(user.email);
-    const plusDailyLimit = await this.appConfig.get<number>('limits.plus.scansPerDay', AI_LIMITS.plus.scansPerDay);
+    // The admin AI settings save every plan limit in one `limits` row (admin-ai.controller); read the same row.
+    const limits = await this.appConfig.get<typeof AI_LIMITS>('limits', AI_LIMITS);
+    const plusDailyLimit = limits.plus?.scansPerDay ?? AI_LIMITS.plus.scansPerDay;
     const plusScansToday = isPlus
       ? await this.scans.countDocuments({ userId: uid, deduped: false, status: { $in: ['queued', 'processing', 'succeeded'] }, queuedAt: { $gte: new Date(now.getTime() - 86_400_000) } })
       : 0;

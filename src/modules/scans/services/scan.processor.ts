@@ -29,7 +29,7 @@ export const STUCK_PROCESSING_MS = 3 * 60_000; // plan 8.10 stuck-job sweep
 
 const REJECTIONS: Partial<Record<ScanOutcome, { code: string; message: string }>> = {
   no_food: { code: ERROR_CODES.NO_FOOD_DETECTED, message: 'No food was found in this photo' },
-  unclear: { code: ERROR_CODES.IMAGE_UNCLEAR, message: 'This photo is too unclear to estimate' },
+  unclear: { code: ERROR_CODES.IMAGE_UNCLEAR, message: 'This photo is too unclear to analyse' },
 };
 const LABEL_REJECTIONS: Partial<Record<ScanOutcome, { code: string; message: string }>> = {
   no_food: { code: ERROR_CODES.NO_LABEL_DETECTED, message: 'No nutrition table was found in this photo' },

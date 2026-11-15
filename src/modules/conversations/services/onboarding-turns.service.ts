@@ -393,7 +393,7 @@ function valueLabel(set: QuestionSet, id: string, value: AnswerValue): string {
     if ('age' in v) return `${String(v.age)} years`;
     if (v.mode === 'none') return 'Prefer not to say';
     if ('cm' in v) return `${String(v.cm)} cm`;
-    if ('kg' in v) return `${String(v.kg)} kg${v.isEstimate ? ' (estimate)' : ''}`;
+    if ('kg' in v) return `${String(v.kg)} kg${v.isEstimate ? ' (not exact)' : ''}`;
   }
   return String(value);
 }

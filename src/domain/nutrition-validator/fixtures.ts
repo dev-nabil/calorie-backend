@@ -33,7 +33,7 @@ export const PLAN_EXAMPLE_ANALYSIS = {
       note: null,
     },
     {
-      name: 'Cooking oil (estimated)',
+      name: 'Cooking oil',
       en: 'cooking oil',
       ves: 'plate', cm: 26, pcs: 1, g: 5,
       prep: 'unknown',
@@ -44,10 +44,10 @@ export const PLAN_EXAMPLE_ANALYSIS = {
       rich: ['vitaminE'],
       conf: 0.4,
       pt: null,
-      note: 'Oil is not visible; the estimate may be low.',
+      note: 'Oil is not visible; the amount may be low.',
     },
   ],
-  assumptions: ['Oil is not visible; the estimate may be low.'],
+  assumptions: ['Oil is not visible; the amount may be low.'],
   question: null,
   retake: null,
 } as const;

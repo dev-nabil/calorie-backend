@@ -51,7 +51,7 @@ describe('nutrition-validator (plan 8.3)', () => {
     expect(r.analysis.items).toHaveLength(3);
     expect(r.analysis.items.every((i) => !i.kcalRecomputed)).toBe(true);
     expect(r.analysis.totals).toEqual({ kcal: 501, proteinG: 50.8, carbsG: 45, fatG: 10.9, fiberG: 0.6, sugarG: 0.2, sodiumMg: 113, incomplete: [] });
-    expect(r.analysis).toMatchObject({ isEstimate: true, outcome: 'ok', assumptions: ['Oil is not visible; the estimate may be low.'] });
+    expect(r.analysis).toMatchObject({ isEstimate: true, outcome: 'ok', assumptions: ['Oil is not visible; the amount may be low.'] });
     expect(r.analysis.items[2]?.point).toBeNull();
     expect(r.analysis.reactionLineId).toBeNull();
   });
