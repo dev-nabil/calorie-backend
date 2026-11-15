@@ -17,7 +17,7 @@ import { DEFAULT_TEXT_MODEL } from '../modules/ai/ai-models';
 import { coachLanguageDirective } from '../modules/ai/language';
 import { GeminiProvider } from '../modules/ai/providers/gemini.provider';
 import { loadContentBundle } from '../modules/content/content.loader';
-import { COACH_TIMEOUT_MS, coachUserMessage, FALLBACK_INSTRUCTIONS } from '../modules/conversations/services/coach-prompt';
+import { COACH_TIMEOUT_MS, coachUserMessage, FALLBACK_INSTRUCTIONS, looksWrapped } from '../modules/conversations/services/coach-prompt';
 import { AI_LIMITS, type DayResponse, type ProgressResponse } from '../shared';
 import { DEFAULT_UNITS } from '../shared/units';
 
@@ -80,6 +80,7 @@ const SCENARIOS: Scenario[] = [
     check: (r) => [...inScript(LATIN, 'Latin')(r), ...(words(r) > 190 ? [`too long: ${words(r)} words`] : []), ...(/peanut/i.test(r) ? ['suggested peanuts to a peanut allergy'] : [])],
   },
   { name: 'Bangla script from a Bangla app', app: 'bn', mode: 'full', say: 'আজ রাতে ডিনারে কী খাবো?', check: inScript(BN, 'Bengali') },
+  { name: 'Bangla snack idea (the chip text) is plain text, not JSON', app: 'bn', mode: 'full', say: 'একটি নাশতার আইডিয়া দিন', check: inScript(BN, 'Bengali') },
   { name: 'Bangla script while the app is English', app: 'en', mode: 'full', say: 'আমি প্রতিদিন কতটা প্রোটিন খাব?', check: (r) => [...inScript(BN, 'Bengali')(r), ...(/130|১৩০/.test(r) ? [] : ['did not use the 130 g protein target'])] },
   {
     name: 'Banglish (Bangla in Latin letters) is answered in Banglish',
@@ -205,7 +206,7 @@ async function main(): Promise<void> {
         () => undefined,
       );
       reply = String(res.output).trim();
-      const problems = fake ? [] : [...s.check(reply), ...cutOff(res.usage.outputTokens)];
+      const problems = fake ? [] : [...(looksWrapped(reply) ? ['wrapped the reply in JSON or a code fence'] : []), ...s.check(reply), ...cutOff(res.usage.outputTokens)];
       failures += problems.length ? 1 : 0;
       console.warn(`${problems.length ? 'FAIL' : 'ok  '} ${i + 1}. ${s.name} (${((Date.now() - started) / 1000).toFixed(1)}s, ${res.usage.outputTokens} out tokens, ${words(reply)} words)`);
       console.warn(`     > ${s.say}`);

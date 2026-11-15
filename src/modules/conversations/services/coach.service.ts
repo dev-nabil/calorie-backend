@@ -16,7 +16,7 @@ import { localeInfo } from '../../../shared/locales';
 import { buildCoachContext } from '../../../domain/coach-context';
 import { coachStyleDirective } from '../../../domain/coach-style';
 import { CoachPreferencesService } from '../../coach-preferences/coach-preferences.service';
-import { COACH_TIMEOUT_MS, coachUserMessage, FALLBACK_INSTRUCTIONS, REPHRASE_MAX_TOKENS } from './coach-prompt';
+import { COACH_TIMEOUT_MS, coachUserMessage, FALLBACK_INSTRUCTIONS, plainCoachReply, REPHRASE_MAX_TOKENS } from './coach-prompt';
 import { fillSingle } from '../../content/content.loader';
 import { inWindow, type NudgeContent } from '../../../domain/nudges';
 import { localMinutes } from '../../../domain/nudges';
@@ -249,7 +249,17 @@ export class CoachService {
       (quickAction ? languageDirective(locale) : coachLanguageDirective(locale, history.findLast((m) => m.role === 'assistant')?.content)) + coachStyleDirective(style);
     let streamed = false;
     try {
+      // A reply that opens with `{` or a code fence is the model wrapping its answer (JSON, field names): nothing of it is
+      // streamed, and the cleaned text goes out once at the end. Plain text streams as it arrives.
+      let held = false;
       const res = await this.ai.runOrUnavailable('chat', async () => {
+        let head = '';
+        let gate: 'wait' | 'pass' | 'hold' = 'wait';
+        held = false;
+        const forward = (d: string) => {
+          streamed = true;
+          onDelta?.(d);
+        };
         try {
           return await this.provider.streamChat(
             {
@@ -277,8 +287,17 @@ export class CoachService {
               maxOutputTokens: deterministic ? REPHRASE_MAX_TOKENS : (plus ? limits.plus : limits.free).maxReplyTokens,
             },
             (d) => {
-              streamed = true;
-              onDelta?.(d);
+              if (gate === 'pass') {
+                forward(d);
+                return;
+              }
+              if (gate === 'hold') return;
+              head += d;
+              const first = head.trimStart()[0];
+              if (first === undefined) return;
+              gate = first === '{' || first === '`' ? 'hold' : 'pass';
+              held = gate === 'hold';
+              if (gate === 'pass') forward(head);
             },
           );
         } catch (e) {
@@ -288,7 +307,10 @@ export class CoachService {
         }
       });
       await this.quota.consume('coach', userId, user.timezone); // successful answers only (OQ-38)
-      return { ...opening, reply: deterministic ? keepNumbers(template, String(res.output)) : String(res.output), quickAction };
+      const output = plainCoachReply(String(res.output));
+      const reply = deterministic ? keepNumbers(template, output) : output;
+      if (held) onDelta?.(reply);
+      return { ...opening, reply, quickAction };
     } catch (e) {
       // Degraded mode (plan 8.10): quick actions answer from their template with the degraded caption;
       // free chat reports AI_UNAVAILABLE (the app shows coach.qa.degraded.chat).

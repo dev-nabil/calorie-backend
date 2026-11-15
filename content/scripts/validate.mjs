@@ -671,8 +671,9 @@ for (const f of existsSync(promptDir) ? readdirSync(promptDir).filter((x) => x.e
   if (!/# Static prefix/.test(stat)) err(file, 'missing "# Static prefix" heading');
   const blocks = [...stat.matchAll(/```json\n([\s\S]*?)```/g)];
   for (const b of blocks) { try { JSON.parse(b[1]); } catch (e) { err(file, `invalid JSON block: ${e.message}`); } }
-  // A prompt may send its schema through the API instead, where it costs no reply tokens.
-  if (!blocks.length && !/^responseFormat: json schema from /m.test(t)) err(file, 'no JSON output schema in static prefix');
+  // A prompt may send its schema through the API instead, where it costs no reply tokens; a chat
+  // prompt that streams plain text has no schema at all (a JSON example there gets copied into replies).
+  if (!blocks.length && !/^responseFormat: (json schema from |plain text)/m.test(t)) err(file, 'no JSON output schema in static prefix');
   ok.push(`${file}: static prefix first, ${blocks.length} JSON block(s) parse`);
 }
 

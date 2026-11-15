@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { DayResponse } from '../../../shared';
 import { fillSingle } from '../../content/content.loader';
+import { looksWrapped, plainCoachReply } from './coach-prompt';
 import { keepNumbers, quickActionFromContent, quickActionTemplate, whenHolds, type QuickAction, type QuickFacts } from './coach.service';
 
 const lines = JSON.parse(readFileSync(resolve(__dirname, '../../../../content/milo/lines.v1.json'), 'utf8'));
@@ -79,5 +80,34 @@ describe('coach quick actions from content (coach.quickActions)', () => {
     expect(quickActionTemplate('review_day', day({ meals: [] }), false)).toContain('Nothing logged');
     expect(quickActionTemplate('review_day', day({ totals: { kcal: 2500, proteinG: 0, carbsG: 0, fatG: 0 } }), false)).toContain('a little over');
     expect(quickActionTemplate('suggest_snack', day(), false)).toContain('snack');
+  });
+});
+
+describe('plainCoachReply (model wrapped its answer)', () => {
+  const answer = 'আজ আপনার ১,৬০৫ ক্যালরি বাকি আছে।\n- গ্রিক ইয়োগার্ট';
+
+  it('leaves plain text alone', () => {
+    expect(plainCoachReply(answer)).toBe(answer);
+    expect(looksWrapped(answer)).toBe(false);
+  });
+
+  it('unwraps the stream/storedMessage JSON seen on device', () => {
+    const raw = JSON.stringify({ stream: answer, storedMessage: { role: 'assistant', text: answer } }, null, 2);
+    expect(looksWrapped(raw)).toBe(true);
+    expect(plainCoachReply(raw)).toBe(answer);
+  });
+
+  it('unwraps a fenced JSON block and a nested text field', () => {
+    const raw = '```json\n' + JSON.stringify({ storedMessage: { role: 'assistant', text: answer } }) + '\n```';
+    expect(plainCoachReply(raw)).toBe(answer);
+  });
+
+  it('recovers the text from JSON cut short', () => {
+    const raw = '{\n "stream": "Two eggs and fruit.\\nAbout 250 kcal.", "storedMessage": {"role": "assis';
+    expect(plainCoachReply(raw)).toBe('Two eggs and fruit.\nAbout 250 kcal.');
+  });
+
+  it('strips a code fence around plain text', () => {
+    expect(plainCoachReply('```\nEat an apple.\n```')).toBe('Eat an apple.');
   });
 });
