@@ -10,5 +10,6 @@ import { WeeklyRecapHandler } from './weekly-recap.handler';
   imports: [TrackingModule, PlansModule],
   controllers: [RecapController],
   providers: [RecapService, WeeklyRecapHandler],
+  exports: [RecapService],
 })
 export class RecapModule {}

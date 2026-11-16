@@ -191,6 +191,7 @@ export const MealSchema = z
     portionMultiplier: z.number(),
     items: z.array(MealItemSchema),
     totals: MealTotalsSchema,
+    recipeId: z.string().nullable().optional().describe('Set when the meal is a portion of a recipe logged from Milo chat (the ingredients stay on the recipe)'),
     deletedAt: IsoDateTimeSchema.nullable(),
     restorableUntil: IsoDateTimeSchema.nullable(),
     createdAt: IsoDateTimeSchema,

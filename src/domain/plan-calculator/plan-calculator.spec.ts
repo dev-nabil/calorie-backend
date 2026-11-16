@@ -2,6 +2,7 @@ import {
   ACTIVITY_FACTORS,
   assessEligibility,
   calculatePlan,
+  energyBasisOf,
   goalAdjustmentPct,
   macrosForEnergy,
   mapActivityOption,
@@ -32,6 +33,19 @@ describe('plan-calculator', () => {
     expect(mapActivityOption(null)).toBeNull();
     expect(mapActivityOption(undefined)).toBeNull();
     expect(ACTIVITY_FACTORS).toEqual({ seated: 1.2, light: 1.375, active: 1.55, intense: 1.725 });
+  });
+
+  it('recalculates the energy basis of a stored plan from its inputs, as the preview made it', () => {
+    const p = calculatePlan(male);
+    expect(energyBasisOf(p.inputs, p.method)).toEqual({ bmrKcal: p.bmrKcal, activityFactor: p.activityFactor, tdeeKcal: p.tdeeKcal });
+    expect(energyBasisOf(p.inputs, p.method)).toEqual({ bmrKcal: 1780, activityFactor: 1.55, tdeeKcal: 2759 });
+    // Habits-only, legacy and damaged inputs give no basis (never a guessed allowance).
+    expect(energyBasisOf(null, null)).toBeNull();
+    expect(energyBasisOf(p.inputs, null)).toBeNull();
+    expect(energyBasisOf({ ...p.inputs, activityLevel: 'unsure' }, p.method)).toBeNull();
+    expect(energyBasisOf({ ...p.inputs, activityLevel: 'toString' }, p.method)).toBeNull();
+    expect(energyBasisOf({ ...p.inputs, weightKg: 0 }, p.method)).toBeNull();
+    expect(energyBasisOf({ ...p.inputs, calculationSex: null }, p.method)).toBeNull();
   });
 
   it('uses the BR-04 equation and goal adjustments', () => {

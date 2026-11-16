@@ -222,6 +222,15 @@ export const GeneratePlanRequestSchema = z
   .meta({ id: 'GeneratePlanRequest' });
 export type GeneratePlanRequest = z.infer<typeof GeneratePlanRequestSchema>;
 
+export const PlanEnergyBasisSchema = z
+  .object({
+    bmrKcal: z.number().int(),
+    activityFactor: z.number(),
+    tdeeKcal: z.number().int().describe('Maintenance: bmrKcal × activityFactor. The energy target already holds the activity allowance tdeeKcal − bmrKcal'),
+  })
+  .meta({ id: 'PlanEnergyBasis' });
+export type PlanEnergyBasis = z.infer<typeof PlanEnergyBasisSchema>;
+
 export const PlanSchema = z
   .object({
     id: z.string(),
@@ -236,6 +245,9 @@ export const PlanSchema = z
     method: z.enum(PLAN_METHODS).nullable(),
     goal: PlanGoalSchema,
     calculated: MacroTargetsSchema.nullable(),
+    energyBasis: PlanEnergyBasisSchema.nullable().describe(
+      'BMR, activity factor and maintenance the energy target was calculated from (BR-04); null without calculated inputs (habits only, legacy plans). Lets the app add only activity above the allowance already in the target',
+    ),
     confirmedAt: IsoDateTimeSchema.nullable(),
     createdAt: IsoDateTimeSchema,
     draftId: z.string().nullable().describe('The reviewed draft this plan was confirmed from; null for plans made without one'),

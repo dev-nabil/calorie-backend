@@ -17,7 +17,27 @@ export const PURGE_JOB = 'account_purge';
 const EXPORT_LINK_SEC = 24 * 3600;
 
 /** Collections holding a user's personal data, purged after 30 days (BR-13). */
-const USER_DATA_MODELS = ['Profile', 'OnboardingAnswer', 'Plan', 'PlanDraft', 'Meal', 'DailyLog', 'WeightLog', 'Scan', 'Conversation', 'Message', 'Device', 'Session', 'Reminder', 'CoachPreference', 'WeeklyRecap'] as const;
+const USER_DATA_MODELS = [
+  'Profile',
+  'OnboardingAnswer',
+  'Plan',
+  'PlanDraft',
+  'Meal',
+  'DailyLog',
+  'WeightLog',
+  'Scan',
+  'Conversation',
+  'Message',
+  'ChatDraft',
+  'ChatAction',
+  'Recipe',
+  'Device',
+  'Session',
+  'Reminder',
+  'ReminderSetting',
+  'CoachPreference',
+  'WeeklyRecap',
+] as const;
 
 /** M1-T5: data export (background job, link by email) and the purge job (BR-13). */
 @Injectable()
@@ -39,6 +59,11 @@ export class AccountService implements OnModuleInit {
     @InjectModel('Device') private readonly devices: Model<unknown>,
     @InjectModel('CoachPreference') private readonly coachPreferences: Model<unknown>,
     @InjectModel('WeeklyRecap') private readonly weeklyRecaps: Model<unknown>,
+    @InjectModel('Recipe') private readonly recipes: Model<unknown>,
+    @InjectModel('ChatDraft') private readonly chatDrafts: Model<unknown>,
+    @InjectModel('ChatAction') private readonly chatActions: Model<unknown>,
+    @InjectModel('Reminder') private readonly reminders: Model<unknown>,
+    @InjectModel('ReminderSetting') private readonly reminderSettings: Model<unknown>,
     private readonly handlers: JobHandlers,
     private readonly queue: JobQueue,
     private readonly storage: StorageService,
@@ -65,7 +90,7 @@ export class AccountService implements OnModuleInit {
     if (!user) return '';
     const strip = (docs: unknown[]) => docs.map((d) => ({ ...(d as object), __v: undefined }));
     const sessionsFree = { userId: uid };
-    const [profile, answers, plans, planDrafts, meals, logs, weights, scans, conversations, messages, devices, coachPreferences, weeklyRecaps] = await Promise.all([
+    const [profile, answers, plans, planDrafts, meals, logs, weights, scans, conversations, messages, devices, coachPreferences, weeklyRecaps, recipes, chatDrafts, chatActions, reminders, reminderSettings] = await Promise.all([
       this.profiles.findOne(sessionsFree).lean(),
       this.answers.find(sessionsFree).lean(),
       this.plans.find(sessionsFree).lean(),
@@ -79,6 +104,11 @@ export class AccountService implements OnModuleInit {
       this.devices.find(sessionsFree, { 'integrity.publicKeyPem': 0, pushToken: 0 }).lean(),
       this.coachPreferences.findOne(sessionsFree).lean(),
       this.weeklyRecaps.find(sessionsFree).lean(),
+      this.recipes.find(sessionsFree).lean(),
+      this.chatDrafts.find(sessionsFree).lean(),
+      this.chatActions.find(sessionsFree).lean(),
+      this.reminders.find(sessionsFree).lean(),
+      this.reminderSettings.findOne(sessionsFree).lean(),
     ]);
     const body = {
       exportedAt: clock.now().toISOString(),
@@ -97,6 +127,11 @@ export class AccountService implements OnModuleInit {
       devices: strip(devices),
       coachPreferences,
       weeklyRecaps: strip(weeklyRecaps),
+      recipes: strip(recipes),
+      chatDrafts: strip(chatDrafts),
+      chatActions: strip(chatActions),
+      reminders: strip(reminders),
+      reminderSettings,
     };
     const key = `u/${userId}/export/${exportId}.json`;
     await this.storage.put(key, Buffer.from(JSON.stringify(body, null, 2)), 'application/json');

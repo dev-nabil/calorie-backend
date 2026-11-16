@@ -179,6 +179,8 @@ describe('Plan (M2-T5)', () => {
     expect(missing.body.error.code).toBe('IDEMPOTENCY_KEY_REQUIRED');
     const got = await t.http().get('/v1/plan').set(h).expect(200);
     expect(got.body.id).toBe(res.body.id);
+    // The maintenance numbers behind the target, so the app can add only activity above the allowance.
+    expect(got.body.energyBasis).toEqual({ bmrKcal: 1780, activityFactor: 1.55, tdeeKcal: 2759 });
   });
 
   it('adjusts within bounds and refuses below the floor (BR-06)', async () => {
@@ -195,12 +197,13 @@ describe('Plan (M2-T5)', () => {
       .expect(201);
     expect(ok.body).toMatchObject({ source: 'adjusted', energyKcal: 2300, proteinG: 140, version: 2, goal: { targetWeightKg: 72 } });
     expect(ok.body.calculated.energyKcal).toBe(2483);
+    expect(ok.body.energyBasis).toEqual({ bmrKcal: 1780, activityFactor: 1.55, tdeeKcal: 2759 });
   });
 
   it('drops energy targets when the user becomes habits-only (plan 8.8 rule 3)', async () => {
     await t.http().put('/v1/onboarding/answers/q06').set(h).send({ value: { mode: 'none' }, status: 'answered', inputMethod: 'form' }).expect(200);
     const plan = await t.http().get('/v1/plan').set(h).expect(200);
-    expect(plan.body).toMatchObject({ source: 'none', energyKcal: null });
+    expect(plan.body).toMatchObject({ source: 'none', energyKcal: null, energyBasis: null });
     const refuse = await t.http().post('/v1/plan').set(h).set(idem()).send({ source: 'calculated' }).expect(422);
     expect(refuse.body.error.code).toBe('PLAN_NOT_ELIGIBLE');
     await t.http().post('/v1/plan').set(h).set(idem()).send({ source: 'none', waterMl: 2000 }).expect(201);

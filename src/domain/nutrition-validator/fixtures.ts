@@ -1,5 +1,8 @@
 /** A plate in the model's output format, used by tests and the fake provider. Totals 501 kcal. */
 export const PLAN_EXAMPLE_ANALYSIS = {
+  isEdible: true,
+  hazard: null,
+  miloWarning: null,
   status: 'ok',
   box_2d: [120, 90, 900, 950],
   mealName: 'Grilled chicken with rice and greens',
@@ -49,6 +52,38 @@ export const PLAN_EXAMPLE_ANALYSIS = {
   ],
   assumptions: ['Oil is not visible; the amount may be low.'],
   question: null,
+  retake: null,
+} as const;
+
+/**
+ * Thorny wild nightshade berries (kantakari) as meal-scan.v8 should answer: unsafe, with the reason. The model also
+ * slipped in an item with nutrition and vitamins, which the server must drop.
+ */
+export const UNSAFE_EXAMPLE = {
+  isEdible: false,
+  hazard: 'danger',
+  miloWarning: 'These look like thorny wild nightshade berries (kantakari). They contain solanine, which is toxic, so do not eat them.',
+  status: 'ok',
+  box_2d: [180, 120, 860, 900],
+  mealName: 'Wild nightshade berries',
+  items: [
+    {
+      name: 'Nightshade berries',
+      en: 'nightshade berries',
+      ves: 'plate', cm: 24, pcs: 8, g: 6,
+      prep: 'raw',
+      proc: 'whole',
+      role: 'single',
+      of: null,
+      n: { kcal: 25, p: 1, c: 5, f: 0.2, fib: 2, sug: 3, na: 2 },
+      rich: ['vitaminC'],
+      conf: 0.7,
+      pt: { x: 0.5, y: 0.5 },
+      note: null,
+    },
+  ],
+  assumptions: ['Portion is about one plate.'],
+  question: 'Are these wild berries?',
   retake: null,
 } as const;
 

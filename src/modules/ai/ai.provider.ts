@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FridgeChefOutputSchema, LabelScanOutputSchema, MealAnalysisOutputSchema, MealDescribeOutputSchema, MealParseOutputSchema, MealTranscribeOutputSchema, PlanNarrativeOutputSchema, WeeklyRecapOutputSchema } from '../../shared';
+import { EMPTY_INTERPRET, FridgeChefOutputSchema, InterpretOutputSchema, LabelScanOutputSchema, MealAnalysisOutputSchema, MealDescribeOutputSchema, MealParseOutputSchema, MealTranscribeOutputSchema, PlanNarrativeOutputSchema, WeeklyRecapOutputSchema } from '../../shared';
 import { LABEL_EXAMPLE, PLAN_EXAMPLE_ANALYSIS } from '../../domain/nutrition-validator/fixtures';
 import { SILENT_WAV } from './providers/wav';
 
@@ -9,7 +9,7 @@ export interface AiUsage {
   cachedTokens: number;
 }
 
-export type AiTask = 'meal_scan' | 'label_scan' | 'meal_parse' | 'meal_describe' | 'meal_transcribe' | 'onboarding_extract' | 'plan_narrative' | 'weekly_recap' | 'fridge_chef';
+export type AiTask = 'meal_scan' | 'label_scan' | 'meal_parse' | 'meal_describe' | 'meal_transcribe' | 'onboarding_extract' | 'plan_narrative' | 'weekly_recap' | 'fridge_chef' | 'coach_interpret';
 
 /** How much a thinking model may think before it answers. Thinking tokens bill as output and count against `maxOutputTokens`. */
 export type ThinkingEffort = 'minimal' | 'low' | 'medium' | 'high';
@@ -106,6 +106,7 @@ export const JSON_SCHEMAS: Record<AiTask, Record<string, unknown>> = {
   plan_narrative: planNarrativeJsonSchema(),
   weekly_recap: z.toJSONSchema(WeeklyRecapOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
   fridge_chef: z.toJSONSchema(FridgeChefOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
+  coach_interpret: z.toJSONSchema(InterpretOutputSchema, { target: 'draft-7', io: 'output' }) as Record<string, unknown>,
 };
 
 /** Strict structured-output schema for the plan narrative; also copied into content/prompts/plan-narrative.v1.md (a test keeps them equal). */
@@ -251,15 +252,23 @@ export class FakeAiProvider extends AiProvider {
   readonly calls: StructuredRequest[] = [];
   readonly chatCalls: ChatRequest[] = [];
   private queue: Array<unknown | Error> = [];
+  /** Milo buddy interpret answers (coach_interpret) have their own queue, so a queued chat reply is never taken for one. */
+  private interpretQueue: Array<unknown | Error> = [];
 
   enqueue(...responses: Array<unknown | Error>): void {
     this.queue.push(...responses);
+  }
+
+  /** Next coach_interpret answers (partial objects are completed with the empty interpretation). */
+  enqueueInterpret(...responses: Array<Record<string, unknown> | Error>): void {
+    this.interpretQueue.push(...responses.map((r) => (r instanceof Error ? r : { ...structuredClone(EMPTY_INTERPRET), ...r })));
   }
 
   reset(): void {
     this.configured = false;
     this.mode = 'ok';
     this.queue = [];
+    this.interpretQueue = [];
     this.calls.length = 0;
     this.chatCalls.length = 0;
     this.speechCalls.length = 0;
@@ -280,9 +289,14 @@ export class FakeAiProvider extends AiProvider {
   async structured(req: StructuredRequest): Promise<AiResult> {
     this.calls.push(req);
     await this.applyMode();
+    if (req.task === 'coach_interpret') {
+      const n = this.interpretQueue.length ? this.interpretQueue.shift() : structuredClone(EMPTY_INTERPRET);
+      if (n instanceof Error) throw n;
+      return { output: n, usage: { inputTokens: 1500, outputTokens: 200, cachedTokens: 1200 }, model: req.model };
+    }
     if (this.mode === 'not_food') {
       const output = {
-        meal_scan: { status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: "That doesn't look like food.", retake: null },
+        meal_scan: { isEdible: true, hazard: null, miloWarning: null, status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: "That doesn't look like food.", retake: null },
         label_scan: { ...structuredClone(LABEL_EXAMPLE), status: 'no_food', name: null, en: null, rich: [], proc: null, question: 'I cannot see a nutrition table.' },
         meal_parse: { mealName: '', items: [], notes: null, clarifyingQuestion: 'What did you eat?' },
         meal_describe: { status: 'not_food', mealName: null, category: null, day: null, items: [], question: 'What did you eat?' },

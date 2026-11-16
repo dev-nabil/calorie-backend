@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MAX_MEAL_ITEMS, PORTION_MULTIPLIER_MAX, PORTION_MULTIPLIER_MIN } from '../constants';
-import { FOOD_PREPARATIONS, FOOD_PROCESSING, FOOD_ROLES, LABEL_BASES, MEAL_CATEGORIES, RETAKE_REASONS, RICH_IN_KEYS, SCAN_MODES, SCAN_OUTCOMES, SCAN_STATUSES, SCAN_VESSELS } from '../enums';
+import { ANALYSIS_OUTCOMES, FOOD_HAZARDS, FOOD_PREPARATIONS, FOOD_PROCESSING, FOOD_ROLES, LABEL_BASES, MEAL_CATEGORIES, RETAKE_REASONS, RICH_IN_KEYS, SCAN_MODES, SCAN_OUTCOMES, SCAN_STATUSES, SCAN_VESSELS } from '../enums';
 import { BarcodeSchema, IsoDateTimeSchema, UuidSchema } from './common';
 import { CropRectSchema, FoodProcessingSchema, MealTotalsSchema, NutrientTotalsSchema, NutrientValuesSchema, NutritionSourceSchema, OtherNutrientSchema, Per100gInputSchema, PointSchema, RichInSchema } from './meals';
 
@@ -28,18 +28,30 @@ export const MealAnalysisItemOutputSchema = z.strictObject({
 });
 
 /**
- * Raw model output for a meal photo (content/prompts/meal-scan.v7.md). Unknown fields are rejected. This also
+ * Raw model output for a meal photo (content/prompts/meal-scan.v8.md). Unknown fields are rejected. This also
  * generates the schema sent to Gemini, which refuses `maxItems` here ("too many states") and ignores string
  * lengths, so sizes are enforced by normaliseAnalysis instead: an over-long reply is trimmed, not failed.
+ * The safety fields come first: Gemini writes keys in schema order, so it decides safety before any nutrition.
  */
 export const MealAnalysisOutputSchema = z.strictObject({
+  isEdible: z
+    .boolean()
+    .describe('Decided first, before any nutrition: false when anything in the photo that someone might eat or drink is toxic, poisonous, spoiled or otherwise not safe to eat; true otherwise, also when there is no food'),
+  hazard: z
+    .enum(FOOD_HAZARDS)
+    .nullable()
+    .describe('When isEdible is false: "danger" = poisonous or toxic if eaten; "warning" = not safe to eat as it is (spoiled, mouldy, not food, or a wild plant that may be poisonous); null when isEdible is true'),
+  miloWarning: z
+    .string()
+    .nullable()
+    .describe('When isEdible is false: one or two short factual sentences in the requested language saying what it is and exactly why it is unsafe, for example "These look like thorny wild nightshade berries. They contain solanine, which is toxic."; null when isEdible is true'),
   status: z.enum(SCAN_OUTCOMES).describe('"ok" when edible food/drink is clearly visible; "no_food" when no food is present; "unclear" when image quality is too poor to estimate reliably'),
   box_2d: z
     .array(z.number().int())
     .nullable()
     .describe('One box around all the food and the whole of every vessel it is in, [ymin, xmin, ymax, xmax], each 0 to 1000 from the top-left of the photo; null when there is no food'),
   mealName: z.string().nullable(),
-  items: z.array(MealAnalysisItemOutputSchema),
+  items: z.array(MealAnalysisItemOutputSchema).describe('Empty when isEdible is false: an unsafe item gets no weight, nutrition or vitamins'),
   assumptions: z.array(z.string()),
   question: z.string().nullable().describe('What non-food object was detected ("no_food"), short retake instruction ("unclear", e.g. "Move closer and keep the whole meal inside the frame."), or one short clarification/confirmation ("ok"); otherwise null'),
   retake: z.enum(RETAKE_REASONS).nullable(),
@@ -103,8 +115,13 @@ export type AnalysedItem = z.infer<typeof AnalysedItemSchema>;
 
 export const MealAnalysisSchema = z
   .object({
-    outcome: z.enum(SCAN_OUTCOMES),
+    outcome: z.enum(ANALYSIS_OUTCOMES).describe('unsafe: the photo shows something toxic, spoiled or not safe to eat (isEdible false); the scan is rejected and carries no items or nutrition'),
     isFood: z.boolean(),
+    isEdible: z
+      .boolean()
+      .describe('false when the photo shows something toxic, spoiled or not safe to eat: show miloWarning, never nutrition, a grade or vitamins, and do not offer to log or share it'),
+    hazard: z.enum(FOOD_HAZARDS).nullable().describe('How unsafe it is when isEdible is false: danger = poisonous or toxic; warning = not safe to eat as it is. null otherwise'),
+    miloWarning: z.string().nullable().describe('Why it is unsafe, in the language of the scan (for example "Contains solanine, which is toxic."); null when isEdible is true or the model gave no reason'),
     isEstimate: z.boolean().describe('true for a meal photo (it cannot establish weight, ingredients or hidden oil); false for values read from a label'),
     mealName: z.string().nullable(),
     items: z.array(AnalysedItemSchema),

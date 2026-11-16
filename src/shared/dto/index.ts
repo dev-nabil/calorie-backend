@@ -15,3 +15,4 @@ export * from './recap';
 export * from './fridge-chef';
 export * from './foods';
 export * from './meal-describe';
+export * from './buddy';

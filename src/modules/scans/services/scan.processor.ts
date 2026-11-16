@@ -7,7 +7,7 @@ import { isPlusActive, shouldChargeFreeScan } from '../../../domain/entitlements
 import { normaliseAnalysis, normaliseLabel, parseLabelOutput, parseModelOutput } from '../../../domain/nutrition-validator';
 import { FoodRecordsService } from '../../content/food-records.service';
 import { fillTemplate } from '../../content/content.loader';
-import { ERROR_CODES, scanPromptKey, type ScanOutcome } from '../../../shared';
+import { ERROR_CODES, scanPromptKey, type AnalysisOutcome } from '../../../shared';
 import { DEFAULT_LOCALE, parseLocale } from '../../../shared/locales';
 import { languageDirective } from '../../ai/language';
 import { ContentService } from '../../content/content.service';
@@ -27,11 +27,13 @@ import { entitlementCacheKey } from '../../billing/entitlement-cache';
 export const AI_WAIT_LIMIT_MS = 2 * 60_000; // plan 8.10: queued up to 2 minutes, then failed
 export const STUCK_PROCESSING_MS = 3 * 60_000; // plan 8.10 stuck-job sweep
 
-const REJECTIONS: Partial<Record<ScanOutcome, { code: string; message: string }>> = {
+const REJECTIONS: Partial<Record<AnalysisOutcome, { code: string; message: string }>> = {
   no_food: { code: ERROR_CODES.NO_FOOD_DETECTED, message: 'No food was found in this photo' },
   unclear: { code: ERROR_CODES.IMAGE_UNCLEAR, message: 'This photo is too unclear to analyse' },
+  // Meal-scan rule 0: rejected like a photo without food (no charge, cached), with the reason in `result.miloWarning`.
+  unsafe: { code: ERROR_CODES.UNSAFE_FOOD, message: 'This looks unsafe to eat' },
 };
-const LABEL_REJECTIONS: Partial<Record<ScanOutcome, { code: string; message: string }>> = {
+const LABEL_REJECTIONS: Partial<Record<AnalysisOutcome, { code: string; message: string }>> = {
   no_food: { code: ERROR_CODES.NO_LABEL_DETECTED, message: 'No nutrition table was found in this photo' },
   unclear: { code: ERROR_CODES.IMAGE_UNCLEAR, message: 'The nutrition table could not be read' },
 };
@@ -115,6 +117,7 @@ export class ScanProcessor {
           ? normaliseLabel(parsed.value as Parameters<typeof normaliseLabel>[0], { barcode: scan.barcode ?? null, ...extra })
           : normaliseAnalysis(parsed.value as Parameters<typeof normaliseAnalysis>[0], { records: this.records.index, ...extra });
       const rejections = mode === 'label' ? LABEL_REJECTIONS : REJECTIONS;
+      if (normalised.analysis.outcome === 'unsafe') this.logger.log({ scanId, hazard: normalised.analysis.hazard }, 'scan found something unsafe to eat');
       if (normalised.status === 'succeeded') await this.succeed(scan, user, { ...meta, result: normalised.analysis }, now);
       else await this.finish(scan, normalised.status, { ...meta, result: normalised.analysis, error: rejections[normalised.analysis.outcome] ?? null });
     } catch (e) {

@@ -62,14 +62,35 @@ export function localToUtc(dayKey: string, time: string, timeZone: string): Date
   return new Date(exact ?? Math.max(...candidates));
 }
 
-/** Next fire time strictly after `after`, or null when no day is selected. */
-export function nextFireAt(rule: ReminderRule, after: Date): Date | null {
+/**
+ * When a reminder may not ring: the person's quiet hours (default off; a window may cross midnight) and pauses (per
+ * reminder or all reminders, up to and including a local day). A skipped ring is never sent later.
+ */
+export interface RingWindow {
+  quietHours?: { start: string; end: string } | null;
+  /** Local day key: nothing rings on or before it. */
+  pausedUntil?: string | null;
+}
+
+/** True when a local HH:mm falls inside the quiet window (start inclusive, end exclusive; crossing midnight allowed). */
+export function inQuietHours(time: string, quiet: RingWindow['quietHours']): boolean {
+  if (!quiet || !isValidTime(quiet.start) || !isValidTime(quiet.end) || quiet.start === quiet.end) return false;
+  const t = minutes(time);
+  const s = minutes(quiet.start);
+  const e = minutes(quiet.end);
+  return s < e ? t >= s && t < e : t >= s || t < e;
+}
+
+/** Next fire time strictly after `after`, or null when no day is selected (or everything is paused for the next 8 days). */
+export function nextFireAt(rule: ReminderRule, after: Date, window: RingWindow = {}): Date | null {
   const today = dayKeyFor(after, rule.timezone);
   for (let i = 0; i <= 8; i++) {
     const day = addDays(today, i);
+    if (window.pausedUntil && day <= window.pausedUntil) continue;
     const weekday = WEEKDAYS[isoWeekday(day) - 1]!;
     if (rule.days.length && !rule.days.includes(weekday)) continue;
     for (const time of ringTimes(rule)) {
+      if (inQuietHours(time, window.quietHours)) continue;
       const at = localToUtc(day, time, rule.timezone);
       if (at.getTime() > after.getTime()) return at;
     }
@@ -77,15 +98,47 @@ export function nextFireAt(rule: ReminderRule, after: Date): Date | null {
   return null;
 }
 
+/** A due ring more than this late is skipped, not sent (no burst after downtime, a reboot or a clock change). */
+export const OVERDUE_GRACE_MS = 15 * 60_000;
+export const isOverdue = (dueAt: Date, now: Date, graceMs = OVERDUE_GRACE_MS): boolean => now.getTime() - dueAt.getTime() > graceMs;
+
+/** The latest of two pause days (per reminder and all reminders). */
+export const laterPause = (a: string | null | undefined, b: string | null | undefined): string | null => (!a ? (b ?? null) : !b ? a : a > b ? a : b);
+
+export type ReminderKind = 'log_meal' | 'water' | 'habit' | 'weekly_review' | 'check_in';
+
+/** The app route a reminder's notification opens (Milo buddy contract §7). */
+export function linkFor(r: { type: ReminderKind; category?: string | null; checkIn?: string | null }): string {
+  if (r.type === 'log_meal') return r.category ? `/coach?qa=log_meal&category=${r.category}` : '/coach?qa=log_meal';
+  if (r.type === 'weekly_review') return '/coach?qa=weekly_review';
+  if (r.type === 'check_in') return '/coach?qa=review_day';
+  return '/today';
+}
+
 /**
- * M9-T1 limit: at most 3 enabled reminders on any weekday. The user may pick any time of day (no quiet hours).
- * A repeating reminder needs a valid interval and an end time later the same day.
+ * M9-T1 limit: at most 3 enabled reminders on any weekday. The user may pick any time of day; quiet hours are an optional
+ * setting (default off) that skips rings. A repeating reminder needs a valid interval and an end time later the same day.
+ * weekly_review (Milo buddy) is one per person, on one weekday, and does not count toward the daily cap (OQ-49).
  */
 export function validateReminders(
-  rules: { time: string; days: Weekday[]; enabled: boolean; everyHours?: number | null; endTime?: string | null }[],
+  rules: {
+    type?: ReminderKind;
+    time: string;
+    days: Weekday[];
+    enabled: boolean;
+    everyHours?: number | null;
+    endTime?: string | null;
+    habit?: string | null;
+    label?: string | null;
+    checkIn?: string | null;
+  }[],
 ): { ok: true } | { ok: false; reason: string; details: Record<string, unknown> } {
   for (const r of rules) {
     if (!isValidTime(r.time)) return { ok: false, reason: 'time', details: { time: r.time } };
+    if (r.type === 'habit' && !r.habit) return { ok: false, reason: 'habit', details: { type: r.type } };
+    if (r.type === 'habit' && r.habit === 'custom' && !r.label) return { ok: false, reason: 'label', details: { habit: r.habit } };
+    if (r.type === 'check_in' && !r.checkIn) return { ok: false, reason: 'check_in', details: { type: r.type } };
+    if (r.type === 'weekly_review' && (r.days.length !== 1 || r.everyHours != null)) return { ok: false, reason: 'weekly_day', details: { days: r.days } };
     if (r.everyHours == null) continue;
     if (!Number.isInteger(r.everyHours) || r.everyHours < MIN_EVERY_HOURS || r.everyHours > MAX_EVERY_HOURS) {
       return { ok: false, reason: 'every_hours', details: { everyHours: r.everyHours, min: MIN_EVERY_HOURS, max: MAX_EVERY_HOURS } };
@@ -94,8 +147,9 @@ export function validateReminders(
       return { ok: false, reason: 'end_time', details: { time: r.time, endTime: r.endTime ?? null } };
     }
   }
+  if (rules.filter((r) => r.type === 'weekly_review').length > 1) return { ok: false, reason: 'weekly_review_once', details: {} };
   for (const day of WEEKDAYS) {
-    const n = rules.filter((r) => r.enabled && (r.days.length === 0 || r.days.includes(day))).length;
+    const n = rules.filter((r) => r.enabled && r.type !== 'weekly_review' && (r.days.length === 0 || r.days.includes(day))).length;
     if (n > MAX_PER_DAY) return { ok: false, reason: 'max_per_day', details: { day, count: n, max: MAX_PER_DAY } };
   }
   return { ok: true };

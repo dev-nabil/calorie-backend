@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import type { Model, Types } from 'mongoose';
 import { AI_LIMITS, ERROR_CODES, WATER_DEFAULT_TARGET_ML, type RecapRange, type RecapStats, type WeeklyRecap } from '../../shared';
 import { describeAllergies, describeDietPattern, effectiveMode } from '../../domain/copy-rules';
-import { addDays, dayKeyFor } from '../../domain/day-keys';
+import { addDays, dayKeyFor, dayRange } from '../../domain/day-keys';
 import { isPlusActive } from '../../domain/entitlements';
 import { avoidTermsFor } from '../../domain/plan-narrative';
 import { computeStreak } from '../../domain/streaks';
@@ -155,6 +155,10 @@ export class RecapService {
   }
 
   private async stats(user: UserDoc, week: RecapWeek, mode: RecapMode, plan: PlanDoc | null, today: string): Promise<RecapStats> {
+    return (await this.statsWithDays(user, week, mode, plan, today)).stats;
+  }
+
+  private async statsWithDays(user: UserDoc, week: RecapWeek, mode: RecapMode, plan: PlanDoc | null, today: string): Promise<{ stats: RecapStats; days: { date: string; logged: boolean }[] }> {
     const uid = user._id;
     const [logs, meals, loggedDays] = await Promise.all([
       this.dailyLogs.range(uid, week.weekStart, week.weekEnd),
@@ -164,7 +168,7 @@ export class RecapService {
         .lean<Pick<MealDoc, 'date' | 'items'>[]>(),
       this.dailyLogs.loggedDays(uid, addDays(today, -STREAK_LOOKBACK_DAYS), today),
     ]);
-    return buildRecapStats({
+    const stats = buildRecapStats({
       week,
       mode,
       logs: logs.map((l) => ({ date: l.date, logged: Boolean(l.logged), mealsCount: l.mealsCount ?? 0, kcal: l.totals?.kcal ?? 0, proteinG: l.totals?.proteinG ?? 0, waterMl: l.waterMl ?? 0 })),
@@ -172,5 +176,20 @@ export class RecapService {
       targets: { proteinG: plan?.proteinG ?? null, waterMl: plan?.waterMl ?? WATER_DEFAULT_TARGET_ML },
       streak: computeStreak(loggedDays, today).current,
     });
+    const logged = new Set(logs.filter((l) => l.logged).map((l) => l.date));
+    return { stats, days: dayRange(week.weekStart, week.weekEnd).map((date) => ({ date, logged: logged.has(date) })) };
+  }
+
+  /**
+   * The same week numbers as the recap screen, for Milo's weekly review in chat (free and Plus, OQ-50; no model call here).
+   * Also marks which days have nothing logged, so the review can say so instead of reading them as zero.
+   */
+  async weekForChat(userId: string, range: RecapRange, now = clock.now()): Promise<{ week: RecapWeek; mode: RecapMode; stats: RecapStats; days: { date: string; logged: boolean }[] }> {
+    const user = await this.users.requireActive(userId);
+    const today = dayKeyFor(now, user.timezone);
+    const week = recapWeek(range, today);
+    const [profile, plan] = await Promise.all([this.profiles.findOne({ userId: user._id }).lean<ProfileDoc>(), this.plans.active(userId)]);
+    const mode = effectiveMode(profile?.mode, plan?.energyKcal);
+    return { week, mode, ...(await this.statsWithDays(user, week, mode, plan, today)) };
   }
 }

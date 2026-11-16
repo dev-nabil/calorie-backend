@@ -1,9 +1,13 @@
 import { z } from 'zod';
 import { MILO_STATES } from '../enums';
-import { IsoDateTimeSchema } from './common';
+import { MEAL_CATEGORIES } from '../enums';
+import { DayKeySchema, IsoDateTimeSchema, TimeZoneSchema } from './common';
 import { AnswerValueSchema } from './onboarding';
+import { ActionResultSchema, ChatCardSchema, ChatDraftSchema, ClarifySchema, TurnBudgetSchema } from './buddy';
 
-export const QUICK_ACTIONS = ['explain_macros', 'suggest_snack', 'review_day'] as const;
+/** what_to_eat, build_recipe and weekly_review arrived with the Milo buddy (16 Nov 2026). log_meal is client-only (no turn). */
+export const QUICK_ACTIONS = ['explain_macros', 'suggest_snack', 'review_day', 'what_to_eat', 'build_recipe', 'weekly_review'] as const;
+export type QuickActionName = (typeof QUICK_ACTIONS)[number];
 
 export const CreateConversationRequestSchema = z
   .strictObject({ type: z.enum(['onboarding', 'coach']) })
@@ -16,6 +20,13 @@ export const TurnRequestSchema = z
     chipIndex: z.number().int().min(0).max(20).optional().describe('Index into the chips of the last reply'),
     inputMethod: z.enum(['typed', 'voice', 'chip']),
     quickAction: z.enum(QUICK_ACTIONS).optional().describe('Coach only'),
+    clientTurnId: z.uuid().optional().describe('Coach: retry key. The same id again returns the stored reply (no second model call, no second action)'),
+    draftVersion: z.number().int().min(0).nullable().optional().describe('Coach: version of the active draft the app shows (null = none)'),
+    date: DayKeySchema.optional().describe("Coach: the selected day (default today in the user's timezone)"),
+    timezone: TimeZoneSchema.optional().describe('Coach: device timezone'),
+    category: z.enum(MEAL_CATEGORIES).optional().describe('Coach: the meal slot selected when the chat was opened from a slot'),
+    reviewRange: z.enum(['last', 'this']).optional().describe('Coach, quickAction weekly_review: last (default) or this week'),
+    budget: TurnBudgetSchema.optional().describe('Coach: health-derived budget numbers for today, this turn only; never stored'),
   })
   .refine((b) => b.text !== undefined || b.chipIndex !== undefined || b.quickAction !== undefined, 'Send text, chipIndex or quickAction')
   .meta({ id: 'TurnRequest' });
@@ -47,6 +58,12 @@ export const MiloReplySchema = z
     replyAudio: z.string().nullable(),
     caption: z.string().nullable().describe('Degraded-mode caption under a templated answer (coach.qa.degraded.*)'),
     moderation: z.enum(['flagged']).optional().describe('Set when the input was refused by moderation (no model call)'),
+    clientTurnId: z.string().nullable().optional().describe('Coach: the turn this answers'),
+    draft: ChatDraftSchema.nullable().optional().describe('Coach: the active draft after this turn'),
+    cards: z.array(ChatCardSchema).optional().describe('Coach: cards under the reply, in order'),
+    executed: z.array(ActionResultSchema).optional().describe('Coach: actions run this turn because the person clearly asked'),
+    draftConflict: z.boolean().optional().describe('Coach: the draft changed while this turn ran; its changes were not applied'),
+    clarify: ClarifySchema.nullable().optional().describe('Coach: the question is the reply; options name the items it could mean'),
   })
   .meta({ id: 'MiloReply' });
 export type MiloReply = z.infer<typeof MiloReplySchema>;
@@ -63,7 +80,15 @@ export const ConversationSchema = z
 export type Conversation = z.infer<typeof ConversationSchema>;
 
 export const MessageSchema = z
-  .object({ id: z.string(), role: z.enum(['user', 'assistant']), text: z.string(), inputMethod: z.string().nullable(), createdAt: IsoDateTimeSchema })
+  .object({
+    id: z.string(),
+    role: z.enum(['user', 'assistant']),
+    text: z.string(),
+    inputMethod: z.string().nullable(),
+    createdAt: IsoDateTimeSchema,
+    cards: z.array(ChatCardSchema).optional().describe('Assistant (coach): cards as they were (health numbers removed); render read-only, actions may be stale'),
+    clientTurnId: z.string().nullable().optional(),
+  })
   .meta({ id: 'Message' });
 
 export const MessageListSchema = z.object({ items: z.array(MessageSchema), nextCursor: z.string().nullable() }).meta({ id: 'MessageList' });

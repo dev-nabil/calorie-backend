@@ -59,6 +59,8 @@ export interface MealDoc {
   /** Items at the base portion (1×); totals apply the multiplier (plan 8.3 rule 6). */
   items: StoredMealItem[];
   totals: MealTotals;
+  /** A portion of a recipe logged from Milo chat (Milo buddy). */
+  recipeId?: Types.ObjectId | null;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -106,6 +108,7 @@ export const MealSchema = new Schema<MealDoc>(
       default: null,
     },
     portionMultiplier: { type: Number, default: 1 },
+    recipeId: { type: Schema.Types.ObjectId, default: null },
     items: { type: [ItemSchema], default: [] },
     totals: { kcal: Number, proteinG: Number, carbsG: Number, fatG: Number, fiberG: Number, sugarG: Number, sodiumMg: Number, incomplete: { type: [String], default: [] } },
     deletedAt: { type: Date, default: null },

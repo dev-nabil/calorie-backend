@@ -17,9 +17,13 @@ const MAX_TEXT = 500;
 const FALLBACK_INSTRUCTIONS =
   'Transcribe what the person says about their food, word for word, in the language and script they speak. Write numbers as digits. Return JSON only.';
 
-interface TranscribeJob {
+export interface TranscribeJob {
   audio: Buffer;
   mimeType: string;
+  /** chat-transcribe for a message to Milo (questions too); meal-transcribe (default) for food logging. */
+  promptKey?: 'meal-transcribe' | 'chat-transcribe';
+  /** Longest text kept (the chat composer takes 1000 characters). */
+  maxText?: number;
 }
 
 /**
@@ -42,8 +46,8 @@ export class MealTranscribeHandler implements OnModuleInit {
     this.handlers.register(MEAL_TRANSCRIBE_JOB, (p) => this.handle(p as TranscribeJob));
   }
 
-  async handle({ audio, mimeType }: TranscribeJob): Promise<MealTranscribeResponse> {
-    const prompt = await this.content.activePrompt('meal-transcribe');
+  async handle({ audio, mimeType, promptKey = 'meal-transcribe', maxText = MAX_TEXT }: TranscribeJob): Promise<MealTranscribeResponse> {
+    const prompt = (await this.content.activePrompt(promptKey)) ?? (await this.content.activePrompt('meal-transcribe'));
     const model = prompt?.model || (await this.ai.modelFor('extract', DEFAULT_TEXT_MODEL));
     const res = await this.ai.runOrUnavailable('extract', () =>
       this.provider.structured({
@@ -61,7 +65,7 @@ export class MealTranscribeHandler implements OnModuleInit {
       this.log.warn(`meal_transcribe output rejected: ${parsed.error.issues.slice(0, 3).map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`);
       throw new ApiError(ERROR_CODES.AI_UNAVAILABLE, 'The recording could not be read. Try again or type it.', HttpStatus.BAD_GATEWAY);
     }
-    const text = parsed.data.text.replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT);
+    const text = parsed.data.text.replace(/\s+/g, ' ').trim().slice(0, maxText);
     // "ok" with nothing in it is silence; words with another status are kept (the person can still edit them).
     const status = text ? 'ok' : parsed.data.status === 'ok' ? 'silence' : parsed.data.status;
     return { status, text: status === 'ok' ? text : '', language: parsed.data.language?.trim().slice(0, 16) || null };

@@ -13,6 +13,6 @@ import { WeightsService } from './services/weights.service';
   imports: [PlansModule],
   controllers: [MealsController, DaysController, WeightsController, ProgressController],
   providers: [DailyLogsService, MealsService, DaysService, WeightsService],
-  exports: [DailyLogsService, MealsService, DaysService],
+  exports: [DailyLogsService, MealsService, DaysService, WeightsService],
 })
 export class TrackingModule {}

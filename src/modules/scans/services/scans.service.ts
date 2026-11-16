@@ -66,6 +66,8 @@ export class ScansService implements OnModuleInit {
       },
       itemsFor: async (userId, scanId) => {
         const s = await this.scans.findOne({ _id: scanId, userId }, { result: 1 }).lean<Pick<ScanDoc, 'result'>>();
+        // Something unsafe to eat is never a meal, whatever items a client sends with its scanId.
+        if (s?.result?.outcome === 'unsafe') throw new ApiError(ERROR_CODES.UNSAFE_FOOD, 'This scan found something unsafe to eat, so it cannot be saved as a meal', HttpStatus.UNPROCESSABLE_ENTITY, { scanId });
         return s?.result?.items ?? null;
       },
     });
@@ -293,8 +295,11 @@ export class ScansService implements OnModuleInit {
       mode: d.mode ?? 'meal',
       barcode: d.barcode ?? null,
       category: d.category ?? null,
-      // Scans stored before `processing` existed have none: unknown.
-      result: d.result ? { ...d.result, items: d.result.items.map((i) => ({ ...i, processing: i.processing ?? null })) } : null,
+      // Scans stored before `processing` existed have none: unknown. Scans stored before the safety check (meal-scan
+      // v8) had none either: they read as edible, as they were treated then.
+      result: d.result
+        ? { ...d.result, isEdible: d.result.isEdible ?? true, hazard: d.result.hazard ?? null, miloWarning: d.result.miloWarning ?? null, items: d.result.items.map((i) => ({ ...i, processing: i.processing ?? null })) }
+        : null,
       error: d.error ? { code: d.error.code, message: d.error.message } : null,
       deduped: Boolean(d.deduped),
       chargedFreeScan: Boolean(d.chargedFreeScan),

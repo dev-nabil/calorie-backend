@@ -23,6 +23,7 @@ import { RecapModule } from './recap/recap.module';
 import { FridgeChefModule } from './fridge-chef/fridge-chef.module';
 import { FoodsModule } from './foods/foods.module';
 import { SettingsModule } from './settings/settings.module';
+import { RecipesModule } from './recipes/recipes.module';
 
 /** Every feature module (one process serves HTTP and runs the background work). */
-export const FEATURE_MODULES = [HealthModule, ContentModule, SettingsModule, UsersModule, AuthModule, OnboardingModule, PlansModule, TrackingModule, PublicModule, AiModule, ScansModule, AppConfigModule, BillingModule, UploadsModule, MealParseModule, ConversationsModule, AdminModule, AccountModule, VoiceModule, RemindersModule, ReconcileModule, CoachPreferencesModule, RecapModule, FridgeChefModule, FoodsModule];
+export const FEATURE_MODULES = [HealthModule, ContentModule, SettingsModule, UsersModule, AuthModule, OnboardingModule, PlansModule, TrackingModule, PublicModule, AiModule, ScansModule, AppConfigModule, BillingModule, UploadsModule, MealParseModule, ConversationsModule, AdminModule, AccountModule, VoiceModule, RemindersModule, ReconcileModule, CoachPreferencesModule, RecapModule, FridgeChefModule, FoodsModule, RecipesModule];

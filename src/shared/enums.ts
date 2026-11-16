@@ -126,6 +126,17 @@ export type RichInKey = (typeof RICH_IN_KEYS)[number];
 export const SCAN_OUTCOMES = ['ok', 'no_food', 'unclear'] as const;
 export type ScanOutcome = (typeof SCAN_OUTCOMES)[number];
 
+/**
+ * What a stored analysis says: the model's outcome, or `unsafe` when the photo shows something toxic, spoiled or
+ * otherwise not safe to eat (the model's `isEdible: false`). An unsafe result never carries nutrition or vitamins.
+ */
+export const ANALYSIS_OUTCOMES = [...SCAN_OUTCOMES, 'unsafe'] as const;
+export type AnalysisOutcome = (typeof ANALYSIS_OUTCOMES)[number];
+
+/** How unsafe a scanned item is: `danger` is poisonous or toxic; `warning` is not safe to eat as it is (spoiled, not food). */
+export const FOOD_HAZARDS = ['warning', 'danger'] as const;
+export type FoodHazard = (typeof FOOD_HAZARDS)[number];
+
 export const RETAKE_REASONS = ['blurry', 'too_dark', 'too_far', 'obstructed'] as const;
 export type RetakeReason = (typeof RETAKE_REASONS)[number];
 

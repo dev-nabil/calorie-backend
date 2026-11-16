@@ -28,6 +28,9 @@
     ]
   },
   "fakeOutput": {
+    "isEdible": true,
+    "hazard": null,
+    "miloWarning": null,
     "status": "ok",
     "box_2d": [
       100,

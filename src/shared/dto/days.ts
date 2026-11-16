@@ -137,33 +137,68 @@ export const ProgressResponseSchema = z
 export type ProgressResponse = z.infer<typeof ProgressResponseSchema>;
 
 const weekday = z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected HH:mm');
+/** Reminder kinds. habit, weekly_review and check_in arrived with the Milo buddy (16 Nov 2026); old builds send only the first two. */
+export const REMINDER_TYPES = ['log_meal', 'water', 'habit', 'weekly_review', 'check_in'] as const;
+export type ReminderType = (typeof REMINDER_TYPES)[number];
+export const REMINDER_HABITS = ['fruit_veg', 'protein', 'movement', 'sleep', 'custom'] as const;
+export const REMINDER_CHECK_INS = ['day_review'] as const;
 export const ReminderInputSchema = z.strictObject({
-  type: z.enum(['log_meal', 'water']),
-  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected HH:mm'),
-  days: z.array(weekday).max(7).optional().describe('Empty or missing = every day'),
+  id: z.string().regex(/^[a-f0-9]{24}$/, 'Expected an id').optional().describe('Send back the id of an existing reminder to keep it (an edit updates it); missing = a new reminder'),
+  type: z.enum(REMINDER_TYPES),
+  time: hhmm,
+  days: z.array(weekday).max(7).optional().describe('Empty or missing = every day. weekly_review: exactly one day'),
   enabled: z.boolean(),
   everyHours: z.number().int().min(1).max(12).nullable().optional().describe('Ring again every N hours after `time`, up to `endTime`. Missing or null = once a day'),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected HH:mm').nullable().optional().describe('Last ring (HH:mm), later the same day than `time`. Required with `everyHours`, ignored without it'),
+  endTime: hhmm.nullable().optional().describe('Last ring (HH:mm), later the same day than `time`. Required with `everyHours`, ignored without it'),
+  category: z.enum(MEAL_CATEGORIES).nullable().optional().describe('log_meal: the meal slot; the ring is skipped once that slot has a meal that day'),
+  habit: z.enum(REMINDER_HABITS).nullable().optional().describe('type habit: which habit'),
+  label: z.string().trim().min(1).max(60).nullable().optional().describe('type habit with habit custom: the person\'s own words (shown only on an unlocked screen)'),
+  checkIn: z.enum(REMINDER_CHECK_INS).nullable().optional().describe('type check_in: day_review (skipped once the day was reviewed in chat)'),
+  pausedUntil: DayKeySchema.nullable().optional().describe('No rings until the end of this day (local)'),
 });
+export type ReminderInput = z.infer<typeof ReminderInputSchema>;
+export const ReminderSettingsSchema = z
+  .object({
+    quietHours: z.object({ start: hhmm, end: hhmm }).nullable().describe('null = off (default). Rings inside the window are skipped, never sent later'),
+    pausedUntil: DayKeySchema.nullable().describe('Pause every reminder until the end of this day (local)'),
+    discreet: z.boolean().describe('Lock screen shows only "Nouri reminder" (default true)'),
+  })
+  .meta({ id: 'ReminderSettings' });
+export type ReminderSettings = z.infer<typeof ReminderSettingsSchema>;
 export const PutRemindersRequestSchema = z
-  .strictObject({ reminders: z.array(ReminderInputSchema).max(10), timezone: TimeZoneSchema.optional().describe('Device timezone; defaults to the profile timezone') })
+  .strictObject({
+    reminders: z.array(ReminderInputSchema).max(10),
+    timezone: TimeZoneSchema.optional().describe('Device timezone; defaults to the profile timezone'),
+    settings: ReminderSettingsSchema.partial().strict().optional().describe('Missing = keep the stored settings'),
+  })
   .meta({ id: 'PutRemindersRequest' });
 export type PutRemindersRequest = z.infer<typeof PutRemindersRequestSchema>;
+export const ReminderViewSchema = z
+  .object({
+    id: z.string().describe('Stable: send it back to edit this reminder'),
+    type: z.enum(REMINDER_TYPES),
+    time: z.string(),
+    days: z.array(weekday),
+    enabled: z.boolean(),
+    everyHours: z.number().int().nullable().describe('Null = once a day at `time`'),
+    endTime: z.string().nullable().describe('Last ring of the day when `everyHours` is set'),
+    category: z.enum(MEAL_CATEGORIES).nullable(),
+    habit: z.enum(REMINDER_HABITS).nullable(),
+    label: z.string().nullable(),
+    checkIn: z.enum(REMINDER_CHECK_INS).nullable(),
+    pausedUntil: z.string().nullable(),
+    link: z.string().describe('App route the notification opens: /coach?qa=log_meal&category=…, /coach?qa=review_day, /coach?qa=weekly_review or /today'),
+    nextFireAt: z.string().nullable().describe('Next ring after quiet hours and pauses; null when none'),
+  })
+  .meta({ id: 'ReminderView' });
+export type ReminderView = z.infer<typeof ReminderViewSchema>;
 export const RemindersResponseSchema = z
   .object({
     timezone: z.string(),
     maxPerDay: z.number().int(),
-    reminders: z.array(
-      z.object({
-        id: z.string(),
-        type: z.enum(['log_meal', 'water']),
-        time: z.string(),
-        days: z.array(weekday),
-        enabled: z.boolean(),
-        everyHours: z.number().int().nullable().describe('Null = once a day at `time`'),
-        endTime: z.string().nullable().describe('Last ring of the day when `everyHours` is set'),
-        nextFireAt: z.string().nullable(),
-      }),
-    ),
+    reminders: z.array(ReminderViewSchema),
+    settings: ReminderSettingsSchema,
   })
   .meta({ id: 'RemindersResponse' });
+export type RemindersResponse = z.infer<typeof RemindersResponseSchema>;

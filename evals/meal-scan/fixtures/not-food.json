@@ -6,6 +6,9 @@
     "items": []
   },
   "fakeOutput": {
+    "isEdible": true,
+    "hazard": null,
+    "miloWarning": null,
     "status": "no_food",
     "box_2d": null,
     "mealName": null,

@@ -14,6 +14,8 @@ export const CONFIG_DEFAULTS = {
     'features.levels': false,
     'features.dinnerIdeas': false,
     'features.arCamera': false,
+    /** Milo buddy (decision 0016): the app uses drafts, cards, actions and /coach/memory only when this is true. */
+    'features.miloBuddy': true,
   } as Record<string, boolean>,
   experiments: {
     'paywall.onboarding': { active: true, variants: [{ id: 'on', weight: 100 }, { id: 'off', weight: 0 }] },

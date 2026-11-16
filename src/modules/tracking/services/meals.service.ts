@@ -202,7 +202,8 @@ export class MealsService implements OnModuleInit {
     });
   }
 
-  async create(userId: string, req: CreateMealRequest, now = clock.now()): Promise<Meal> {
+  /** `opts.recipeId`: Milo chat logs a recipe portion through this same path (the recipe must be the user's; the caller checks). */
+  async create(userId: string, req: CreateMealRequest, now = clock.now(), opts: { recipeId?: string | null } = {}): Promise<Meal> {
     const uid = new Types.ObjectId(userId);
     const day = resolveEntryDay({ loggedAt: new Date(req.loggedAt), timeZone: req.timezone, date: req.date, now });
     const multiplier = req.portionMultiplier ?? 1;
@@ -230,6 +231,7 @@ export class MealsService implements OnModuleInit {
         portionMultiplier: multiplier,
         items,
         totals: computeMealTotals(items, multiplier),
+        recipeId: opts.recipeId && Types.ObjectId.isValid(opts.recipeId) ? new Types.ObjectId(opts.recipeId) : null,
       });
     } catch (e) {
       if ((e as { code?: number }).code === 11000) {
@@ -351,6 +353,7 @@ export class MealsService implements OnModuleInit {
         };
       }),
       totals: MealsService.totalsView(d.totals),
+      recipeId: d.recipeId ? d.recipeId.toString() : null,
       deletedAt: d.deletedAt ? new Date(d.deletedAt).toISOString() : null,
       restorableUntil: d.deletedAt ? new Date(new Date(d.deletedAt).getTime() + RESTORE_MS).toISOString() : null,
       createdAt: new Date(d.createdAt).toISOString(),

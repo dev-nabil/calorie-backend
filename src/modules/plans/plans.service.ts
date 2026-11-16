@@ -17,7 +17,7 @@ import {
   type PlanReadiness,
 } from '../../shared';
 import { DomainError } from '../../domain/errors';
-import { calculatePlan, validateTargets, type PlanInputs } from '../../domain/plan-calculator';
+import { calculatePlan, energyBasisOf, validateTargets, type PlanInputs } from '../../domain/plan-calculator';
 import { assessPlan, buildBasis, estimateTimeframe, noticeFor, retimeFrame, type AssessInputs } from '../../domain/plan-assessment';
 import { buildNarrativeContext, makeLabeler, planInputHash } from '../../domain/plan-narrative';
 import { isVerifiedAccount } from '../../domain/entitlements';
@@ -442,6 +442,8 @@ export class PlansService {
         pace: d.goal.pace ?? null,
       },
       calculated: d.calculated ?? null,
+      // Only a plan with an energy target has an activity allowance in it.
+      energyBasis: d.energyKcal === null ? null : energyBasisOf(d.inputs, d.method),
       confirmedAt: d.confirmedAt ? d.confirmedAt.toISOString() : null,
       createdAt: new Date(d.createdAt).toISOString(),
       draftId: d.draftId ? d.draftId.toString() : null,

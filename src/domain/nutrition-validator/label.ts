@@ -75,7 +75,8 @@ export function normaliseLabel(
   opts: { barcode?: string | null; reaction?: Omit<ReactionInput, 'items'> & { content: ScanReactionContent } } = {},
 ): LabelNormaliseResult {
   const question = out.question === null ? null : trimTo(out.question, 200);
-  const base = { isEstimate: false, notes: question, clarifyingQuestion: null, retakeReason: out.retake, assumptions: [] };
+  // A label scan reads a printed table: it has no safety check of its own (meal photos do, meal-scan rule 0).
+  const base = { isEstimate: false, isEdible: true, hazard: null, miloWarning: null, notes: question, clarifyingQuestion: null, retakeReason: out.retake, assumptions: [] };
   const rejected = (outcome: 'no_food' | 'unclear'): LabelNormaliseResult => ({
     status: 'rejected',
     analysis: { ...base, outcome, isFood: outcome !== 'no_food', mealName: null, items: [], totals: computeMealTotals([]), reactionLineId: null },

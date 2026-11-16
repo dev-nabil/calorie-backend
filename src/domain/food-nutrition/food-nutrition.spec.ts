@@ -19,7 +19,7 @@ const index = buildFoodIndex(file.records, file.sources);
 
 const rice: NutrientValues = { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3, fiberG: 0.4, sugarG: null, sodiumMg: 1 };
 
-const out = (items: MealAnalysisOutput['items']): MealAnalysisOutput => ({ status: 'ok', box_2d: null, mealName: 'Lunch', items, assumptions: [], question: null, retake: null });
+const out = (items: MealAnalysisOutput['items']): MealAnalysisOutput => ({ isEdible: true, hazard: null, miloWarning: null, status: 'ok', box_2d: null, mealName: 'Lunch', items, assumptions: [], question: null, retake: null });
 const food = (over: Partial<MealAnalysisOutput['items'][number]> = {}): MealAnalysisOutput['items'][number] => ({
   name: 'Food',
   en: 'unlisted food',
@@ -195,7 +195,7 @@ describe('sizes the model is not held to', () => {
 
 describe('unclear photos', () => {
   it('asks for another photo instead of inventing numbers', () => {
-    const r = normaliseAnalysis({ status: 'unclear', box_2d: null, mealName: null, items: [], assumptions: [], question: 'Move closer to the plate', retake: 'too_far' });
+    const r = normaliseAnalysis({ isEdible: true, hazard: null, miloWarning: null, status: 'unclear', box_2d: null, mealName: null, items: [], assumptions: [], question: 'Move closer to the plate', retake: 'too_far' });
     expect(r.status).toBe('rejected');
     expect(r.analysis).toMatchObject({ outcome: 'unclear', isFood: true, items: [], retakeReason: 'too_far', clarifyingQuestion: 'Move closer to the plate' });
   });

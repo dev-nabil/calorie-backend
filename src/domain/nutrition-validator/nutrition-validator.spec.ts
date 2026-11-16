@@ -1,7 +1,7 @@
 import { computeTotals, editItemGrams, kcalFromMacros, normaliseAnalysis, normaliseItem, parseModelOutput, scaleItem, type ParsedItemInput } from './index';
 import { chooseReactionLine } from './reactions';
-import { PLAN_EXAMPLE_ANALYSIS } from './fixtures';
-import type { MealAnalysisOutput } from '../../shared';
+import { PLAN_EXAMPLE_ANALYSIS, UNSAFE_EXAMPLE } from './fixtures';
+import { MealAnalysisOutputSchema, type MealAnalysisOutput } from '../../shared';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { reactionCategory, reactionFacts, variantIndex, type ScanReactionContent } from './reactions';
@@ -59,7 +59,68 @@ describe('nutrition-validator (plan 8.3)', () => {
   it('rule 2: not food is rejected with empty items', () => {
     const r = normaliseAnalysis({ ...example(), status: 'no_food', items: [], question: 'A cat' });
     expect(r.status).toBe('rejected');
-    expect(r.analysis).toMatchObject({ isFood: false, items: [], totals: { kcal: 0 }, reactionLineId: null, notes: 'A cat' });
+    expect(r.analysis).toMatchObject({ isFood: false, isEdible: true, hazard: null, miloWarning: null, items: [], totals: { kcal: 0 }, reactionLineId: null, notes: 'A cat' });
+  });
+
+  describe('rule 0: something unsafe to eat', () => {
+    const unsafe = (): MealAnalysisOutput => JSON.parse(JSON.stringify(UNSAFE_EXAMPLE));
+
+    it('the schema puts the safety decision first, so the model makes it before any nutrition', () => {
+      expect(Object.keys(MealAnalysisOutputSchema.shape).slice(0, 4)).toEqual(['isEdible', 'hazard', 'miloWarning', 'status']);
+      expect(parseModelOutput(unsafe())).toMatchObject({ ok: true });
+      const missing: Record<string, unknown> = { ...example() };
+      delete missing.isEdible;
+      expect(parseModelOutput(missing).ok).toBe(false);
+    });
+
+    it('is rejected with the reason and no kcal, macros, vitamins, grade input or reaction', () => {
+      const r = normaliseAnalysis(unsafe(), { records: undefined });
+      expect(r.status).toBe('rejected');
+      expect(r.analysis).toEqual({
+        outcome: 'unsafe',
+        isFood: false,
+        isEdible: false,
+        hazard: 'danger',
+        miloWarning: UNSAFE_EXAMPLE.miloWarning,
+        isEstimate: true,
+        notes: UNSAFE_EXAMPLE.miloWarning,
+        clarifyingQuestion: null,
+        retakeReason: null,
+        mealName: 'Wild nightshade berries',
+        // The model's item (with kcal and vitamin C) is dropped: nothing to grade, count or call "a good source of".
+        items: [],
+        totals: { kcal: null, proteinG: null, carbsG: null, fatG: null, fiberG: null, sugarG: null, sodiumMg: null, incomplete: [] },
+        crop: expect.any(Object),
+        assumptions: [],
+        reactionLineId: null,
+      });
+    });
+
+    it('never picks a Milo reaction for it', () => {
+      const r = normaliseAnalysis(unsafe(), { reaction: { content, mode: 'full', remainingBefore: 900, scanId: 's1' } });
+      expect(r.analysis.reactionLineId).toBeNull();
+    });
+
+    it('wins over the photo status, and either signal alone is enough', () => {
+      expect(normaliseAnalysis({ ...unsafe(), status: 'no_food' }).analysis.outcome).toBe('unsafe');
+      expect(normaliseAnalysis({ ...unsafe(), status: 'unclear', retake: 'blurry' }).analysis).toMatchObject({ outcome: 'unsafe', retakeReason: null });
+      // A level without the flag, or the flag without a level (then read as a warning), still blocks the meal.
+      expect(normaliseAnalysis({ ...example(), hazard: 'warning' }).analysis).toMatchObject({ outcome: 'unsafe', items: [], totals: { kcal: null } });
+      expect(normaliseAnalysis({ ...example(), isEdible: false }).analysis).toMatchObject({ outcome: 'unsafe', hazard: 'warning', miloWarning: null, notes: null, items: [] });
+    });
+
+    it('trims the warning and leaves a blank one empty', () => {
+      const long = normaliseAnalysis({ ...unsafe(), miloWarning: ` ${'x'.repeat(400)} ` }).analysis.miloWarning!;
+      expect(long).toHaveLength(240);
+      expect(normaliseAnalysis({ ...unsafe(), miloWarning: '   ' }).analysis).toMatchObject({ miloWarning: null, notes: null });
+    });
+
+    it('leaves an edible meal exactly as before', () => {
+      const r = normaliseAnalysis(example());
+      expect(r.status).toBe('succeeded');
+      expect(r.analysis).toMatchObject({ outcome: 'ok', isFood: true, isEdible: true, hazard: null, miloWarning: null, totals: { kcal: 501 } });
+      expect(r.analysis.items).toHaveLength(3);
+    });
   });
 
   describe('rule 3: clamping', () => {

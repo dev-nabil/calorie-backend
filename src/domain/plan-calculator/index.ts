@@ -232,6 +232,32 @@ export function calculatePlan(i: PlanInputs): PlanPreview {
   };
 }
 
+/** The maintenance numbers a stored plan was calculated from (see {@link energyBasisOf}). */
+export interface EnergyBasis {
+  bmrKcal: number;
+  activityFactor: number;
+  tdeeKcal: number;
+}
+
+/**
+ * BMR, activity factor and maintenance (TDEE) of a stored plan, recalculated from the inputs
+ * kept with it exactly as {@link calculatePlan} made them. The energy target already holds the
+ * activity allowance `tdeeKcal − bmrKcal` (BR-04): the app needs it so activity imported from
+ * Apple Health or Health Connect is never counted twice. Null when the plan has no calculated
+ * inputs (habits only, legacy plans).
+ */
+export function energyBasisOf(inputs: Record<string, unknown> | null | undefined, method: string | null | undefined): EnergyBasis | null {
+  if (method !== 'mifflin_st_jeor_v1' || !inputs) return null;
+  const { ageYears, calculationSex, heightCm, weightKg, activityLevel } = inputs;
+  if (calculationSex !== 'female' && calculationSex !== 'male') return null;
+  if (typeof ageYears !== 'number' || !Number.isFinite(ageYears)) return null;
+  if (typeof heightCm !== 'number' || !isPositive(heightCm) || typeof weightKg !== 'number' || !isPositive(weightKg)) return null;
+  if (typeof activityLevel !== 'string' || !Object.hasOwn(ACTIVITY_FACTORS, activityLevel)) return null;
+  const factor = ACTIVITY_FACTORS[activityLevel as ActivityLevel];
+  const bmr = mifflinStJeor(calculationSex, weightKg, heightCm, ageYears);
+  return { bmrKcal: Math.round(bmr), activityFactor: factor, tdeeKcal: Math.round(bmr * factor) };
+}
+
 export type TargetValidation =
   | { ok: true; targets: MacroTargets | null }
   | {

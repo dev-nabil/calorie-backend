@@ -1,6 +1,6 @@
 /**
- * Server rules for AI meal analysis (plan section 8.3, rules 1–7). The server never trusts
- * model totals and normalises every item before it reaches a user.
+ * Server rules for AI meal analysis (plan section 8.3, rules 1–7, plus rule 0: an item the model calls unsafe to
+ * eat gets no nutrition at all). The server never trusts model totals and normalises every item before it reaches a user.
  */
 import { cropFromBox } from './crop';
 import { chooseReactionLine, type ReactionInput, type ScanReactionContent } from './reactions';
@@ -29,7 +29,7 @@ import {
   type NutrientTotals,
 } from '../../shared';
 
-export { PLAN_EXAMPLE_ANALYSIS } from './fixtures';
+export { PLAN_EXAMPLE_ANALYSIS, UNSAFE_EXAMPLE } from './fixtures';
 export { cropFromBox } from './crop';
 export { describeValuesSane, explicitWeights, normaliseDescribe, type DescribeOptions } from './describe';
 export { labelGrams, labelPer100g, labelSource, labelValues, normaliseLabel, parseLabelOutput, KJ_PER_KCAL, SODIUM_MG_PER_G_SALT, SINGLE_PACK_MAX_G, type LabelNormaliseResult, type LabelParseResult } from './label';
@@ -245,13 +245,50 @@ export interface NormaliseResult {
 
 const NO_RECORDS: FoodIndex = { byAlias: new Map(), sources: {} };
 
-/** Rules 2–7: turn validated model output into the stored analysis. */
+const MAX_WARNING = 240;
+
+/** The model called something unsafe to eat. Either signal counts, so a half-filled answer still errs on the side of safety. */
+export const isUnsafeOutput = (out: Pick<MealAnalysisOutput, 'isEdible' | 'hazard'>): boolean => out.isEdible === false || out.hazard !== null;
+
+/**
+ * Rule 0 (safety first): toxic, spoiled or not-food items are rejected with the model's reason and nothing else. Any
+ * items, weights, nutrients or vitamins the model wrote anyway are dropped, so no grade, kcal or "good source of" can
+ * be shown or saved, and every total is unknown (null, never zero). A missing level reads as `warning`; a missing
+ * reason stays null (the app has its own line).
+ */
+function unsafeAnalysis(out: MealAnalysisOutput): NormaliseResult {
+  const warning = out.miloWarning?.trim() ? trimTo(out.miloWarning, MAX_WARNING) : null;
+  return {
+    status: 'rejected',
+    analysis: {
+      outcome: 'unsafe',
+      isFood: false,
+      isEdible: false,
+      hazard: out.hazard ?? 'warning',
+      miloWarning: warning,
+      isEstimate: true,
+      // Older apps show `notes` on their "rejected" screen: there they read the reason, never numbers.
+      notes: warning,
+      clarifyingQuestion: null,
+      retakeReason: null,
+      mealName: out.mealName?.trim() ? trimTo(out.mealName, 120) : null,
+      items: [],
+      totals: { kcal: null, proteinG: null, carbsG: null, fatG: null, fiberG: null, sugarG: null, sodiumMg: null, incomplete: [] },
+      crop: cropFromBox(out.box_2d),
+      assumptions: [],
+      reactionLineId: null,
+    },
+  };
+}
+
+/** Rules 0 and 2–7: turn validated model output into the stored analysis. */
 export function normaliseAnalysis(
   out: MealAnalysisOutput,
   opts: { records?: FoodIndex; reaction?: Omit<ReactionInput, 'items'> & { content: ScanReactionContent } } = {},
 ): NormaliseResult {
+  if (isUnsafeOutput(out)) return unsafeAnalysis(out);
   const question = out.question === null ? null : trimTo(out.question, 200);
-  const base = { isEstimate: true as const, notes: question, clarifyingQuestion: question, retakeReason: out.retake };
+  const base = { isEstimate: true as const, isEdible: true, hazard: null, miloWarning: null, notes: question, clarifyingQuestion: question, retakeReason: out.retake };
   if (out.status !== 'ok' || !out.items.length) {
     // Rule 2: not food, or too unclear to estimate → rejected, friendly message, no charge, nothing invented.
     const noFood = out.status === 'no_food';

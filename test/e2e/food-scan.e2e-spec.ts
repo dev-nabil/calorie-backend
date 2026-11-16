@@ -16,9 +16,13 @@ import { ScanQueue } from '../../src/modules/scans/scan-queue';
 import type { ScanDoc } from '../../src/modules/scans/schemas/scans.schema';
 import { ScanProcessor } from '../../src/modules/scans/services/scan.processor';
 import { UsersService } from '../../src/modules/users/users.service';
+import { UNSAFE_EXAMPLE } from '../../src/domain/nutrition-validator';
 
 /** A Bangladeshi lunch as Gemini would return it. Rice, dal and fish curry have records; the greens do not. */
 const LUNCH = {
+  isEdible: true,
+  hazard: null,
+  miloWarning: null,
   status: 'ok',
   box_2d: [250, 200, 750, 800],
   mealName: 'Rice, dal and fish curry',
@@ -127,7 +131,7 @@ describe('Food photo scanner, Gemini mocked', () => {
       const h = await asPlus();
       const { b } = await scanLunch(h);
       const doc = await scans().findById(b.scanId).lean<ScanDoc>();
-      expect(doc).toMatchObject({ model: 'gemini-3.8-flash', promptKey: 'meal-scan', promptVersion: 7, providerAttempts: 1, usage: { inputTokens: 1600, outputTokens: 420 } });
+      expect(doc).toMatchObject({ model: 'gemini-3.8-flash', promptKey: 'meal-scan', promptVersion: 8, providerAttempts: 1, usage: { inputTokens: 1600, outputTokens: 420 } });
       expect(doc!.usage.costUsd).toBeCloseTo((1600 * 0.75 + 420 * 3.75) / 1e6, 8);
       expect(doc!.modelLatencyMs).not.toBeNull();
       expect(JSON.stringify(doc)).not.toMatch(/base64|\/9j\//);
@@ -174,7 +178,7 @@ describe('Food photo scanner, Gemini mocked', () => {
       const { scan } = await scanLunch(h);
       await recalc(bearer((await signIn(t)).accessToken), scan.scanId, {}).expect(404);
       await recalc(h, scan.scanId, { items: [{ id: 'i99', grams: 10 }] }).expect(400);
-      fake.enqueue({ status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: null, retake: null });
+      fake.enqueue({ isEdible: true, hazard: null, miloWarning: null, status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: null, retake: null });
       const b = await body(h);
       await post(h, b).expect(202);
       await drain();
@@ -316,7 +320,7 @@ describe('Food photo scanner, Gemini mocked', () => {
 
     it('caches a rejected photo too, so retrying it costs nothing', async () => {
       const h = await asPlus();
-      fake.enqueue({ status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: 'A cat', retake: null });
+      fake.enqueue({ isEdible: true, hazard: null, miloWarning: null, status: 'no_food', box_2d: null, mealName: null, items: [], assumptions: [], question: 'A cat', retake: null });
       const seed = randomUUID();
       await post(h, await body(h, seed)).expect(202);
       await drain();
@@ -385,7 +389,7 @@ describe('Food photo scanner, Gemini mocked', () => {
 
     it('asks for another photo when the picture is unclear, free of charge', async () => {
       const h = bearer((await signIn(t)).accessToken);
-      fake.enqueue({ status: 'unclear', box_2d: null, mealName: null, items: [], assumptions: [], question: 'Too dark to see. Try with more light.', retake: 'too_dark' });
+      fake.enqueue({ isEdible: true, hazard: null, miloWarning: null, status: 'unclear', box_2d: null, mealName: null, items: [], assumptions: [], question: 'Too dark to see. Try with more light.', retake: 'too_dark' });
       const b = await body(h);
       await post(h, b).expect(202);
       await drain();
@@ -396,6 +400,79 @@ describe('Food photo scanner, Gemini mocked', () => {
         result: { outcome: 'unclear', retakeReason: 'too_dark', clarifyingQuestion: 'Too dark to see. Try with more light.', items: [] },
       });
       expect((await t.http().get('/v1/me').set(h)).body.freeScans.remaining).toBe(1);
+    });
+  });
+
+  describe('something unsafe to eat (meal-scan rule 0)', () => {
+    const scanBerries = async (h: Record<string, string>) => {
+      fake.enqueue(structuredClone(UNSAFE_EXAMPLE));
+      const b = await body(h);
+      await post(h, b).expect(202);
+      await drain();
+      return { b, scan: await poll(h, b.scanId) };
+    };
+
+    it('is rejected free of charge with the reason, and no kcal, macros, vitamins or reaction', async () => {
+      const h = bearer((await signIn(t)).accessToken);
+      const { scan } = await scanBerries(h);
+      expect(scan).toMatchObject({
+        status: 'rejected',
+        chargedFreeScan: false,
+        error: { code: 'UNSAFE_FOOD' },
+        result: {
+          outcome: 'unsafe',
+          isFood: false,
+          isEdible: false,
+          hazard: 'danger',
+          miloWarning: UNSAFE_EXAMPLE.miloWarning,
+          notes: UNSAFE_EXAMPLE.miloWarning,
+          mealName: 'Wild nightshade berries',
+          items: [],
+          totals: { kcal: null, proteinG: null, carbsG: null, fatG: null, fiberG: null, sugarG: null, sodiumMg: null },
+          clarifyingQuestion: null,
+          reactionLineId: null,
+        },
+      });
+      expect(scan.result.crop).not.toBeNull();
+      expect((await t.http().get('/v1/me').set(h)).body.freeScans.remaining).toBe(1);
+    });
+
+    it('cannot be saved, adjusted or reused as a meal', async () => {
+      const h = await asPlus();
+      const { b } = await scanBerries(h);
+      await recalc(h, b.scanId, {}).expect(409);
+      const meal = {
+        loggedAt: new Date().toISOString(),
+        timezone: 'Asia/Dhaka',
+        category: 'lunch',
+        name: 'Berries',
+        source: 'photo',
+        scanId: b.scanId,
+        items: [{ name: 'Berries', grams: 50, kcal: 20, proteinG: 0.5, carbsG: 4, fatG: 0.1 }],
+      };
+      const refused = await t.http().post('/v1/meals').set(h).set(idem()).send(meal).expect(422);
+      expect(refused.body.error.code).toBe('UNSAFE_FOOD');
+      const date = new Date().toISOString().slice(0, 10);
+      expect((await t.http().get(`/v1/days/${date}`).set(h).expect(200)).body.meals).toEqual([]);
+    });
+
+    it('is cached like any rejection, so the same photo is not sent again', async () => {
+      const h = await asPlus();
+      fake.enqueue(structuredClone(UNSAFE_EXAMPLE));
+      const seed = randomUUID();
+      await post(h, await body(h, seed)).expect(202);
+      await drain();
+      const again = await post(h, await body(h, seed)).expect(200);
+      expect(again.body).toMatchObject({ status: 'rejected', deduped: true, error: { code: 'UNSAFE_FOOD' }, result: { outcome: 'unsafe', hazard: 'danger' } });
+      expect(vision.calls).toHaveLength(1);
+    });
+
+    it('leaves an edible meal as it was', async () => {
+      const h = await asPlus();
+      const { scan } = await scanLunch(h);
+      expect(scan).toMatchObject({ status: 'succeeded', error: null, result: { outcome: 'ok', isFood: true, isEdible: true, hazard: null, miloWarning: null } });
+      expect(scan.result.items).toHaveLength(4);
+      expect(scan.result.totals.kcal).toBeGreaterThan(0);
     });
   });
 

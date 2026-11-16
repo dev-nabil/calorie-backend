@@ -3,11 +3,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AiUsageDailySchema, FoodScanUsageDailySchema } from '../../modules/ai/schemas/ai.schema';
 import { OtpCodeSchema, SessionSchema } from '../../modules/auth/schemas/auth.schema';
 import { AbuseEventSchema, ScanSchema } from '../../modules/scans/schemas/scans.schema';
-import { ConversationSchema, MessageSchema } from '../../modules/conversations/schemas/conversations.schema';
+import { ChatActionSchema, ChatDraftSchema, ConversationSchema, MessageSchema } from '../../modules/conversations/schemas/conversations.schema';
+import { RecipeSchema } from '../../modules/recipes/schemas/recipes.schema';
 import { AdminUserSchema, AuditLogSchema } from '../../modules/admin/schemas/admin.schema';
 import { DeletionRequestDbSchema, WaitlistSchema } from '../../modules/public/schemas/public.schema';
 import { BillingEventSchema, SubscriptionSchema } from '../../modules/billing/schemas/billing.schema';
-import { ReminderSchema } from '../../modules/reminders/schemas/reminders.schema';
+import { ReminderSchema, ReminderSettingsSchema } from '../../modules/reminders/schemas/reminders.schema';
 import { ReconcileRunSchema } from '../../jobs/reconcile';
 import { AiPromptSchema, AppConfigSchema, ContentVersionSchema } from '../../modules/content/schemas/content.schema';
 import { OnboardingAnswerSchema, ProfileSchema } from '../../modules/onboarding/schemas/onboarding.schema';
@@ -46,6 +47,9 @@ export const MODEL_DEFINITIONS = [
   { name: 'AbuseEvent', schema: AbuseEventSchema },
   { name: 'Conversation', schema: ConversationSchema },
   { name: 'Message', schema: MessageSchema },
+  { name: 'ChatDraft', schema: ChatDraftSchema },
+  { name: 'ChatAction', schema: ChatActionSchema },
+  { name: 'Recipe', schema: RecipeSchema },
   { name: 'AdminUser', schema: AdminUserSchema },
   { name: 'AuditLog', schema: AuditLogSchema },
   { name: 'Waitlist', schema: WaitlistSchema },
@@ -53,6 +57,7 @@ export const MODEL_DEFINITIONS = [
   { name: 'Subscription', schema: SubscriptionSchema },
   { name: 'BillingEvent', schema: BillingEventSchema },
   { name: 'Reminder', schema: ReminderSchema },
+  { name: 'ReminderSetting', schema: ReminderSettingsSchema },
   { name: 'ReconcileRun', schema: ReconcileRunSchema },
   { name: 'CoachPreference', schema: CoachPreferenceSchema },
   { name: 'WeeklyRecap', schema: WeeklyRecapSchema },

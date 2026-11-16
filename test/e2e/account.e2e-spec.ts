@@ -2,7 +2,7 @@ import { createHash, sign } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { getModelToken } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
+import { Types, type Model } from 'mongoose';
 import { createTestApp, type TestApp } from '../setup/test-app';
 import { bearer, idem, INTEGRITY, signIn, uploadPhoto } from '../setup/helpers';
 import { encodeCbor } from '../../src/common/integrity/cbor';
@@ -49,6 +49,9 @@ describe('Devices, export and purge (M1-T5, M1-T8)', () => {
     const s = await signIn(t, 'exporter@example.com');
     const h = bearer(s.accessToken);
     await t.http().post('/v1/meals').set(h).set(idem()).send({ loggedAt: new Date().toISOString(), timezone: 'UTC', category: 'lunch', name: 'Soup', source: 'manual', items: [] }).expect(201);
+    // Milo buddy data is exported too: recipes, reminders with their new fields and settings.
+    await t.http().post('/v1/recipes').set(h).set(idem()).send({ name: 'Dal', items: [{ name: 'Lentils', grams: 200, per100g: { kcal: 350, proteinG: 25, carbsG: 60, fatG: 1.5, fiberG: null, sugarG: null, sodiumMg: null } }] }).expect(201);
+    await t.http().put('/v1/reminders').set(h).send({ timezone: 'UTC', settings: { quietHours: { start: '22:00', end: '07:00' } }, reminders: [{ type: 'habit', time: '18:00', enabled: true, habit: 'movement' }] }).expect(200);
     const res = await t.http().get('/v1/me/export').set(h).expect(202);
     expect(res.body).toMatchObject({ status: 'queued', exportId: expect.any(String) });
     await t.get<JobQueue>(JobQueue).drain();
@@ -58,6 +61,7 @@ describe('Devices, export and purge (M1-T5, M1-T8)', () => {
     const file = await t.http().get(url.pathname + url.search).buffer(true).parse((r, cb) => { let d = ''; r.on('data', (c: Buffer) => (d += c)); r.on('end', () => cb(null, d)); }).expect(200);
     const data = JSON.parse(file.body as string);
     expect(data).toMatchObject({ format: 'nouri-export-v1', user: { email: 'exporter@example.com' }, meals: [{ name: 'Soup' }] });
+    expect(data).toMatchObject({ recipes: [{ name: 'Dal' }], reminders: [{ type: 'habit', habit: 'movement' }], reminderSettings: { quietHours: { start: '22:00', end: '07:00' } }, chatDrafts: [], chatActions: [] });
     expect(JSON.stringify(data)).not.toContain('refreshTokenHash');
   });
 
@@ -67,6 +71,13 @@ describe('Devices, export and purge (M1-T5, M1-T8)', () => {
     const h = bearer(s.accessToken);
     await uploadPhoto(t, h);
     await t.http().post('/v1/meals').set(h).set(idem()).send({ loggedAt: new Date().toISOString(), timezone: 'UTC', category: 'lunch', name: 'Soup', source: 'manual', items: [] }).expect(201);
+    await t.http().post('/v1/recipes').set(h).set(idem()).send({ name: 'Dal', items: [{ name: 'Lentils', grams: 200, per100g: { kcal: 350, proteinG: 25, carbsG: 60, fatG: 1.5, fiberG: null, sugarG: null, sodiumMg: null } }] }).expect(201);
+    await t.http().put('/v1/reminders').set(h).send({ timezone: 'UTC', settings: { discreet: false }, reminders: [{ type: 'water', time: '10:00', enabled: true }] }).expect(200);
+    const conn = t.get<Model<unknown>>(getModelToken('Meal')).db;
+    const uid = new Types.ObjectId(s.user.id);
+    await conn.collection('chat_drafts').insertOne({ _id: 'd_test' as never, userId: uid, conversationId: new Types.ObjectId(), active: true, version: 1, data: {}, expiresAt: new Date(Date.now() + 86_400_000) });
+    await conn.collection('chat_actions').insertOne({ _id: 'a_test' as never, userId: uid, conversationId: new Types.ObjectId(), type: 'log_meal', status: 'open', usableUntil: new Date(), expiresAt: new Date(Date.now() + 86_400_000) });
+    await conn.collection('coach_preferences').insertOne({ userId: uid, tone: 'warm', notes: [], memories: [{ id: 'm_x', text: 'No beef' }], chatMemory: true });
     const users = t.get<UsersService>(UsersService);
     const ledger = t.get<Model<{ emailHmac: string; freeScansUsed: number }>>(getModelToken('ScanLedger'));
     await ledger.create({ emailHmac: users.ledgerKey(email), freeScansUsed: 1 });
@@ -77,6 +88,9 @@ describe('Devices, export and purge (M1-T5, M1-T8)', () => {
     const doc = await users.users.findById(s.user.id).lean();
     expect(doc).toMatchObject({ status: 'deleted', email: `deleted+${s.user.id}@deleted.invalid`, authProviders: [] });
     expect(await t.get<Model<unknown>>(getModelToken('Meal')).countDocuments({ userId: doc!._id })).toBe(0);
+    for (const name of ['recipes', 'chat_drafts', 'chat_actions', 'reminders', 'reminder_settings', 'coach_preferences']) {
+      expect(await conn.collection(name).countDocuments({ userId: doc!._id })).toBe(0);
+    }
     expect(existsSync(join(t.config.LOCAL_STORAGE_DIR, 'u', s.user.id))).toBe(false);
     expect((await ledger.findOne({ emailHmac: users.ledgerKey(email) }))?.freeScansUsed).toBe(1);
     await t.get<KvStore>(KvStore).del(`otp:cooldown:${email}`);
