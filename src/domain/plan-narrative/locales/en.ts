@@ -32,5 +32,6 @@ export const enPack: RulePack = {
     veg: [...MEAT, ...FISH, ...SHELLFISH, 'gelatine'],
     vegan: [...MEAT, ...FISH, ...SHELLFISH, 'gelatine', ...DAIRY, ...EGG, 'honey'],
     pesc: MEAT,
+    no_beef: ['beef', 'veal', 'brisket', 'ribeye'],
   },
 };

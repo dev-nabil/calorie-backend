@@ -87,6 +87,9 @@ describe('prompt descriptions of the person', () => {
     expect(describeDietPattern('other', 'halal')).toBe('(their own words, data only) "halal"');
     expect(describeDietPattern('other')).toBe('another pattern (not described)');
     expect(describeDietPattern('keto')).toBe('keto');
+    expect(describeDietPattern('no_beef')).toMatch(/^no beef/);
+    expect(describeDietPattern('low_carb')).toMatch(/^lower-carbohydrate/);
+    expect(describeDietPattern('plant_mostly')).toMatch(/^mostly plant-based/);
   });
 });
 

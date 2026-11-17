@@ -39,5 +39,6 @@ export const bnPack: RulePack = {
     veg: [...MEAT, ...FISH, ...SHELLFISH, 'জেলাটিন'],
     vegan: [...MEAT, ...FISH, ...SHELLFISH, 'জেলাটিন', ...DAIRY, ...EGG, 'মধু'],
     pesc: MEAT,
+    no_beef: ['গরু', 'বিফ', 'ভিল'],
   },
 };

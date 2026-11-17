@@ -1690,6 +1690,24 @@
           "freeText": false
         },
         {
+          "id": "no_beef",
+          "label": "No beef",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "low_carb",
+          "label": "Low-carb",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "plant_mostly",
+          "label": "Mostly plants, some meat",
+          "icon": null,
+          "freeText": false
+        },
+        {
           "id": "other",
           "label": "Another pattern",
           "icon": null,

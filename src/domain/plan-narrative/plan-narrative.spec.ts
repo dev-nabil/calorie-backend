@@ -133,6 +133,9 @@ describe('checkNarrative: review findings', () => {
     expect(checkNarrative(withBody('Grilled chicken with salad is a quick lunch on busy days at work.'), avoidTermsFor(null, null, 'pesc')).ok).toBe(false);
     expect(checkNarrative(withBody('Grilled salmon with salad is a quick lunch on busy days at work.'), avoidTermsFor(null, null, 'pesc')).ok).toBe(true);
     expect(checkNarrative(withBody('Scrambled eggs on toast make a quick breakfast on most mornings.'), avoidTermsFor(null, null, 'vegan')).ok).toBe(false);
+    expect(checkNarrative(withBody('Beef with rice is a quick dinner on busy days at work.'), avoidTermsFor(null, null, 'no_beef')).ok).toBe(false);
+    expect(checkNarrative(withBody('Grilled chicken with salad is a quick lunch on busy days at work.'), avoidTermsFor(null, null, 'no_beef')).ok).toBe(true);
+    expect(avoidTermsFor(null, null, 'low_carb')).toEqual([]);
     expect(checkNarrative(withBody('Beans on toast make a quick breakfast on most mornings of the week.'), avoidTermsFor(null, null, 'vegan')).ok).toBe(true);
   });
 

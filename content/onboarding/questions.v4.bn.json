@@ -1690,6 +1690,24 @@
           "freeText": false
         },
         {
+          "id": "no_beef",
+          "label": "গরুর মাংস খাই না",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "low_carb",
+          "label": "কম কার্বোহাইড্রেট",
+          "icon": null,
+          "freeText": false
+        },
+        {
+          "id": "plant_mostly",
+          "label": "বেশিরভাগ উদ্ভিজ্জ খাবার, মাঝে মাঝে মাংস",
+          "icon": null,
+          "freeText": false
+        },
+        {
           "id": "other",
           "label": "অন্য কোনো ধরন",
           "icon": null,

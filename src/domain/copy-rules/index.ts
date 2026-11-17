@@ -109,6 +109,9 @@ const DIET_LABELS: Record<string, string> = {
   pesc: 'pescatarian (fish but no meat or poultry)',
   veg: 'vegetarian (no meat or fish)',
   vegan: 'vegan (no animal products: no meat, fish, dairy, eggs or honey)',
+  no_beef: 'no beef (other meat and fish are fine)',
+  low_carb: 'lower-carbohydrate (prefers fewer starchy and sugary foods; not a rule to cut anything out)',
+  plant_mostly: 'mostly plant-based (mostly vegetables, legumes and grains; some meat or fish is fine)',
   deciding: 'still deciding (no rule)',
 };
 
