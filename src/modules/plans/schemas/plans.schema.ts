@@ -1,15 +1,19 @@
 import { Schema, Types } from 'mongoose';
 import {
+  PACE_LIMITS,
   PLAN_METHODS,
   PLAN_OUTCOMES,
+  PLAN_PACES,
   PLAN_SOURCES,
   type MacroTargets,
+  type PaceLimit,
   type PlanAiInfo,
   type PlanAssessment,
   type PlanMethod,
   type PlanNarrative,
   type PlanNotice,
   type PlanOutcome,
+  type PlanPace,
   type PlanPreview,
   type PlanSource,
   type PlanTimeframe,
@@ -27,7 +31,7 @@ export interface PlanDoc {
   fatG: number | null;
   waterMl: number;
   method: PlanMethod | null;
-  goal: { type: string; startWeightKg: number | null; targetWeightKg: number | null; pace: 'gradual' | null };
+  goal: { type: string; startWeightKg: number | null; targetWeightKg: number | null; pace: PlanPace | null; paceLimitedBy?: PaceLimit | null };
   inputs: Record<string, unknown> | null;
   calculated: MacroTargets | null;
   confirmedAt: Date | null;
@@ -58,7 +62,8 @@ export const PlanSchema = new Schema<PlanDoc>(
       type: { type: String, default: 'habits' },
       startWeightKg: { type: Number, default: null },
       targetWeightKg: { type: Number, default: null },
-      pace: { type: String, enum: ['gradual', null], default: null },
+      pace: { type: String, enum: [...PLAN_PACES, null], default: null },
+      paceLimitedBy: { type: String, enum: [...PACE_LIMITS, null], default: null },
     },
     inputs: { type: Schema.Types.Mixed, default: null },
     calculated: { type: Schema.Types.Mixed, default: null },

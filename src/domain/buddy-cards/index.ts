@@ -6,7 +6,7 @@
  */
 import { createHash } from 'node:crypto';
 import { computeMealTotals, matchFoodRecord, nutrientsForGrams, recordSource, sanitisePer100g, AI_ESTIMATE, type FoodIndex } from '../food-nutrition';
-import { applyModelOps, portionFraction, type DraftContext } from '../chat-draft';
+import { applyModelOps, portionFraction, quantityText, type DraftContext } from '../chat-draft';
 import { avoidedTermsIn } from '../plan-narrative';
 import {
   BUDDY_LIMITS,
@@ -347,11 +347,11 @@ export function recipeChangeCard(d: ChatDraft, proposed: readonly InterpretOp[],
   };
 }
 
-/** A human label per proposed op for the recipe_change card ("Oil: 20 g"). */
-export function changeLabels(d: ChatDraft, ops: readonly InterpretOp[]): string[] {
+/** A human label per proposed op for the recipe_change card ("Oil: 20 g", "তেল: 20 গ্রাম"). */
+export function changeLabels(d: ChatDraft, ops: readonly InterpretOp[], locale?: LocaleCode): string[] {
   return ops.map((op) => {
     const item = op.itemId ? d.items.find((i) => i.id === op.itemId) : undefined;
-    const amount = op.qty !== null && op.unit ? `${op.qty} ${op.unit}` : op.g !== null ? `${op.g} g` : '';
+    const amount = op.qty !== null && op.unit && op.unit !== 'other' ? quantityText(op, op.g ?? 0, locale) : op.g !== null ? quantityText({ qty: op.g, unit: 'g' }, op.g, locale) : '';
     if (op.op === 'remove_item') return `− ${item?.name ?? op.name ?? ''}`.trim();
     if (op.op === 'add_item') return `+ ${op.name ?? op.en ?? ''} ${amount}`.trim();
     if (op.op === 'update_item') return `${item?.name ?? op.name ?? ''}: ${amount}`.trim();
@@ -359,19 +359,40 @@ export function changeLabels(d: ChatDraft, ops: readonly InterpretOp[]): string[
   });
 }
 
+// ── Explicit requests ─────────────────────────────────────────────────────────────────────────────
+
+/** English and Banglish request words ("log it", "add to lunch", "save the recipe", "jog kore din", "diary te rakho"). */
+const ASK_LATIN = /\b(log|add|track|record|save|enter|jog|jug|zog)\b|\b(diary|tracker|journal)\b/i;
+/** Bangla script: যোগ (add), লগ (log), সেভ / সংরক্ষণ (save), ট্র্যাক (track), ডায়েরি / ট্র্যাকার, রেকর্ড, এন্ট্রি, রেখে দিন / রাখুন (keep). */
+const ASK_BENGALI = /যোগ|লগ|সেভ|সংরক্ষণ|ট্র্যাক|ট্রাক|ডায়েরি|ডাইরি|রেকর্ড|এন্ট্রি|রেখে দ|রাখুন|রাখো/;
+
+/**
+ * Whether the message itself asks to save something (contract §3: chat saves only when the person clearly asks). The model's
+ * `act` is checked against this because Flash-Lite also sets it for a plain description ("for breakfast I had 2 eggs"). A
+ * request this misses (another language, unusual wording) only means the person taps the card's button instead.
+ */
+export function asksToSave(text: string): boolean {
+  return ASK_LATIN.test(text) || ASK_BENGALI.test(text);
+}
+
 // ── Proposals and results ─────────────────────────────────────────────────────────────────────────
 
-export function memoryProposalCard(conversationId: string, m: { text: string; category: MemoryCategory; sensitive: boolean }, canSave: boolean): { card: ChatCardOf<'memory_proposal'>; action: ActionSpec } {
+/**
+ * Proposal buttons get an id per proposing turn (`turnKey`): a memory or reminder the person deleted and Milo proposes again
+ * needs a new button (the app keeps done results per action id). Saving the same thing twice is still one memory or one
+ * reminder: CoachMemoryService.add and RemindersService.upsertOne return the existing one.
+ */
+export function memoryProposalCard(conversationId: string, m: { text: string; category: MemoryCategory; sensitive: boolean }, canSave: boolean, turnKey: string): { card: ChatCardOf<'memory_proposal'>; action: ActionSpec } {
   const text = trimTo(m.text, BUDDY_LIMITS.memoryMaxChars);
-  const id = actionIdFor(conversationId, 'save_memory', text.toLowerCase());
+  const id = actionIdFor(conversationId, 'save_memory', text.toLowerCase(), turnKey);
   return {
     card: { id: cardIdFor('mem', id), type: 'memory_proposal', proposalId: id, text, category: m.category, sensitive: m.sensitive, actions: [serverAction(id, 'save_memory', canSave ? null : 'plus')] },
     action: { id, type: 'save_memory', draftId: null, draftVersion: null, payload: { text, category: m.category, sensitive: m.sensitive } },
   };
 }
 
-export function reminderProposalCard(conversationId: string, reminder: ReminderInput, overCap: boolean): { card: ChatCardOf<'reminder_proposal'>; action: ActionSpec } {
-  const id = actionIdFor(conversationId, 'create_reminder', JSON.stringify(reminder));
+export function reminderProposalCard(conversationId: string, reminder: ReminderInput, overCap: boolean, turnKey: string): { card: ChatCardOf<'reminder_proposal'>; action: ActionSpec } {
+  const id = actionIdFor(conversationId, 'create_reminder', JSON.stringify(reminder), turnKey);
   return {
     card: { id: cardIdFor('rem', id), type: 'reminder_proposal', reminder, actions: [serverAction(id, 'create_reminder', overCap ? 'limit' : null), clientAction('open_reminders')] },
     action: { id, type: 'create_reminder', draftId: null, draftVersion: null, payload: { reminder } },
@@ -399,6 +420,36 @@ export function actionResultCard(
     category: r.category ?? null,
     actions,
   };
+}
+
+/** What the reply model needs to know about a card: its numbers, never its actions. */
+export function cardFacts(c: ChatCard): Record<string, unknown> {
+  switch (c.type) {
+    case 'recipe':
+      return { type: c.type, name: c.name, servings: c.servings, cookedYieldG: c.cookedYieldG, rawWeightG: c.rawWeightG, totalKcal: c.totals.kcal, proteinG: c.totals.proteinG, carbsG: c.totals.carbsG, fatG: c.totals.fatG, assumptions: c.assumptions.map((a) => a.code) };
+    case 'portion':
+      return { type: c.type, portion: c.portion, grams: c.grams, gramsBasis: c.gramsBasis, kcal: c.totals?.kcal ?? null, proteinG: c.totals?.proteinG ?? null, logReady: c.actions.some((a) => a.type === 'log_portion' && a.enabled) };
+    case 'meal':
+      return { type: c.type, name: c.name, items: c.items.map((x) => ({ name: x.name, grams: x.grams, kcal: x.kcal, stated: x.quantityStated })), kcal: c.totals.kcal, proteinG: c.totals.proteinG };
+    case 'suggestions':
+      return { type: c.type, options: c.options.map((o) => ({ name: o.name, grams: o.grams, kcal: o.kcal, proteinG: o.proteinG, minutes: o.minutes })) };
+    case 'comparison':
+      return { type: c.type, per: c.per, items: c.items.map((x) => ({ name: x.name, grams: x.grams, kcal: x.kcal, proteinG: x.proteinG, carbsG: x.carbsG, fatG: x.fatG, fiberG: x.fiberG })) };
+    case 'recipe_change':
+      return { type: c.type, changes: c.changes.map((x) => x.label), deltaKcal: c.delta.kcal, deltaProteinG: c.delta.proteinG, afterKcal: c.after.kcal };
+    // Proposals are offers: nothing is kept until the person taps the button, and a locked button says why (device test 16 Nov:
+    // "I have set a reminder… tap to turn it on", and "tap to save" to a free user whose Remember button is Plus-locked).
+    case 'memory_proposal':
+      return { type: c.type, text: c.text, status: 'proposed_not_saved_yet', blockedBy: c.actions.find((a) => a.type === 'save_memory')?.blockedBy ?? null };
+    case 'reminder_proposal':
+      return { type: c.type, reminder: c.reminder, status: 'proposed_not_set_yet', blockedBy: c.actions.find((a) => a.type === 'create_reminder')?.blockedBy ?? null };
+    case 'action_result':
+      return { type: c.type, done: c.actionType, date: c.date, category: c.category };
+    case 'day_summary':
+      return { type: c.type, date: c.date, logged: c.logged, slots: c.slots, baseKcal: c.baseKcal, budget: c.budget, remaining: c.remaining, water: c.water };
+    case 'weekly_review':
+      return { type: c.type, range: c.range, weekStart: c.weekStart, weekEnd: c.weekEnd, stats: c.stats, missingDays: c.missingDays, limitedData: c.limitedData, weight: c.weight };
+  }
 }
 
 /** Totals of nothing (a card that has no draft yet). */

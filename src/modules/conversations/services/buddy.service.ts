@@ -19,6 +19,8 @@ import { translatorFor } from '../../../shared/i18n';
 import type { LocaleCode } from '../../../shared/locales';
 import { applyModelOps, compactDraft, draftFromRecipe, type OpsResult } from '../../../domain/chat-draft';
 import {
+  asksToSave,
+  cardFacts,
   changeLabels,
   comparisonCard,
   daySummaryCard,
@@ -46,6 +48,8 @@ import type { CoachMemoryEntry } from '../../coach-preferences/schemas/coach-pre
 import type { ConversationDoc } from '../schemas/conversations.schema';
 import { ActionsService } from './actions.service';
 import { DraftsService } from './drafts.service';
+
+export { cardFacts };
 
 export const INTERPRET_TIMEOUT_MS = 15_000;
 const INTERPRET_MAX_TOKENS = 1600;
@@ -77,6 +81,8 @@ export interface BuddyInput {
   inputMethod: 'typed' | 'voice' | 'chip';
   /** Health numbers for this turn only (never stored). */
   budget: TurnBudget | null;
+  /** This turn (its clientTurnId, else a fresh id): proposal buttons get ids per turn. */
+  turnKey: string;
 }
 
 export interface BuddyTurn {
@@ -116,7 +122,7 @@ export class BuddyService {
     const prompt = await this.content.activePrompt('coach-interpret');
     const model = prompt?.model || (await this.ai.modelFor('chat', DEFAULT_TEXT_MODEL));
     const context =
-      coachLanguageDirective(i.locale, i.previousReply) +
+      coachLanguageDirective(i.locale, i.previousReply, i.text) +
       fillTemplate(prompt?.dynamicTemplate ?? 'Draft: {{draftJson}}\nMessage: {{text}}', {
         todayDate: i.today,
         selectedDate: i.date,
@@ -159,6 +165,8 @@ export class BuddyService {
       if (e instanceof AiUnavailableError || e instanceof ApiError) throw e;
       out = EMPTY_INTERPRET;
     }
+    // Safety first (as scans, rule 0): nothing unsafe to eat reaches a card or the diary; the reply says why.
+    if (out.hazard) out = { ...out, ops: [], act: null, clarify: null, suggestions: [], proposed: [] };
     const ctx = this.drafts.context(i.conv._id.toString());
     const defaultKind = out.intent === 'recipe' || out.ops.some((o) => o.op === 'set_servings' || o.op === 'set_yield') ? 'recipe' : 'meal';
 
@@ -175,8 +183,17 @@ export class BuddyService {
     }
     const res: OpsResult = applyModelOps(base, out.ops.filter((o) => o.op !== 'load_recipe'), ctx, defaultKind);
     let draft = res.draft;
+    // The meal the person named ("for breakfast") stays with the draft: its card, a later tap and "log it" file it there.
+    // Only a message about the draft moves it ("what can I eat tonight?" names dinner but is not about the lunch card).
+    const aboutDraft = ['log_food', 'recipe', 'correction', 'portion'].includes(out.intent);
+    const named = out.hazard || !aboutDraft ? null : (out.act?.category ?? out.slot ?? null);
+    const slotChanged = !!named && !!draft && draft.items.length > 0 && draft.category !== named;
+    if (slotChanged) {
+      const bump = res.changed || loadedNew || !current || draft!.id !== current.id ? {} : { version: current.version + 1, updatedAt: ctx.now.toISOString() };
+      draft = { ...draft!, ...bump, category: named };
+    }
     let draftConflict = false;
-    if (res.changed || loadedNew) {
+    if (res.changed || loadedNew || slotChanged) {
       const isNew = !current || !draft || draft.id !== current.id;
       const ok = draft ? await this.drafts.save(i.uid, i.conv._id, draft, isNew ? null : current!.version) : true;
       if (!ok) {
@@ -201,16 +218,20 @@ export class BuddyService {
     const cards: ChatCard[] = [];
     const executed: ActionResult[] = [];
     const blocked: string[] = [];
-    const category = i.category ?? defaultCategory(i.localHour);
+    const category = draft?.category ?? i.category ?? defaultCategory(i.localHour);
 
-    // An explicit "add it to lunch" / "save the recipe": the same executor as a card tap, keyed by the turn.
-    if (out.act && draft && draft.items.length && !clarify && !draftConflict) {
+    // An explicit "add it to lunch" / "save the recipe": the same executor as a card tap, keyed by the turn. Only when the
+    // words ask for it (the model also sets `act` for a plain description), and never a second diary entry for a draft that
+    // is already in the diary (a correction changes the card, not the diary; another entry is the person's own tap).
+    if (out.act && draft && draft.items.length && !clarify && !draftConflict && asksToSave(i.text)) {
       const deleted = await this.actions.deletedLogMeals(i.uid, draft);
       const built = draftCards(draft, { conversationId: i.conv._id.toString(), date: i.date, category, deletedLogMealIds: deleted });
       await this.actions.register(i.uid, i.conv._id, built.actions);
       const want = out.act.type === 'log' ? (draft.kind === 'recipe' ? 'log_portion' : 'log_meal') : draft.savedRecipeId ? 'update_recipe' : 'save_recipe';
       const spec = built.actions.find((a) => a.type === want);
-      if (spec) {
+      const inDiary = out.act.type === 'log' && draft.logs.some((l) => l.draftVersion !== draft!.version && !deleted.includes(l.mealId));
+      if (spec && inDiary) blocked.push(`${want}:already_in_diary_the_person_can_tap_the_card_to_add_it_again`);
+      else if (spec) {
         const date = out.act.day === 'yesterday' ? addDays(i.date, -1) : i.date;
         try {
           const result = await this.actions.execute(i.uid.toString(), i.conv._id.toString(), spec.id, { draftVersion: draft.version, date, category: out.act.category ?? category, timezone: i.timezone }, { source: i.inputMethod === 'voice' ? 'voice' : 'text', consented: false });
@@ -223,7 +244,7 @@ export class BuddyService {
       }
     }
 
-    const draftTouched = res.changed || loadedNew || executed.length > 0 || draftConflict || ['log_food', 'recipe', 'correction', 'portion'].includes(out.intent);
+    const draftTouched = res.changed || loadedNew || slotChanged || executed.length > 0 || draftConflict || (!out.hazard && ['log_food', 'recipe', 'correction', 'portion'].includes(out.intent));
     if (draft && draftTouched) {
       const deleted = await this.actions.deletedLogMeals(i.uid, draft);
       const built = draftCards(draft, { conversationId: i.conv._id.toString(), date: i.date, category, deletedLogMealIds: deleted });
@@ -242,7 +263,7 @@ export class BuddyService {
       if (c) cards.push(c);
     }
     if (out.intent === 'modify_recipe' && draft && out.proposed.length) {
-      const ch = recipeChangeCard(draft, out.proposed, ctx, changeLabels(draft, out.proposed));
+      const ch = recipeChangeCard(draft, out.proposed, ctx, changeLabels(draft, out.proposed, i.locale));
       if (ch) {
         cards.push(ch.card);
         specs.push(ch.action);
@@ -253,7 +274,7 @@ export class BuddyService {
       for (const m of out.memory) {
         if (!m.text.trim() || looksTemporary(m.text)) continue;
         const sensitive = isSensitive(m.text, m.category, m.sensitive);
-        const proposal = memoryProposalCard(i.conv._id.toString(), { text: m.text, category: m.category, sensitive }, i.plus);
+        const proposal = memoryProposalCard(i.conv._id.toString(), { text: m.text, category: m.category, sensitive }, i.plus, i.turnKey);
         if (m.explicit && !sensitive && i.plus) {
           await this.actions.register(i.uid, i.conv._id, [proposal.action]);
           try {
@@ -274,7 +295,7 @@ export class BuddyService {
       const reminder = this.reminderInput(out.reminder);
       if (reminder) {
         const overCap = await this.reminders.wouldPassCap(i.uid, reminder);
-        const p = reminderProposalCard(i.conv._id.toString(), reminder, overCap);
+        const p = reminderProposalCard(i.conv._id.toString(), reminder, overCap, i.turnKey);
         cards.push(p.card);
         specs.push(p.action);
       } else blocked.push('reminder_incomplete');
@@ -298,6 +319,12 @@ export class BuddyService {
         executed: executed.map((r) => ({ type: r.type, date: r.meal?.date ?? null, category: r.meal?.category ?? null, kcal: r.meal?.totals.kcal ?? null, recipe: r.recipe?.name ?? null, memory: r.memory?.text ?? null })),
         cards: cards.map(cardFacts),
         clarify: clarify?.question ?? null,
+        hazard: out.hazard
+          ? {
+              ...out.hazard,
+              rule: 'Not safe to eat, so nothing was added to a card or the diary. Lead with this: say in one or two sentences what it is and why it is not safe, and that it should not be eaten. If they already ate it, tell them to contact a doctor or their local emergency number now if they feel unwell. Do not list symptoms or treatments and do not diagnose.',
+            }
+          : null,
       },
     };
   }
@@ -323,33 +350,5 @@ export class BuddyService {
   /** The day card for review_day (live: may carry the activity adjustment; stripped before storing). */
   dayCard(day: DayResponse, today: string, habitsOnly: boolean, budget: TurnBudget | null): ChatCard {
     return daySummaryCard(day, { today, habitsOnly, budget });
-  }
-}
-
-/** What the reply model needs to know about a card: its numbers, never its actions. */
-export function cardFacts(c: ChatCard): Record<string, unknown> {
-  switch (c.type) {
-    case 'recipe':
-      return { type: c.type, name: c.name, servings: c.servings, cookedYieldG: c.cookedYieldG, rawWeightG: c.rawWeightG, totalKcal: c.totals.kcal, proteinG: c.totals.proteinG, carbsG: c.totals.carbsG, fatG: c.totals.fatG, assumptions: c.assumptions.map((a) => a.code) };
-    case 'portion':
-      return { type: c.type, portion: c.portion, grams: c.grams, gramsBasis: c.gramsBasis, kcal: c.totals?.kcal ?? null, proteinG: c.totals?.proteinG ?? null, logReady: c.actions.some((a) => a.type === 'log_portion' && a.enabled) };
-    case 'meal':
-      return { type: c.type, name: c.name, items: c.items.map((x) => ({ name: x.name, grams: x.grams, kcal: x.kcal, stated: x.quantityStated })), kcal: c.totals.kcal, proteinG: c.totals.proteinG };
-    case 'suggestions':
-      return { type: c.type, options: c.options.map((o) => ({ name: o.name, grams: o.grams, kcal: o.kcal, proteinG: o.proteinG, minutes: o.minutes })) };
-    case 'comparison':
-      return { type: c.type, per: c.per, items: c.items.map((x) => ({ name: x.name, grams: x.grams, kcal: x.kcal, proteinG: x.proteinG, carbsG: x.carbsG, fatG: x.fatG, fiberG: x.fiberG })) };
-    case 'recipe_change':
-      return { type: c.type, changes: c.changes.map((x) => x.label), deltaKcal: c.delta.kcal, deltaProteinG: c.delta.proteinG, afterKcal: c.after.kcal };
-    case 'memory_proposal':
-      return { type: c.type, text: c.text, needsTap: true };
-    case 'reminder_proposal':
-      return { type: c.type, reminder: c.reminder, blocked: c.actions.find((a) => a.type === 'create_reminder')?.blockedBy ?? null };
-    case 'action_result':
-      return { type: c.type, done: c.actionType, date: c.date, category: c.category };
-    case 'day_summary':
-      return { type: c.type, date: c.date, logged: c.logged, slots: c.slots, baseKcal: c.baseKcal, budget: c.budget, remaining: c.remaining, water: c.water };
-    case 'weekly_review':
-      return { type: c.type, range: c.range, weekStart: c.weekStart, weekEnd: c.weekEnd, stats: c.stats, missingDays: c.missingDays, limitedData: c.limitedData, weight: c.weight };
   }
 }

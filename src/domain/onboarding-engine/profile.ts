@@ -1,5 +1,6 @@
 /** Active profile values from the current answers (plan section 6 `profiles`). */
-import { mapActivityOption, type ActivityLevel } from '../plan-calculator';
+import type { DayActivity, ExerciseFrequency, GoalPace } from '../../shared';
+import { activityLevelOf, asDayActivity, asExerciseFrequency, asGoalPace, type ActivityLevel } from '../plan-calculator';
 import { ageFromAnswer } from './conditions';
 import type { AnswerMap, AnswerValue, QuestionSet } from './types';
 
@@ -18,7 +19,14 @@ export interface ProfileFields {
   weightKg: number | null;
   weightIsEstimate: boolean;
   targetWeightKg: number | null;
+  /** q10, or the level derived from q39 + q40 when both are answered (decision 0017). */
   activityLevel: ActivityLevel | null;
+  /** q39: the usual day, without workouts. */
+  dayActivity: DayActivity | null;
+  /** q40: exercise sessions in a normal week. */
+  exerciseFrequency: ExerciseFrequency | null;
+  /** q41: pace for a lose or gain goal; null = not answered. */
+  goalPace: GoalPace | null;
   dietPattern: string | null;
   mealSource: string | null;
   nutritionFamiliarity: string | null;
@@ -66,6 +74,8 @@ export function profileFromAnswers(set: QuestionSet, answers: AnswerMap, today: 
   const age = byField.birth_date_or_age;
   const weight = byField.current_weight_kg;
   const sex = byField.calculation_sex;
+  const dayActivity = asDayActivity(byField.day_activity);
+  const exerciseFrequency = asExerciseFrequency(byField.exercise_frequency);
   const lifeStageSkipped = set.questions.some((q) => q.fieldKey === 'life_stage' && answers[q.id]?.status === 'skipped');
   return {
     primaryGoal: str(byField.primary_goal),
@@ -81,7 +91,11 @@ export function profileFromAnswers(set: QuestionSet, answers: AnswerMap, today: 
     weightKg: objNum(weight, 'kg'),
     weightIsEstimate: isObject(weight) && weight.isEstimate === true,
     targetWeightKg: objNum(byField.target_weight_kg, 'kg'),
-    activityLevel: mapActivityOption(str(byField.activity_level)),
+    // q39 + q40 win over an older q10 answer; one of them alone changes nothing.
+    activityLevel: activityLevelOf({ dayActivity, exerciseFrequency, activityLevel: str(byField.activity_level) }),
+    dayActivity,
+    exerciseFrequency,
+    goalPace: asGoalPace(byField.goal_pace),
     dietPattern: str(byField.diet_pattern),
     mealSource: str(byField.meal_source),
     nutritionFamiliarity: str(byField.nutrition_familiarity),

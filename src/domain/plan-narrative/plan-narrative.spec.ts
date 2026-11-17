@@ -15,7 +15,7 @@ const profile = (over: Partial<ProfileFields> = {}): ProfileFields => ({
   activityLevel: 'light', dietPattern: 'veg', mealSource: 'home', nutritionFamiliarity: 'some', startingMood: 'ready',
   habitPriorities: [], loggingMethods: [], timeframeWeeks: 26, allergies: ['peanuts'], allergyOther: null, dietPatternOther: null,
   mealsPerDay: 'three', schedulePattern: 'shifts', higherIntakePattern: null, trackingExperience: null, routineBarriers: ['busy'], eatingCues: [],
-  lifeStage: 'none', movementActions: ['walk'],
+  lifeStage: 'none', movementActions: ['walk'], dayActivity: null, exerciseFrequency: null, goalPace: null,
   ...over,
 });
 
@@ -253,6 +253,25 @@ describe('planInputHash', () => {
     expect(planInputHash(profile({ lifeStage: 'pregnant' }))).not.toBe(h);
     expect(planInputHash(profile({ movementActions: ['steps'] }))).not.toBe(h);
   });
+
+  it('changes with the usual day, the exercise and the pace (decision 0017), so a changed answer makes a new draft', () => {
+    const h = planInputHash(profile());
+    const day = planInputHash(profile({ dayActivity: 'seated' }));
+    const both = planInputHash(profile({ dayActivity: 'seated', exerciseFrequency: 'none' }));
+    const paced = planInputHash(profile({ dayActivity: 'seated', exerciseFrequency: 'none', goalPace: 'steady' }));
+    expect(new Set([h, day, both, paced]).size).toBe(4);
+    expect(planInputHash(profile({ dayActivity: 'moving', exerciseFrequency: 'none' }))).not.toBe(both);
+    expect(planInputHash(profile({ dayActivity: 'seated', exerciseFrequency: 'one_two' }))).not.toBe(both);
+    expect(planInputHash(profile({ dayActivity: 'seated', exerciseFrequency: 'none', goalPace: 'faster' }))).not.toBe(paced);
+  });
+
+  it('a profile without the new answers keeps the hash it had before, so drafts made earlier stay current', () => {
+    // What a stored profile looked like before decision 0017: the three fields do not exist at all.
+    const { dayActivity: _d, exerciseFrequency: _e, goalPace: _g, ...before } = profile();
+    expect(planInputHash(before)).toBe(planInputHash(profile()));
+    // Computed with the code as it was before the change, for exactly this profile.
+    expect(planInputHash(profile())).toBe('34364826fc1d0ed648a71d40f39427b9');
+  });
 });
 
 describe('buildNarrativeContext', () => {
@@ -277,6 +296,26 @@ describe('buildNarrativeContext', () => {
   it('says "not provided" for unanswered allergies instead of assuming none', () => {
     const c = buildNarrativeContext({ profile: profile({ allergies: null }), preview, timeframe: null, assessment: assessPlan({ ...planInputs(p), lifeStage: 'none' }), label: makeLabeler(set) });
     expect(c.context).toMatch(/"allergiesAndIntolerances": "not provided"/);
+  });
+});
+
+describe('buildNarrativeContext: two-part activity and pace (decision 0017)', () => {
+  const set = loadQuestionSet(loadContentJson('questions.v4.json'));
+  const inputs = { ageYears: 34, calculationSex: 'female' as const, heightCm: 168, weightKg: 82, activityLevel: 'light' as const, goal: 'lose', targetWeightKg: 74, lifeStage: 'none' };
+
+  it('sends the usual day, the exercise and the chosen pace in words, and drops the derived q10 label', () => {
+    const p = profile({ dayActivity: 'standing', exerciseFrequency: 'three_four', goalPace: 'steady', activityLevel: 'active' });
+    const plan = { ...inputs, dayActivity: p.dayActivity, exerciseFrequency: p.exerciseFrequency, goalPace: p.goalPace };
+    const c = JSON.parse(buildNarrativeContext({ profile: p, preview: calculatePlan(plan), timeframe: null, assessment: assessPlan(plan), label: makeLabeler(set) }).context) as { profile: Record<string, unknown>; pace: unknown };
+    expect(c.profile).toMatchObject({ activity: null, usualDay: 'On my feet some of the day (teaching, shop work, housework)', exercise: '3–4 times a week' });
+    expect(c.pace).toBe('steady');
+  });
+
+  it('keeps the q10 label for an older answer and sends no pace when none was chosen', () => {
+    const p = profile();
+    const c = JSON.parse(buildNarrativeContext({ profile: p, preview: calculatePlan(inputs), timeframe: null, assessment: assessPlan(inputs), label: makeLabeler(set) }).context) as { profile: Record<string, unknown>; pace: unknown };
+    expect(c.profile).toMatchObject({ activity: 'Some walking or light activity', usualDay: null, exercise: null });
+    expect(c.pace).toBeNull();
   });
 });
 

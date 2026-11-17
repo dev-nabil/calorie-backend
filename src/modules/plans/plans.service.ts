@@ -41,10 +41,13 @@ export function planInputsFrom(profile: ProfileDoc | null): PlanInputs {
     heightCm: profile?.heightCm ?? null,
     weightKg: profile?.weightKg ?? null,
     activityLevel: profile?.activityLevel ?? null,
+    dayActivity: profile?.dayActivity ?? null,
+    exerciseFrequency: profile?.exerciseFrequency ?? null,
+    goalPace: profile?.goalPace ?? null,
     goal: profile?.primaryGoal ?? null,
     targetWeightKg: profile?.targetWeightKg ?? null,
     lifeStage: profile?.lifeStage ?? null,
-    waterMl: WATER_DEFAULT_TARGET_ML,
+    // No waterMl here: a calorie plan gets 30 ml per kg, everything else the default (decision 0017 §5).
   };
 }
 
@@ -75,11 +78,14 @@ function withoutNumbers(p: PlanPreview, reasons: string[]): PlanPreview {
     activityFactor: null,
     tdeeKcal: null,
     adjustmentPct: null,
+    weeklyChangeKg: null,
     floorKcal: null,
     calculated: null,
     bounds: null,
+    // The water target of a calorie plan is personal; without one the default applies.
+    waterMl: WATER_DEFAULT_TARGET_ML,
     // No weight-focused goal is shown or stored for a draft that is not a calorie plan.
-    goal: { type: p.goal.type, startWeightKg: null, targetWeightKg: null, pace: null },
+    goal: { type: p.goal.type, startWeightKg: null, targetWeightKg: null, pace: null, paceLimitedBy: null },
   };
 }
 
@@ -291,7 +297,7 @@ export class PlansService {
       proteinG: t?.proteinG ?? null,
       carbsG: t?.carbsG ?? null,
       fatG: t?.fatG ?? null,
-      waterMl: req.waterMl ?? preview.waterMl,
+      waterMl: req.waterMl ?? (t ? preview.waterMl : WATER_DEFAULT_TARGET_ML),
       method: t ? preview.method : null,
       goal: {
         ...preview.goal,
@@ -344,9 +350,9 @@ export class PlansService {
       proteinG: t?.proteinG ?? null,
       carbsG: t?.carbsG ?? null,
       fatG: t?.fatG ?? null,
-      waterMl: req.waterMl ?? preview.waterMl,
+      waterMl: req.waterMl ?? (t ? preview.waterMl : WATER_DEFAULT_TARGET_ML),
       method: t ? preview.method : null,
-      goal: habits ? { type: 'habits', startWeightKg: null, targetWeightKg: null, pace: null } : preview.goal,
+      goal: habits ? { type: 'habits', startWeightKg: null, targetWeightKg: null, pace: null, paceLimitedBy: null } : preview.goal,
       inputs: t ? preview.inputs : null,
       calculated: t ? preview.calculated : null,
       confirmedAt: new Date(),
@@ -406,7 +412,7 @@ export class PlansService {
       fatG: null,
       waterMl: active.waterMl,
       method: null,
-      goal: { type: active.goal.type, startWeightKg: null, targetWeightKg: null, pace: null },
+      goal: { type: active.goal.type, startWeightKg: null, targetWeightKg: null, pace: null, paceLimitedBy: null },
       inputs: null,
       calculated: null,
       confirmedAt: new Date(),
@@ -440,6 +446,7 @@ export class PlansService {
         startWeightKg: d.goal.startWeightKg ?? null,
         targetWeightKg: d.goal.targetWeightKg ?? null,
         pace: d.goal.pace ?? null,
+        paceLimitedBy: d.goal.paceLimitedBy ?? null,
       },
       calculated: d.calculated ?? null,
       // Only a plan with an energy target has an activity allowance in it.

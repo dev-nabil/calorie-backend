@@ -171,18 +171,25 @@ async function main(): Promise<void> {
     provider = new GeminiProvider(config.GEMINI_API_KEY);
   }
   const bundle = loadContentBundle(config.CONTENT_DIR);
-  const prompt = bundle.prompts.filter((p) => p.key === 'coach').sort((a, b) => b.version - a.version)[0];
+  // The prompt the server uses for every coach turn: coach-buddy (Milo buddy), else the older coach prompt.
+  const newest = (key: string) => bundle.prompts.filter((p) => p.key === key).sort((a, b) => b.version - a.version)[0];
+  const prompt = newest('coach-buddy') ?? newest('coach');
   const model = (typeof prompt?.meta.model === 'string' ? prompt.meta.model : '') || DEFAULT_TEXT_MODEL;
-  console.warn(`\nCoach smoke test: provider=${provider.name}, model=${model}, prompt=coach.v${prompt?.version ?? '(fallback)'}, ${SCENARIOS.length} scenarios\n`);
+  console.warn(`\nCoach smoke test: provider=${provider.name}, model=${model}, prompt=${prompt ? `${prompt.key}.v${prompt.version}` : '(fallback)'}, ${SCENARIOS.length} scenarios\n`);
 
   let failures = 0;
   for (const [i, s] of SCENARIOS.entries()) {
     if (only !== null && only !== i + 1) continue;
     const full = s.mode === 'full';
     const context = buildCoachContext({ name: full ? 'Amina' : 'Sam', mode: s.mode, units: DEFAULT_UNITS, profile: full ? FULL : YOUNG, day: day(full), week: week() });
-    const userMessage = coachUserMessage(prompt?.dynamicTemplate, coachLanguageDirective(s.app, s.before?.findLast((m) => m.role === 'assistant')?.content), {
+    const userMessage = coachUserMessage(prompt?.dynamicTemplate, coachLanguageDirective(s.app, s.before?.findLast((m) => m.role === 'assistant')?.content, s.say), {
       todayDate: '2026-11-05',
+      selectedDate: '2026-11-05',
       localTime: '19:40',
+      budgetJson: 'null',
+      buddyJson: 'null',
+      memoryJson: '[]',
+      replyLength: 'normal',
       plan: 'free',
       appLanguage: 'not used for this message',
       quickAction: 'null',

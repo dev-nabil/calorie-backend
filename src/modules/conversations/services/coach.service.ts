@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { clock } from '../../../common/clock';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -5,7 +6,8 @@ import type { Model, Types } from 'mongoose';
 import { AI_LIMITS, BUDDY_LIMITS, type ActionResult, type ChatCard, type ChatDraft, type Clarify, type DayResponse, type MiloReply, type QuickActionName, type TurnBudget, type TurnRequest } from '../../../shared';
 import { translatorFor } from '../../../shared/i18n';
 import { avoidTermsFor } from '../../../domain/plan-narrative';
-import { weeklyReviewCard } from '../../../domain/buddy-cards';
+import { containsHealthKeys, stripHealth, weeklyReviewCard } from '../../../domain/buddy-cards';
+import { KvStore } from '../../../infra/kv/kv-store';
 import { CoachMemoryService } from '../../coach-preferences/coach-memory.service';
 import { RecapService } from '../../recap/recap.service';
 import { RemindersService } from '../../reminders/reminders.service';
@@ -104,6 +106,9 @@ const QUICK_ACTION_ASKED: Record<QuickActionName, string> = {
   build_recipe: 'Build a recipe',
   weekly_review: 'Review my week',
 };
+
+/** How long step 2 of a coach turn is kept for a retry of the same clientTurnId (the finished reply is kept with the message). */
+const BUDDY_STEP_TTL_SEC = 24 * 3600;
 
 /** Older messages the model sees as chat turns; the rolling summary covers the rest. */
 const HISTORY_MESSAGES = 20;
@@ -238,6 +243,7 @@ export class CoachService {
     private readonly reminders: RemindersService,
     private readonly recap: RecapService,
     private readonly weights: WeightsService,
+    private readonly kv: KvStore,
   ) {}
 
   private async lines(): Promise<{ lines?: Record<string, { text?: string }>; coach?: CoachContent; nudges?: NudgeContent } | undefined> {
@@ -317,7 +323,11 @@ export class CoachService {
     const localTime = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(now);
     const avoid = avoidTermsFor(profile?.allergies ?? null, profile?.allergyOther ?? null, profile?.dietPattern ?? null, locale);
     if (!quickAction || quickAction === 'what_to_eat') {
-      buddy = await this.buddy.turn({
+      // A retry (same clientTurnId) of a turn that already did step 2 and then failed while answering reuses what step 2 did:
+      // the message is not read again, so ops are not applied twice and a log does not run again under a new action id.
+      const stepKey = req.clientTurnId ? `buddy-turn:${conv._id.toString()}:${req.clientTurnId}` : null;
+      const saved = stepKey ? await this.kv.get(stepKey) : null;
+      buddy = saved ? (JSON.parse(saved) as BuddyTurn) : await this.buddy.turn({
         conv,
         uid: user._id,
         plus,
@@ -338,7 +348,12 @@ export class CoachService {
         memory,
         inputMethod: req.inputMethod,
         budget,
+        turnKey: req.clientTurnId ?? randomUUID(),
       });
+      if (stepKey && !saved) {
+        const keep: BuddyTurn = { ...buddy, cards: stripHealth(buddy.cards) };
+        if (!containsHealthKeys(keep)) await this.kv.set(stepKey, JSON.stringify(keep), BUDDY_STEP_TTL_SEC);
+      }
       cards = buddy.cards;
     } else if (quickAction === 'review_day') {
       cards = [this.buddy.dayCard(day, today, facts.habitsOnly, budget)];
@@ -378,11 +393,15 @@ export class CoachService {
     // ── Step 4: the reply, explaining computed results ──
     const prompt = (await this.content.activePrompt('coach-buddy')) ?? (await this.content.activePrompt('coach'));
     const model = prompt?.model || (await this.ai.modelFor('chat', DEFAULT_TEXT_MODEL));
-    const context = buildCoachContext({ name: user.displayName ?? profile?.displayName ?? null, mode: profile?.mode ?? 'habits_only', units: user.units, profile, day, week });
-    const budgetFacts = applyBudget(context, day, budget, facts.habitsOnly);
+    // A meal this turn put in the diary ("add it to lunch") counts in what the reply says is eaten and left.
+    const logged = buddy?.executed.some((r) => r.meal) ?? false;
+    const replyDay = logged ? await this.days.day(userId, date, now) : day;
+    const replyWeek = logged ? await this.days.progress(userId, 'week', today, now).catch(() => week) : week;
+    const context = buildCoachContext({ name: user.displayName ?? profile?.displayName ?? null, mode: profile?.mode ?? 'habits_only', units: user.units, profile, day: replyDay, week: replyWeek });
+    const budgetFacts = applyBudget(context, replyDay, budget, facts.habitsOnly);
     const style = plus ? await this.coachPrefs.styleFor(userId) : null;
     const directive =
-      (quickAction ? languageDirective(locale) : coachLanguageDirective(locale, history.findLast((m) => m.role === 'assistant')?.content)) + coachStyleDirective(style);
+      (quickAction ? languageDirective(locale) : coachLanguageDirective(locale, history.findLast((m) => m.role === 'assistant')?.content, req.text)) + coachStyleDirective(style);
     const replyQuick = quickAction === 'what_to_eat' ? null : quickAction;
     let streamed = false;
     try {
@@ -475,10 +494,12 @@ export class CoachService {
    */
   private async history(conv: ConversationDoc, resetAt: Date | null = null): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
     // After a memory was deleted or edited, older messages are no longer sent to the model (they stay visible to the person).
-    const filter = resetAt ? { conversationId: conv._id, createdAt: { $gt: resetAt } } : { conversationId: conv._id };
+    const filter = resetAt ? { userId: conv.userId, conversationId: conv._id, createdAt: { $gt: resetAt } } : { userId: conv.userId, conversationId: conv._id };
     const rows = (await this.messages.find(filter).sort({ createdAt: -1 }).limit(HISTORY_MESSAGES + 1).lean<MessageDoc[]>()).reverse();
     if (rows.at(-1)?.role === 'user') rows.pop();
-    return rows.map((m) => ({
+    // A message that never got an answer (refused by the daily limit, cut off offline, then something else was asked) is
+    // left out: the model answered it with the next one, in the wrong language (device test 16 Nov).
+    return rows.filter((m, i) => m.role !== 'user' || rows[i + 1]?.role === 'assistant').map((m) => ({
       role: m.role,
       // A chip tap is stored as a bracketed placeholder (`[review_day]`); the model reads what it stood for.
       content: (m.role === 'user' && m.quickAction && m.text.startsWith('[') ? (QUICK_ACTION_ASKED[m.quickAction as QuickActionName] ?? m.text) : m.text).slice(0, HISTORY_MESSAGE_CHARS),

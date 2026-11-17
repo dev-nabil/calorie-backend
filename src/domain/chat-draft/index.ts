@@ -18,6 +18,7 @@ import {
   sanitisePer100g,
   type FoodIndex,
 } from '../food-nutrition';
+import type { LocaleCode } from '../../shared/locales';
 import {
   BUDDY_LIMITS,
   ITEM_GRAMS_MAX,
@@ -59,6 +60,8 @@ export interface DraftContext {
   newId: () => string;
   conversationId: string;
   now: Date;
+  /** The request's language: unit words in `quantity.text` follow it (English when absent). */
+  locale?: LocaleCode;
 }
 
 // ── Items ──────────────────────────────────────────────────────────────────────────────────────────
@@ -76,8 +79,34 @@ export function opGrams(op: Pick<InterpretOp, 'qty' | 'unit' | 'g' | 'stated'>):
   return null;
 }
 
-const quantityText = (op: Pick<InterpretOp, 'qty' | 'unit'>, grams: number): string =>
-  op.qty !== null && op.unit ? `${op.qty} ${op.unit}` : `${round1(grams)} g`;
+/** Counted units read in the plural above one ("2 pieces"); weights and spoons keep their short form. */
+const PLURAL_UNITS: ReadonlySet<string> = new Set(['piece', 'slice', 'cup', 'glass', 'bowl', 'plate', 'serving']);
+
+/** Bangla unit words as the app's Bangla copy writes them (টুকরো, গ্রাম, কেজি, মি.লি., লিটার, সার্ভিং); Bangla has no plural. */
+const BN_UNITS: Readonly<Record<Exclude<DescribeUnit, 'other'>, string>> = {
+  g: 'গ্রাম',
+  kg: 'কেজি',
+  ml: 'মি.লি.',
+  l: 'লিটার',
+  piece: 'টুকরো',
+  slice: 'স্লাইস',
+  cup: 'কাপ',
+  glass: 'গ্লাস',
+  bowl: 'বাটি',
+  plate: 'প্লেট',
+  tbsp: 'টেবিল চামচ',
+  tsp: 'চা চামচ',
+  serving: 'সার্ভিং',
+};
+
+/** "2 pieces", "1 slice", "150 g" ("2 টুকরো", "150 গ্রাম" in Bangla); an amount in no unit of ours ("other") reads as its grams. */
+export const quantityText = (op: Pick<InterpretOp, 'qty' | 'unit'>, grams: number, locale?: LocaleCode): string => {
+  const bn = locale === 'bn';
+  if (op.qty === null || !op.unit || op.unit === 'other') return `${round1(grams)} ${bn ? BN_UNITS.g : 'g'}`;
+  if (bn) return `${op.qty} ${BN_UNITS[op.unit]}`;
+  const unit = op.qty !== 1 && PLURAL_UNITS.has(op.unit) ? (op.unit === 'glass' ? 'glasses' : `${op.unit}s`) : op.unit;
+  return `${op.qty} ${unit}`;
+};
 
 /** The per-100-gram basis for a food: a matching record (not for weights with the bone in), else the model's sanitised values. */
 function basisFor(op: InterpretOp, records: FoodIndex): { per100g: NutrientValues; source: DraftItem['source'] } {
@@ -89,7 +118,7 @@ function basisFor(op: InterpretOp, records: FoodIndex): { per100g: NutrientValue
 }
 
 /** A new draft item from an add_item op; null when it has no name or no amount (the reply then asks). */
-export function itemFromOp(op: InterpretOp, id: string, records: FoodIndex = NO_RECORDS): DraftItem | null {
+export function itemFromOp(op: InterpretOp, id: string, records: FoodIndex = NO_RECORDS, locale?: LocaleCode): DraftItem | null {
   const name = trimTo(op.name ?? op.en, 120);
   const amount = opGrams(op);
   if (!name || !amount) return null;
@@ -99,7 +128,7 @@ export function itemFromOp(op: InterpretOp, id: string, records: FoodIndex = NO_
     id,
     name,
     canonicalName: trimTo(op.en, 120),
-    quantity: { value: op.qty ?? null, unit: op.unit ?? null, text: quantityText(op, grams) },
+    quantity: { value: op.qty ?? null, unit: op.unit ?? null, text: quantityText(op, grams, locale) },
     grams,
     quantityStated: amount.stated,
     state: op.state ?? null,
@@ -300,7 +329,7 @@ export function applyModelOps(current: ChatDraft | null, ops: readonly Interpret
           res.rejected.push({ op: op.op, reason: 'limit' });
           break;
         }
-        const item = itemFromOp(op, nextItemId(draft.items), records);
+        const item = itemFromOp(op, nextItemId(draft.items), records, ctx.locale);
         if (!item) {
           res.rejected.push({ op: op.op, reason: 'no_amount' });
           break;
@@ -331,7 +360,7 @@ export function applyModelOps(current: ChatDraft | null, ops: readonly Interpret
           touch();
           break;
         }
-        const updated = updateItem(target.item, op, records);
+        const updated = updateItem(target.item, op, records, ctx.locale);
         if (!updated) {
           res.rejected.push({ op: op.op, reason: 'invalid' });
           break;
@@ -403,14 +432,14 @@ export function applyModelOps(current: ChatDraft | null, ops: readonly Interpret
 const emptyRecipe = (): NonNullable<ChatDraft['recipe']> => ({ servings: null, cookedYieldG: null, rawWeightG: 0, totals: computeMealTotals([]), per100gCooked: null });
 
 /** An update_item op on one item: amount, raw/cooked, bone, or a different food (new basis). */
-export function updateItem(item: DraftItem, op: InterpretOp, records: FoodIndex = NO_RECORDS): DraftItem | null {
+export function updateItem(item: DraftItem, op: InterpretOp, records: FoodIndex = NO_RECORDS, locale?: LocaleCode): DraftItem | null {
   const next: DraftItem = { ...item, quantity: { ...item.quantity } };
   const amount = op.qty !== null || op.g !== null ? opGrams(op) : null;
   if ((op.qty !== null || op.g !== null) && !amount) return null;
   if (amount) {
     next.grams = round1(clamp(amount.grams, ITEM_GRAMS_MIN, BUDDY_LIMITS.recipeItemGramsMax));
     next.quantityStated = amount.stated || op.stated === true;
-    next.quantity = { value: op.qty ?? null, unit: op.unit ?? null, text: quantityText(op, next.grams) };
+    next.quantity = { value: op.qty ?? null, unit: op.unit ?? null, text: quantityText(op, next.grams, locale) };
   }
   if (op.state) next.state = op.state;
   if (op.bone) next.bone = op.bone;
@@ -439,7 +468,7 @@ export function updateItem(item: DraftItem, op: InterpretOp, records: FoodIndex 
 export type EditResult = { ok: true; draft: ChatDraft } | { ok: false; field: string; reason: string };
 
 /** Deterministic edits from the card; all or nothing, one version bump. */
-export function applyEdits(current: ChatDraft, ops: readonly DraftEditOp[], now: Date): EditResult {
+export function applyEdits(current: ChatDraft, ops: readonly DraftEditOp[], now: Date, locale?: LocaleCode): EditResult {
   const d = structuredClone(current);
   for (const op of ops) {
     const item = op.itemId ? d.items.find((i) => i.id === op.itemId) : undefined;
@@ -448,7 +477,7 @@ export function applyEdits(current: ChatDraft, ops: readonly DraftEditOp[], now:
         if (!item || op.grams === undefined) return { ok: false, field: 'itemId', reason: 'unknown_item' };
         if (d.kind === 'meal' && op.grams > ITEM_GRAMS_MAX) return { ok: false, field: 'grams', reason: 'too_large' };
         item.grams = round1(op.grams);
-        item.quantity = { value: round1(op.grams), unit: 'g', text: `${round1(op.grams)} g` };
+        item.quantity = { value: round1(op.grams), unit: 'g', text: quantityText({ qty: round1(op.grams), unit: 'g' }, op.grams, locale) };
         item.quantityStated = true;
         break;
       case 'remove_item':

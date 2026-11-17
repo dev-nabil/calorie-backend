@@ -93,11 +93,15 @@ export class ConversationsService {
    */
   private async coachTurnOnce(conv: ConversationDoc, req: TurnRequest, onDelta?: (t: string) => void, onState?: (s: BuddyState) => void): Promise<MiloReply> {
     const key = req.clientTurnId!;
-    const done = await this.messages.findOne({ conversationId: conv._id, userId: conv.userId, role: 'assistant', clientTurnId: key }).lean<MessageDoc>();
+    const answered = () => this.messages.findOne({ conversationId: conv._id, userId: conv.userId, role: 'assistant', clientTurnId: key }).lean<MessageDoc>();
+    const done = await answered();
     if (done?.snapshot) return this.replay(done.snapshot as MiloReply, onDelta, onState);
     const lock = `turn:${conv._id.toString()}`;
     if (!(await this.kv.setIfAbsent(lock, key, TURN_LOCK_SEC))) throw ApiError.conflict(ERROR_CODES.TURN_IN_PROGRESS, 'Milo is still answering the last message');
     try {
+      // The first request may have stored its answer between the lookup above and taking the lock.
+      const late = await answered();
+      if (late?.snapshot) return this.replay(late.snapshot as MiloReply, onDelta, onState);
       // A user message with this key but no answer is a turn that crashed: it runs again.
       await this.messages.deleteOne({ conversationId: conv._id, userId: conv.userId, role: 'user', clientTurnId: key });
       return await this.runTurn(conv, req, onDelta, onState);
@@ -149,7 +153,8 @@ export class ConversationsService {
 
   async list(userId: string, id: string, limit: number) {
     const conv = await this.find(userId, id);
-    const docs = await this.messages.find({ userId: conv.userId, conversationId: conv._id }).sort({ createdAt: 1 }).limit(limit).lean<MessageDoc[]>();
+    // The newest `limit` messages, oldest first: a resumed long chat shows its latest turns, not its first ones.
+    const docs = (await this.messages.find({ userId: conv.userId, conversationId: conv._id }).sort({ createdAt: -1, _id: -1 }).limit(limit).lean<MessageDoc[]>()).reverse();
     return {
       items: docs.map((m) => ({
         id: m._id.toString(),

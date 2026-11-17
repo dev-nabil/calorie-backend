@@ -45,6 +45,26 @@ export type InputMethod = (typeof INPUT_METHODS)[number];
 export const ACTIVITY_LEVELS = ['seated', 'light', 'active', 'intense'] as const;
 export type ActivityLevel = (typeof ACTIVITY_LEVELS)[number];
 
+/** q39 option ids: the usual day, without workouts (decision 0017). */
+export const DAY_ACTIVITIES = ['seated', 'standing', 'moving', 'physical'] as const;
+export type DayActivity = (typeof DAY_ACTIVITIES)[number];
+
+/** q40 option ids: exercise sessions in a normal week (decision 0017). */
+export const EXERCISE_FREQUENCIES = ['none', 'one_two', 'three_four', 'five_plus'] as const;
+export type ExerciseFrequency = (typeof EXERCISE_FREQUENCIES)[number];
+
+/** q41 option ids: how big the gap to maintenance is for a lose or gain goal (decision 0017). */
+export const GOAL_PACES = ['gentle', 'steady', 'faster'] as const;
+export type GoalPace = (typeof GOAL_PACES)[number];
+
+/** The pace a plan was made with. `gradual` = q41 not answered (the v1 behaviour: 10% either way). */
+export const PLAN_PACES = ['gradual', ...GOAL_PACES] as const;
+export type PlanPace = (typeof PLAN_PACES)[number];
+
+/** Why the applied pace is slower than the one asked for (decision 0017, limits 1 and 2). */
+export const PACE_LIMITS = ['low_bmi', 'age'] as const;
+export type PaceLimit = (typeof PACE_LIMITS)[number];
+
 export const CALCULATION_SEXES = ['female', 'male'] as const;
 export type CalculationSex = (typeof CALCULATION_SEXES)[number];
 
@@ -54,7 +74,8 @@ export type ProfileMode = (typeof PROFILE_MODES)[number];
 export const PLAN_SOURCES = ['calculated', 'adjusted', 'manual', 'none'] as const;
 export type PlanSource = (typeof PLAN_SOURCES)[number];
 
-export const PLAN_METHODS = ['mifflin_st_jeor_v1'] as const;
+/** v2 (decision 0017): two-part activity, goal pace, personal protein, floor and water. v1 plans stay valid. */
+export const PLAN_METHODS = ['mifflin_st_jeor_v1', 'mifflin_st_jeor_v2'] as const;
 export type PlanMethod = (typeof PLAN_METHODS)[number];
 
 /** Result of the plan assessment (plan section 10, PLAN-GEN): what the user can be offered right now. */

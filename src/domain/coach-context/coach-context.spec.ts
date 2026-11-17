@@ -86,6 +86,15 @@ describe('buildCoachContext', () => {
     expect(c.last7Days).toMatchObject({ loggedDays: 5, averageKcal: 1900, weightChange: '83.4 kg on 2026-10-30 to 82.6 kg on 2026-11-04' });
   });
 
+  it('maintenance comes from the usual day and exercise when both are answered, as the plan was made (decision 0017)', () => {
+    // BMR 826 + 1031.25 − 170 − 161 = 1526.25. q10 'light' alone: × 1.375 = 2099.
+    expect((buildCoachContext(input()) as Json).dailyTargets.maintenanceKcal).toBe(2099);
+    // Seated + 3–4 sessions: × 1.35 = 2060, whatever the derived level says.
+    const twoPart = buildCoachContext(input({ profile: { ...profile, dayActivity: 'seated', exerciseFrequency: 'three_four' } })) as Json;
+    expect(twoPart.dailyTargets.maintenanceKcal).toBe(2060);
+    expect(twoPart.dailyTargets.floorKcal).toBe(1526);
+  });
+
   it('lists the allergies the person gave, with their own words for "other"', () => {
     expect((buildCoachContext(input()) as Json).preferences.allergies).toEqual(['peanut', 'sesame']);
   });

@@ -30,6 +30,7 @@ const SAMPLE: ProfileFields = {
   mealSource: 'mix', nutritionFamiliarity: 'some', startingMood: 'ready', habitPriorities: ['water'], loggingMethods: ['photo'], timeframeWeeks: 26,
   allergies: ['peanuts'], allergyOther: null, dietPatternOther: null, mealsPerDay: 'three', schedulePattern: 'shifts', higherIntakePattern: 'yes',
   trackingExperience: null, routineBarriers: ['busy'], eatingCues: [], lifeStage: 'none', movementActions: ['walk'],
+  dayActivity: 'standing', exerciseFrequency: 'one_two', goalPace: 'steady',
 };
 
 async function main(): Promise<void> {
@@ -59,7 +60,7 @@ async function main(): Promise<void> {
   const set = loadQuestionSet(bundle.questions);
   const inputs = {
     ageYears: SAMPLE.ageYears, calculationSex: SAMPLE.calculationSex, heightCm: SAMPLE.heightCm, weightKg: SAMPLE.weightKg,
-    activityLevel: SAMPLE.activityLevel, goal: SAMPLE.primaryGoal, targetWeightKg: SAMPLE.targetWeightKg, lifeStage: SAMPLE.lifeStage,
+    activityLevel: SAMPLE.activityLevel, dayActivity: SAMPLE.dayActivity, exerciseFrequency: SAMPLE.exerciseFrequency, goalPace: SAMPLE.goalPace, goal: SAMPLE.primaryGoal, targetWeightKg: SAMPLE.targetWeightKg, lifeStage: SAMPLE.lifeStage,
     allergies: SAMPLE.allergies,
   };
   const preview = calculatePlan(inputs);

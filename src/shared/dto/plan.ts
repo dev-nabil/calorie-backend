@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PLAN_AI_STATUSES, PLAN_METHODS, PLAN_OUTCOMES, PLAN_SOURCES, PROFILE_MODES } from '../enums';
+import { PACE_LIMITS, PLAN_AI_STATUSES, PLAN_METHODS, PLAN_OUTCOMES, PLAN_PACES, PLAN_SOURCES, PROFILE_MODES } from '../enums';
 import { IsoDateTimeSchema } from './common';
 import { EligibilityAttestationSchema, ProfileSchema } from './onboarding';
 
@@ -20,7 +20,15 @@ export const PlanGoalSchema = z
     type: z.string(),
     startWeightKg: z.number().nullable(),
     targetWeightKg: z.number().nullable().describe('Display only (OQ-15, BR-06)'),
-    pace: z.literal('gradual').nullable(),
+    pace: z
+      .enum(PLAN_PACES)
+      .nullable()
+      .describe('The pace this plan uses for a lose or gain goal (q41): gentle, steady or faster; gradual when q41 was not answered (10% either way). null for every other goal'),
+    paceLimitedBy: z
+      .enum(PACE_LIMITS)
+      .nullable()
+      .optional()
+      .describe('Set when the applied pace is slower than the one asked for: low_bmi (BMI under 20 on a loss goal: gentle at most) or age (65 or over on a loss goal: steady at most). Absent on plans made before decision 0017'),
   })
   .meta({ id: 'PlanGoal' });
 
@@ -36,13 +44,24 @@ export const PlanPreviewSchema = z
         calculationSex: z.enum(['female', 'male']),
         heightCm: z.number(),
         weightKg: z.number(),
-        activityLevel: z.string(),
+        activityLevel: z.string().describe('q10 level, or the level derived from the activity factor when q39 and q40 were used'),
+        dayActivity: z.string().nullable().optional().describe('q39 (usual day) when the two-part activity was used'),
+        exerciseFrequency: z.string().nullable().optional().describe('q40 (exercise) when the two-part activity was used'),
+        activityFactor: z.number().optional().describe('The factor this calculation used. Absent on v1 previews'),
       })
       .nullable(),
     bmrKcal: z.number().int().nullable(),
     activityFactor: z.number().nullable(),
     tdeeKcal: z.number().int().nullable(),
-    adjustmentPct: z.number().nullable(),
+    adjustmentPct: z
+      .number()
+      .nullable()
+      .describe('Percent of maintenance of the target after the pace limits and the daily caps (1,000 kcal below, 500 kcal above), before the floor. The pace percent, or one decimal when a daily cap changed it (for example 14.2). When the floor sets the target, energyKcal equals floorKcal and this percent is not what the person gets'),
+    weeklyChangeKg: z
+      .number()
+      .nullable()
+      .optional()
+      .describe('Expected weight change a week at the calculated target for a lose or gain goal: |tdeeKcal − energyKcal| × 7 ÷ 7700, two decimals. null when there is no gap; absent on v1 previews'),
     floorKcal: z.number().int().nullable(),
     calculated: MacroTargetsSchema.nullable(),
     bounds: z

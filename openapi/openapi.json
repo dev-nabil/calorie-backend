@@ -10744,12 +10744,48 @@
           },
           "activityLevel": {
             "nullable": true,
+            "description": "q10, or derived from q39 + q40 when both are answered (decision 0017)",
             "type": "string",
             "enum": [
               "seated",
               "light",
               "active",
               "intense",
+              null
+            ]
+          },
+          "dayActivity": {
+            "nullable": true,
+            "description": "q39: the usual day, without workouts",
+            "type": "string",
+            "enum": [
+              "seated",
+              "standing",
+              "moving",
+              "physical",
+              null
+            ]
+          },
+          "exerciseFrequency": {
+            "nullable": true,
+            "description": "q40: exercise sessions in a normal week",
+            "type": "string",
+            "enum": [
+              "none",
+              "one_two",
+              "three_four",
+              "five_plus",
+              null
+            ]
+          },
+          "goalPace": {
+            "nullable": true,
+            "description": "q41: pace for a lose or gain goal; null = not answered",
+            "type": "string",
+            "enum": [
+              "gentle",
+              "steady",
+              "faster",
               null
             ]
           },
@@ -10867,6 +10903,9 @@
           "weightIsEstimate",
           "targetWeightKg",
           "activityLevel",
+          "dayActivity",
+          "exerciseFrequency",
+          "goalPace",
           "dietPattern",
           "mealSource",
           "nutritionFamiliarity",
@@ -10996,9 +11035,23 @@
           },
           "pace": {
             "nullable": true,
+            "description": "The pace this plan uses for a lose or gain goal (q41): gentle, steady or faster; gradual when q41 was not answered (10% either way). null for every other goal",
             "type": "string",
             "enum": [
               "gradual",
+              "gentle",
+              "steady",
+              "faster",
+              null
+            ]
+          },
+          "paceLimitedBy": {
+            "description": "Set when the applied pace is slower than the one asked for: low_bmi (BMI under 20 on a loss goal: gentle at most) or age (65 or over on a loss goal: steady at most). Absent on plans made before decision 0017",
+            "nullable": true,
+            "type": "string",
+            "enum": [
+              "low_bmi",
+              "age",
               null
             ]
           }
@@ -11036,6 +11089,7 @@
             "type": "string",
             "enum": [
               "mifflin_st_jeor_v1",
+              "mifflin_st_jeor_v2",
               null
             ]
           },
@@ -11062,7 +11116,22 @@
                 "type": "number"
               },
               "activityLevel": {
+                "type": "string",
+                "description": "q10 level, or the level derived from the activity factor when q39 and q40 were used"
+              },
+              "dayActivity": {
+                "description": "q39 (usual day) when the two-part activity was used",
+                "nullable": true,
                 "type": "string"
+              },
+              "exerciseFrequency": {
+                "description": "q40 (exercise) when the two-part activity was used",
+                "nullable": true,
+                "type": "string"
+              },
+              "activityFactor": {
+                "description": "The factor this calculation used. Absent on v1 previews",
+                "type": "number"
               }
             },
             "required": [
@@ -11090,6 +11159,12 @@
             "maximum": 9007199254740991
           },
           "adjustmentPct": {
+            "nullable": true,
+            "description": "Percent of maintenance of the target after the pace limits and the daily caps (1,000 kcal below, 500 kcal above), before the floor. The pace percent, or one decimal when a daily cap changed it (for example 14.2). When the floor sets the target, energyKcal equals floorKcal and this percent is not what the person gets",
+            "type": "number"
+          },
+          "weeklyChangeKg": {
+            "description": "Expected weight change a week at the calculated target for a lose or gain goal: |tdeeKcal − energyKcal| × 7 ÷ 7700, two decimals. null when there is no gap; absent on v1 previews",
             "nullable": true,
             "type": "number"
           },
@@ -11884,6 +11959,7 @@
             "type": "string",
             "enum": [
               "mifflin_st_jeor_v1",
+              "mifflin_st_jeor_v2",
               null
             ]
           },
@@ -15734,6 +15810,18 @@
               "$ref": "#/components/schemas/DraftLog"
             }
           },
+          "category": {
+            "description": "The meal the person said it was for (\"for breakfast\"); absent or null: by the time of day",
+            "nullable": true,
+            "type": "string",
+            "enum": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "snack",
+              null
+            ]
+          },
           "updatedAt": {
             "type": "string",
             "format": "date-time"
@@ -17151,7 +17239,8 @@
         "type": "object",
         "properties": {
           "draftVersion": {
-            "description": "Required for draft actions: the version the card shows",
+            "description": "Draft actions: the version the card shows (null or absent = the version the card was built for)",
+            "nullable": true,
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991

@@ -75,6 +75,10 @@ describe('profileFromAnswers', () => {
       eatingCues: [],
       lifeStage: null,
       movementActions: [],
+      // Decision 0017: not in this question set, so never set.
+      dayActivity: null,
+      exerciseFrequency: null,
+      goalPace: null,
     });
   });
 

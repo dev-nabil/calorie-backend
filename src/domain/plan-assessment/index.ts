@@ -14,11 +14,24 @@ import {
   type PlanPreview,
   type PlanTimeframe,
 } from '../../shared';
-import { assessEligibility, bmiOf, UNDERWEIGHT_BMI, type PlanInputs } from '../plan-calculator';
+import { asDayActivity, asExerciseFrequency, assessEligibility, bmiOf, mapActivityOption, proteinRuleOf, twoPartActivity, UNDERWEIGHT_BMI, type PlanInputs } from '../plan-calculator';
 import { tr as defaultTr, type Translator } from '../../shared/i18n';
 
-/** Questions a calorie plan needs, in asking order. q38 only counts when the sex input is female. */
-export const REQUIRED_FOR_TARGETS = ['q06', 'q07', 'q38', 'q08', 'q09', 'q10'] as const;
+/**
+ * Questions a calorie plan needs, in asking order. q38 only counts when the sex input is female. Activity is
+ * q39 + q40 (decision 0017); a profile that runs on an older q10 answer alone lists q10 instead ({@link requiredForTargets}).
+ */
+export const REQUIRED_FOR_TARGETS = ['q06', 'q07', 'q38', 'q08', 'q09', 'q39', 'q40'] as const;
+
+/** True when activity comes from an older q10 answer and neither q39 nor q40 has been answered. */
+export function runsOnLegacyActivity(i: Pick<PlanInputs, 'activityLevel' | 'dayActivity' | 'exerciseFrequency'>): boolean {
+  return mapActivityOption(i.activityLevel) !== null && !asDayActivity(i.dayActivity) && !asExerciseFrequency(i.exerciseFrequency);
+}
+
+/** The questions this person's calorie plan needs, in asking order. */
+export function requiredForTargets(i: Pick<PlanInputs, 'calculationSex' | 'activityLevel' | 'dayActivity' | 'exerciseFrequency'>): string[] {
+  return [...['q06', 'q07'], ...(i.calculationSex === 'female' ? ['q38'] : []), 'q08', 'q09', ...(runsOnLegacyActivity(i) ? ['q10'] : ['q39', 'q40'])];
+}
 
 /** BMI outside this range almost always means a typing slip (or a unit mix-up). */
 export const BMI_PLAUSIBLE = { min: 12, max: 70 } as const;
@@ -41,8 +54,18 @@ const missing = (tr: Translator): Record<string, PlanMissingItem> => ({
   life_stage_missing: { questionId: 'q38', field: 'lifeStage', reason: tr('plan.missing.lifeStage') },
   height_missing: { questionId: 'q08', field: 'heightCm', reason: tr('plan.missing.height') },
   weight_missing: { questionId: 'q09', field: 'weightKg', reason: tr('plan.missing.weight') },
-  activity_missing: { questionId: 'q10', field: 'activityLevel', reason: tr('plan.missing.activity') },
+  day_activity_missing: { questionId: 'q39', field: 'dayActivity', reason: tr('plan.missing.dayActivity') },
+  exercise_missing: { questionId: 'q40', field: 'exerciseFrequency', reason: tr('plan.missing.exercise') },
 });
+
+/** Missing items behind one eligibility reason. Activity is two questions: only the unanswered ones are listed, q39 first. */
+function missingFor(reason: string, i: AssessInputs, items: Record<string, PlanMissingItem>): PlanMissingItem[] {
+  if (reason !== 'activity_missing') return items[reason] ? [items[reason]] : [];
+  const out: PlanMissingItem[] = [];
+  if (!asDayActivity(i.dayActivity)) out.push(items.day_activity_missing!);
+  if (!asExerciseFrequency(i.exerciseFrequency)) out.push(items.exercise_missing!);
+  return out;
+}
 
 const ESSENTIAL_REASONS = ['sex_input_missing', 'life_stage_missing', 'height_missing', 'weight_missing', 'activity_missing'];
 
@@ -102,7 +125,7 @@ export function assessPlan(i: AssessInputs, tr: Translator = defaultTr): PlanAss
   const elig = assessEligibility(i);
   const optional = optionalUnanswered(i);
   const MISSING = missing(tr);
-  const required = REQUIRED_FOR_TARGETS.filter((id) => id !== 'q38' || i.calculationSex === 'female');
+  const required = requiredForTargets(i);
   const base = { requiredForTargets: required, optionalUnanswered: optional };
   const build = (outcome: PlanOutcome, extra: Partial<PlanAssessment>): PlanAssessment => ({
     outcome,
@@ -128,7 +151,7 @@ export function assessPlan(i: AssessInputs, tr: Translator = defaultTr): PlanAss
 
   const essentials = elig.reasons.filter((r) => ESSENTIAL_REASONS.includes(r));
   if (essentials.length) {
-    return build('needs_input', { missing: essentials.map((r) => MISSING[r]!), issues: consistencyIssues(i, tr).filter((x) => x.severity === 'warning') });
+    return build('needs_input', { missing: essentials.flatMap((r) => missingFor(r, i, MISSING)), issues: consistencyIssues(i, tr).filter((x) => x.severity === 'warning') });
   }
 
   const issues = consistencyIssues(i, tr);
@@ -258,16 +281,45 @@ export function retimeFrame(base: PlanTimeframe, tdeeKcal: number, energyKcal: n
 export function buildBasis(preview: PlanPreview, i: AssessInputs, timeframe: PlanTimeframe | null, tr: Translator = defaultTr, adjustedKcal?: number): string[] {
   if (!preview.eligible || !preview.inputs || preview.bmrKcal === null || preview.tdeeKcal === null) return [];
   const out: string[] = [];
-  const level = preview.inputs.activityLevel;
-  const activity = level === 'seated' || level === 'light' || level === 'active' || level === 'intense' ? tr(`plan.activity.${level}`) : level;
-  out.push(tr('plan.basis.resting', { bmr: preview.bmrKcal, activity, factor: preview.activityFactor ?? '', tdee: preview.tdeeKcal }));
+  const inp = preview.inputs;
+  const two = twoPartActivity(inp);
+  if (two) {
+    out.push(
+      tr('plan.basis.restingTwoPart', {
+        bmr: preview.bmrKcal,
+        day: tr(`plan.dayActivity.${two.dayActivity}`),
+        exercise: tr(`plan.exercise.${two.exerciseFrequency}`),
+        factor: preview.activityFactor ?? '',
+        tdee: preview.tdeeKcal,
+      }),
+    );
+  } else {
+    const level = inp.activityLevel;
+    const activity = level === 'seated' || level === 'light' || level === 'active' || level === 'intense' ? tr(`plan.activity.${level}`) : level;
+    out.push(tr('plan.basis.resting', { bmr: preview.bmrKcal, activity, factor: preview.activityFactor ?? '', tdee: preview.tdeeKcal }));
+  }
   const pct = preview.adjustmentPct ?? 0;
-  if (adjustedKcal !== undefined && adjustedKcal !== preview.calculated?.energyKcal) out.push(tr('plan.basis.adjusted', { kcal: adjustedKcal }));
-  else if (pct < 0) out.push(tr('plan.basis.below', { pct: Math.abs(pct) }));
-  else if (pct > 0) out.push(tr('plan.basis.above', { pct }));
-  else out.push(tr('plan.basis.matches'));
+  const pace = preview.goal.pace;
+  const chosen = pace === 'gentle' || pace === 'steady' || pace === 'faster' ? pace : null;
+  const energy = preview.calculated?.energyKcal;
+  const weekly = preview.weeklyChangeKg ?? null;
+  // The floor, not the goal, set the target: quoting a percent (or "matches that number") would be wrong.
+  const floorSet = preview.floorKcal !== null && energy === preview.floorKcal && energy > Math.round(preview.tdeeKcal * (1 + pct / 100));
+  if (adjustedKcal !== undefined && adjustedKcal !== energy) out.push(tr('plan.basis.adjusted', { kcal: adjustedKcal }));
+  else {
+    // A limit changed the pace the person asked for (decision 0017, limits 1 and 2).
+    if (preview.goal.paceLimitedBy === 'low_bmi' || preview.goal.paceLimitedBy === 'age') out.push(tr(`plan.basis.paceLimited.${preview.goal.paceLimitedBy}`));
+    // A loss pace that would go under the minimum; or (v1 behaviour kept) a minimum that sits above maintenance itself.
+    if (floorSet) out.push(tr(pct < 0 ? 'plan.basis.floorApplied' : 'plan.basis.floorRaised', { floor: preview.floorKcal as number }));
+    else if (pct < 0) out.push(chosen && weekly !== null ? tr('plan.basis.belowPace', { pct: Math.abs(pct), pace: tr(`plan.pace.${chosen}`), kg: weekly }) : tr('plan.basis.below', { pct: Math.abs(pct) }));
+    else if (pct > 0) out.push(chosen && weekly !== null ? tr('plan.basis.abovePace', { pct, pace: tr(`plan.pace.${chosen}`), kg: weekly }) : tr('plan.basis.above', { pct }));
+    else out.push(tr('plan.basis.matches'));
+  }
   if (preview.floorKcal !== null) out.push(tr('plan.basis.floor', { floor: preview.floorKcal }));
-  out.push(tr('plan.basis.macros'));
+  const rule = proteinRuleOf(preview);
+  if (preview.method !== 'mifflin_st_jeor_v2' || !rule) out.push(tr('plan.basis.macros'));
+  else if (rule.reference) out.push(tr('plan.basis.proteinReference', { gPerKg: rule.gPerKg, refKg: Math.round(rule.weightKg) }));
+  else out.push(tr('plan.basis.protein', { gPerKg: rule.gPerKg }));
   out.push(tr('plan.basis.estimates'));
   if (i.weightIsEstimate) out.push(tr('plan.basis.weightEstimate'));
   if (!i.allergies || i.allergies.length === 0) out.push(tr('plan.basis.allergiesUnknown'));

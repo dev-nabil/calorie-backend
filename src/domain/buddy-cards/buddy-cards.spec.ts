@@ -1,6 +1,6 @@
-import type { DayResponse, InterpretOutput } from '../../shared';
+import type { ChatDraft, DayResponse, InterpretOp, InterpretOutput, ReminderInput } from '../../shared';
 import { avoidTermsFor } from '../plan-narrative';
-import { actionIdFor, comparisonCard, containsHealthKeys, daySummaryCard, defaultCategory, stripHealth, suggestionsCard, weeklyReviewCard } from './index';
+import { actionIdFor, asksToSave, cardFacts, changeLabels, comparisonCard, containsHealthKeys, daySummaryCard, defaultCategory, memoryProposalCard, reminderProposalCard, stripHealth, suggestionsCard, weeklyReviewCard } from './index';
 
 const day = (over: Partial<DayResponse> = {}): DayResponse =>
   ({
@@ -76,5 +76,34 @@ describe('buddy cards (Milo buddy)', () => {
     expect(actionIdFor('c', 'log_meal', 'd1', 2, 0)).not.toBe(actionIdFor('c', 'log_meal', 'd1', 3, 0));
     expect(actionIdFor('c')).toMatch(/^a_[a-f0-9]{24}$/);
     expect([7, 13, 19, 23, 2].map(defaultCategory)).toEqual(['breakfast', 'lunch', 'dinner', 'snack', 'snack']);
+  });
+
+  it('a save runs from chat only when the words ask for it (the live model also sets act for plain descriptions)', () => {
+    // Asked (English, Bangla, Banglish).
+    for (const asked of ['Please add it to lunch.', 'Log it for me', 'save this recipe', 'put it in my diary', 'এটা লগ করে দিন', 'দুপুরের খাবারে যোগ করুন', 'ডায়েরিতে রাখুন', 'eta lunch e add kore din', 'jog kore dao', 'log koro']) {
+      expect([asked, asksToSave(asked)]).toEqual([asked, true]);
+    }
+    // Described only (the live run of 16 Nov auto-logged all of these).
+    for (const told of ['For breakfast I had 2 boiled eggs and 2 slices of toast with butter.', 'make it 3 eggs', 'I added 30 g oil to the curry', 'আজ দুপুরে আমি এক প্লেট ভাত, এক বাটি ডাল আর এক টুকরা রুই মাছ খেয়েছি।', 'ভাত আসলে অর্ধেক প্লেট ছিল', 'ami sokale 2 ta ruti ar ekta dim bhaji kheyechi', 'na, dim 2 ta chilo']) {
+      expect([told, asksToSave(told)]).toEqual([told, false]);
+    }
+  });
+
+  it('proposal facts for the reply say nothing is kept yet and name a locked button (device test 16 Nov)', () => {
+    const free = memoryProposalCard('c1', { text: 'Does not eat beef', category: 'dislike', sensitive: false }, false, 't1');
+    expect(cardFacts(free.card)).toEqual({ type: 'memory_proposal', text: 'Does not eat beef', status: 'proposed_not_saved_yet', blockedBy: 'plus' });
+    const plus = memoryProposalCard('c1', { text: 'Does not eat beef', category: 'dislike', sensitive: false }, true, 't1');
+    expect(cardFacts(plus.card)).toMatchObject({ status: 'proposed_not_saved_yet', blockedBy: null });
+    const reminder: ReminderInput = { type: 'water', time: '10:00', days: [], enabled: true, category: null, habit: null, label: null, checkIn: null };
+    expect(cardFacts(reminderProposalCard('c1', reminder, false, 't1').card)).toMatchObject({ status: 'proposed_not_set_yet', blockedBy: null });
+    expect(cardFacts(reminderProposalCard('c1', reminder, true, 't1').card)).toMatchObject({ status: 'proposed_not_set_yet', blockedBy: 'limit' });
+  });
+
+  it('recipe change labels use the unit words of the request language', () => {
+    const d = { items: [{ id: 'i1', name: 'তেল' }] } as unknown as ChatDraft;
+    const blank = { kind: null, name: null, en: null, stated: true, state: null, bone: null, prep: null, proc: null, n: null, assume: null, count: null, portionKind: null, value: null, recipeId: null };
+    const op: InterpretOp = { ...blank, op: 'update_item', itemId: 'i1', qty: 20, unit: 'g', g: 20 };
+    expect(changeLabels(d, [op], 'bn')).toEqual(['তেল: 20 গ্রাম']);
+    expect(changeLabels(d, [{ ...op, op: 'add_item', itemId: null, name: 'Egg', qty: 2, unit: 'piece', g: 100 }])).toEqual(['+ Egg 2 pieces']);
   });
 });

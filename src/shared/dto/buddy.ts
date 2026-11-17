@@ -134,6 +134,7 @@ export const ChatDraftSchema = z
     pending: DraftPendingSchema.nullable(),
     savedRecipeId: z.string().nullable(),
     logs: z.array(DraftLogSchema),
+    category: z.enum(MEAL_CATEGORIES).nullable().optional().describe('The meal the person said it was for ("for breakfast"); absent or null: by the time of day'),
     updatedAt: IsoDateTimeSchema,
   })
   .meta({ id: 'ChatDraft' });
@@ -365,7 +366,7 @@ export const PatchDraftResponseSchema = z.object({ draft: ChatDraftSchema, cards
 
 export const ActionRequestSchema = z
   .strictObject({
-    draftVersion: z.number().int().optional().describe('Required for draft actions: the version the card shows'),
+    draftVersion: z.number().int().nullable().optional().describe('Draft actions: the version the card shows (null or absent = the version the card was built for)'),
     date: DayKeySchema.optional().describe('log_*: the day the card shows (default today)'),
     category: z.enum(MEAL_CATEGORIES).optional().describe('log_*: the slot the card shows'),
     timezone: TimeZoneSchema.optional(),
@@ -551,8 +552,20 @@ export const InterpretOpSchema = z.strictObject({
 });
 export type InterpretOp = z.infer<typeof InterpretOpSchema>;
 
+/** Safety first (as scans, rule 0): something poisonous or not safe to eat is never added to a draft or the diary. */
+export const InterpretHazardSchema = z
+  .strictObject({
+    level: z.enum(['danger', 'warning']).describe('danger: poisonous or toxic if eaten; warning: not safe to eat as it is (spoiled, not food, possibly poisonous wild food)'),
+    what: z.string().describe('What it is or may be and why it is unsafe, naming the toxin when known, in a few words in the reply language'),
+  })
+  .nullable()
+  .describe(
+    'Decide this first. Set it when the message says the person ate, drank or wants to log something poisonous or not safe to eat: wild or unidentified mushrooms or berries, raw or undercooked red kidney beans, datura, castor or rosary pea seeds, green or sprouting potatoes, pufferfish, spoiled or mouldy food, cleaning products, medicines or any other non-food. Then ops, act and suggestions are empty. Ordinary foods are never a hazard for being unhealthy, raw by design (sushi, salad, fruit) or ingredients meant to be cooked; shop mushrooms are food. null otherwise.',
+  );
+
 export const InterpretOutputSchema = z.strictObject({
   intent: z.enum(INTERPRET_INTENTS),
+  hazard: InterpretHazardSchema,
   ops: z.array(InterpretOpSchema).describe('Changes to the active draft, in order; empty when none'),
   reads: z.array(z.enum(INTERPRET_READS)).describe('Data the answer needs'),
   clarify: z
@@ -563,6 +576,10 @@ export const InterpretOutputSchema = z.strictObject({
     .strictObject({ type: z.enum(['log', 'save_recipe']), category: z.enum(MEAL_CATEGORIES).nullable(), day: z.enum(['today', 'yesterday']).nullable() })
     .nullable()
     .describe('Only when the person clearly asked to add it to the diary or save the recipe in this message'),
+  slot: z
+    .enum(MEAL_CATEGORIES)
+    .nullable()
+    .describe('The meal this food was for when THIS message names it ("for breakfast", "at lunch", "dupure", "রাতে"); null otherwise'),
   suggestions: z
     .array(
       z.strictObject({
@@ -597,10 +614,12 @@ export type InterpretOutput = z.infer<typeof InterpretOutputSchema>;
 
 export const EMPTY_INTERPRET: InterpretOutput = {
   intent: 'chat',
+  hazard: null,
   ops: [],
   reads: ['day'],
   clarify: null,
   act: null,
+  slot: null,
   suggestions: [],
   compare: [],
   proposed: [],

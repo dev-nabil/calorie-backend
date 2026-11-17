@@ -27,15 +27,23 @@ export class ErrorFilter implements ExceptionFilter {
     const http = host.switchToHttp();
     const res = http.getResponse<Response>();
     const req = http.getRequest<Request>();
-    const { status, body, headers } = this.render(exception);
-    // Non-English requests get the catalog text for the error code; English keeps the specific message the code raised.
-    const localised = localizedError(requestLocale(), body.error.code, body.error.details);
-    if (localised !== undefined) body.error.message = localised;
-    if (status >= 500) {
-      this.logger.error({ err: exception, path: req.path, requestId: req.id }, 'Unhandled error');
-    }
+    const { status, body, headers } = this.forRequest(exception, req);
     for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
     res.status(status).json(body);
+  }
+
+  /**
+   * The error as the client gets it: non-English requests get the catalog text for the error code (English keeps the
+   * specific message the code raised), and server errors are logged. Also used for errors sent inside a stream (SSE).
+   */
+  forRequest(exception: unknown, req: Request): { status: number; body: ApiErrorBody; headers: Record<string, string> } {
+    const rendered = this.render(exception);
+    const localised = localizedError(requestLocale(), rendered.body.error.code, rendered.body.error.details);
+    if (localised !== undefined) rendered.body.error.message = localised;
+    if (rendered.status >= 500) {
+      this.logger.error({ err: exception, path: req.path, requestId: req.id }, 'Unhandled error');
+    }
+    return rendered;
   }
 
   render(exception: unknown): { status: number; body: ApiErrorBody; headers: Record<string, string> } {

@@ -23,8 +23,8 @@ describe('Onboarding (M2-T3)', () => {
 
   it('GET /onboarding/questions is public, versioned and cacheable', async () => {
     const res = await t.http().get('/v1/onboarding/questions').expect(200);
-    expect(res.body.version).toBe(3);
-    expect(res.body.questionSet.questions).toHaveLength(39);
+    expect(res.body.version).toBe(4);
+    expect(res.body.questionSet.questions).toHaveLength(42);
     expect(res.body.conversation.turns.length).toBeGreaterThan(0);
     expect(res.headers['cache-control']).toBe('public, max-age=300');
     await t.http().get('/v1/onboarding/questions').set('If-None-Match', String(res.headers.etag)).expect(304);
@@ -119,7 +119,7 @@ describe('Onboarding (M2-T3)', () => {
     const res = await t.http().post('/v1/onboarding/complete').set(h).send({}).expect(200);
     expect(res.body.profile).toMatchObject({ mode: 'full', ageYears: 30, heightCm: 180, weightKg: 80, activityLevel: 'active', onboarding: { status: 'completed' } });
     expect(res.body.profile.onboarding.deferredCount).toBeGreaterThan(0);
-    expect(res.body.preview).toMatchObject({ eligible: true, method: 'mifflin_st_jeor_v1', bmrKcal: 1780, tdeeKcal: 2759, adjustmentPct: -10, floorKcal: 1780 });
+    expect(res.body.preview).toMatchObject({ eligible: true, method: 'mifflin_st_jeor_v2', bmrKcal: 1780, tdeeKcal: 2759, adjustmentPct: -10, floorKcal: 1780 });
     expect(res.body.preview.calculated).toMatchObject({ energyKcal: 2483, proteinG: 128 });
     const state = await t.http().get('/v1/onboarding/state').set(h).expect(200);
     expect(state.body.deferredQuestionIds).toContain('q02');

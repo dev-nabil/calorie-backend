@@ -32,7 +32,7 @@ export class ConversationSummaries implements OnModuleInit {
     if (!conv) return '';
     // After a memory was deleted or edited, the summary is rebuilt only from newer messages (Milo buddy, contract §6).
     const resetAt = (await this.prefs.findOne({ userId: conv.userId }, { contextResetAt: 1 }).lean<Pick<CoachPreferenceDoc, 'contextResetAt'>>())?.contextResetAt ?? null;
-    const filter = resetAt ? { conversationId: conv._id, createdAt: { $gt: resetAt } } : { conversationId: conv._id };
+    const filter = resetAt ? { userId: conv.userId, conversationId: conv._id, createdAt: { $gt: resetAt } } : { userId: conv.userId, conversationId: conv._id };
     const recent = (await this.messages.find(filter).sort({ createdAt: -1 }).limit(SUMMARY_EVERY * 2).lean<MessageDoc[]>()).reverse();
     if (!recent.length) return '';
     const transcript = recent.map((m) => `${m.role === 'user' ? 'User' : 'Milo'}: ${m.text}`).join('\n');

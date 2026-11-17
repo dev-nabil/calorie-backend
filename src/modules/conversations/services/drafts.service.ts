@@ -5,6 +5,7 @@ import { Types, type Model } from 'mongoose';
 import { BUDDY_LIMITS, ERROR_CODES, type ChatDraft, type DraftLifecycleRequest, type DraftState, type PatchDraftRequest } from '../../../shared';
 import { applyEdits, type DraftContext } from '../../../domain/chat-draft';
 import { clock } from '../../../common/clock';
+import { requestLocale } from '../../../common/http/request-context';
 import { ApiError } from '../../../common/errors/api-error';
 import { FoodRecordsService } from '../../content/food-records.service';
 import type { ChatDraftDoc } from '../schemas/conversations.schema';
@@ -24,7 +25,7 @@ export class DraftsService {
   ) {}
 
   context(conversationId: string, now = clock.now()): DraftContext {
-    return { records: this.records.index, newId: () => `d_${randomUUID().replace(/-/g, '')}`, conversationId, now };
+    return { records: this.records.index, newId: () => `d_${randomUUID().replace(/-/g, '')}`, conversationId, now, locale: requestLocale() };
   }
 
   async active(userId: Types.ObjectId, conversationId: Types.ObjectId): Promise<ChatDraft | null> {
@@ -96,7 +97,7 @@ export class DraftsService {
     const current = await this.active(userId, conversationId);
     if (!current) throw ApiError.notFound(ERROR_CODES.DRAFT_NOT_FOUND, 'There is no card to edit');
     if (current.version !== body.version) throw ApiError.conflict(ERROR_CODES.VERSION_CONFLICT, 'The card changed; this is the current version', { draft: current });
-    const res = applyEdits(current, body.ops, clock.now());
+    const res = applyEdits(current, body.ops, clock.now(), requestLocale());
     if (!res.ok) throw new ApiError(ERROR_CODES.VALIDATION_FAILED, `Edit not possible: ${res.reason}`, 422, { field: res.field, reason: res.reason });
     if (!(await this.save(userId, conversationId, res.draft, current.version))) {
       throw ApiError.conflict(ERROR_CODES.VERSION_CONFLICT, 'The card changed; this is the current version', { draft: await this.active(userId, conversationId) });

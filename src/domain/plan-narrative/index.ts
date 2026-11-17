@@ -20,6 +20,12 @@ const HASHED_FIELDS = [
   'trackingExperience', 'routineBarriers', 'eatingCues', 'movementActions',
 ] as const satisfies ReadonlyArray<keyof ProfileFields>;
 
+/**
+ * Fields added by decision 0017. They join the hash only once they hold a value, so a profile that has none of them
+ * keeps the hash it had before: drafts made before the change stay current.
+ */
+const HASHED_WHEN_SET = ['dayActivity', 'exerciseFrequency', 'goalPace'] as const satisfies ReadonlyArray<keyof ProfileFields>;
+
 function stable(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;
   if (v && typeof v === 'object') {
@@ -32,6 +38,7 @@ function stable(v: unknown): string {
 export function planInputHash(profile: Partial<ProfileFields>): string {
   const picked: Record<string, unknown> = {};
   for (const k of HASHED_FIELDS) picked[k] = profile[k] ?? null;
+  for (const k of HASHED_WHEN_SET) if (profile[k] != null) picked[k] = profile[k];
   return createHash('sha256').update(stable(picked)).digest('hex').slice(0, 32);
 }
 
@@ -112,8 +119,12 @@ export function buildNarrativeContext(i: NarrativeInputs): NarrativeFacts {
       heightCm: p.heightCm,
       weightKg: p.weightKg,
       targetWeightKg: p.targetWeightKg,
-      activity: L('activity_level', p.activityLevel),
+      // q39 + q40 when both are answered; otherwise the older single answer (q10).
+      activity: p.dayActivity && p.exerciseFrequency ? null : L('activity_level', p.activityLevel),
+      usualDay: L('day_activity', p.dayActivity),
+      exercise: L('exercise_frequency', p.exerciseFrequency),
     },
+    pace: i.preview.goal.pace && i.preview.goal.pace !== 'gradual' ? i.preview.goal.pace : null,
     numbers: {
       dailyTargetKcal: i.preview.calculated?.energyKcal,
       maintenanceKcal: i.preview.tdeeKcal,

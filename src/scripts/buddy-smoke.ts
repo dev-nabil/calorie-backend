@@ -83,7 +83,7 @@ async function main(): Promise<void> {
         model,
         instructions: prompt.staticPrefix,
         context:
-          coachLanguageDirective('en', null) +
+          coachLanguageDirective('en', null, s.text) +
           fillTemplate(prompt.dynamicTemplate, {
             todayDate: '2026-11-16',
             selectedDate: '2026-11-16',

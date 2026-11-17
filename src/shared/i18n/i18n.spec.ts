@@ -4,7 +4,7 @@ import { CATALOGS, localizedError, translatorFor } from './index';
 import { type MessageKey } from './en';
 import { en } from './en';
 
-const SAMPLE = { n: 12, unit: 'weeks', a: 10, b: '12 weeks', verb: 'losing', verbNoun: 'losing', change: '8', eta: 'about 10 weeks', req: '6 months', safeMin: '10 weeks', maxPace: '0.8', bmr: 1500, activity: 'x', factor: 1.4, tdee: 2100, pct: 10, kcal: 1900, floor: 1200, kcalPerKg: '7,700', code: '123456', max: 15, from: '2026-11-09', to: '2026-11-15', loggedDays: 5, days: 7, meals: 14, avg: 1850 };
+const SAMPLE = { n: 12, unit: 'weeks', a: 10, b: '12 weeks', verb: 'losing', verbNoun: 'losing', change: '8', eta: 'about 10 weeks', req: '6 months', safeMin: '10 weeks', maxPace: '0.8', bmr: 1500, activity: 'x', day: 'mostly sitting', exercise: '3–4 times a week', pace: 'steady pace', kg: 0.3, gPerKg: 1.6, refKg: 68, factor: 1.4, tdee: 2100, pct: 10, kcal: 1900, floor: 1200, kcalPerKg: '7,700', code: '123456', max: 15, from: '2026-11-09', to: '2026-11-15', loggedDays: 5, days: 7, meals: 14, avg: 1850 };
 const BENGALI = /[ঀ-৿]/;
 const BENGALI_DIGITS = /[০-৯]/;
 

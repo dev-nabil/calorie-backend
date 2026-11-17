@@ -11,6 +11,7 @@ import {
   opGrams,
   per100gOfTotals,
   portionFraction,
+  quantityText,
   recipeValues,
   recompute,
   resolveTarget,
@@ -151,6 +152,30 @@ describe('chat drafts: recipe arithmetic (Milo buddy)', () => {
     const assumed = applyModelOps(null, [op({ name: 'Rice', g: 160, stated: false, n: { kcal: 130, p: 2.7, c: 28, f: 0.3, fib: null, sug: null, na: null } })], ctx()).draft!;
     expect(assumed.assumptions).toContainEqual({ code: 'amount_assumed', itemId: 'i1', text: null });
     expect(assumed.totals.incomplete).toEqual(['fiberG', 'sugarG', 'sodiumMg']);
+  });
+
+  it('quantity text: counted units in the plural above one, weights as written, "other" as grams (device test 16 Nov)', () => {
+    expect(quantityText({ qty: 2, unit: 'piece' }, 100)).toBe('2 pieces');
+    expect(quantityText({ qty: 1, unit: 'slice' }, 30)).toBe('1 slice');
+    expect(quantityText({ qty: 2, unit: 'glass' }, 500)).toBe('2 glasses');
+    expect(quantityText({ qty: 1.5, unit: 'cup' }, 240)).toBe('1.5 cups');
+    expect(quantityText({ qty: 2, unit: 'tbsp' }, 28)).toBe('2 tbsp');
+    expect(quantityText({ qty: 150, unit: 'g' }, 150)).toBe('150 g');
+    expect(quantityText({ qty: 3, unit: 'other' }, 90)).toBe('90 g');
+  });
+
+  it('quantity text in the Bangla app uses the app\'s Bangla unit words (no plural); the draft follows the turn\'s language', () => {
+    expect(quantityText({ qty: 2, unit: 'piece' }, 100, 'bn')).toBe('2 টুকরো');
+    expect(quantityText({ qty: 1.5, unit: 'cup' }, 240, 'bn')).toBe('1.5 কাপ');
+    expect(quantityText({ qty: 2, unit: 'tbsp' }, 28, 'bn')).toBe('2 টেবিল চামচ');
+    expect(quantityText({ qty: 150, unit: 'g' }, 150, 'bn')).toBe('150 গ্রাম');
+    expect(quantityText({ qty: 3, unit: 'other' }, 90, 'bn')).toBe('90 গ্রাম');
+    const bn = applyModelOps(null, [op({ name: 'ডিম', g: 100, qty: 2, unit: 'piece', stated: true, n: { kcal: 143, p: 12.6, c: 0.7, f: 9.5, fib: 0, sug: 0.4, na: 142 } })], { ...ctx(), locale: 'bn' }).draft!;
+    expect(bn.items[0]!.quantity.text).toBe('2 টুকরো');
+    const fixed = applyModelOps(bn, [op({ op: 'update_item', itemId: 'i1', qty: 3, unit: 'piece', g: 150, stated: true })], { ...ctx(), locale: 'bn' }).draft!;
+    expect(fixed.items[0]!.quantity.text).toBe('3 টুকরো');
+    const edited = applyEdits(fixed, [{ op: 'update_item', itemId: 'i1', grams: 120 }], new Date('2026-11-16T09:00:00Z'), 'bn');
+    expect(edited.ok && edited.draft.items[0]!.quantity.text).toBe('120 গ্রাম');
   });
 
   it('a new dish parks the old one; new food after a logged meal starts a new meal', () => {

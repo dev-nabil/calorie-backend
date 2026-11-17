@@ -153,6 +153,7 @@ for (const f of questionFiles) {
     }
   }
   if (!qById.has('target_weight')) err(file, 'missing target_weight (OQ-15)');
+  if (doc.version >= 4) for (const id of ['q39', 'q40', 'q41']) if (!qById.has(id)) err(file, `missing ${id} (decision 0017)`);
   if (!qById.get('q01')?.required) err(file, 'q01 must be required');
   doc.questions.forEach((q, i) => { if (q.order !== i + 1) err(file, `${q.id}: order ${q.order} should be ${i + 1}`); });
 
@@ -180,9 +181,17 @@ for (const f of questionFiles) {
 
   // Branching
   const shown = new Set();
+  const ruleIds = new Set();
+  // One rule per question, except where a version says otherwise: every rule of a question must pass for it to show.
+  // v4 (decision 0017): q10 has its v3 rule plus BR-Q10TWOPART, which hides it once q39 and q40 are both answered.
+  const rulesAllowed = doc.version >= 4 ? { q10: 2 } : {};
+  const ruleCount = {};
   for (const rule of doc.branching) {
     if (!qById.has(rule.show)) err(file, `${rule.id}: show "${rule.show}" is not a question`);
-    if (shown.has(rule.show)) err(file, `${rule.id}: more than one rule for ${rule.show}`);
+    if (ruleIds.has(rule.id)) err(file, `duplicate rule id ${rule.id}`);
+    ruleIds.add(rule.id);
+    ruleCount[rule.show] = (ruleCount[rule.show] || 0) + 1;
+    if (ruleCount[rule.show] > (rulesAllowed[rule.show] || 1)) err(file, `${rule.id}: more than one rule for ${rule.show}`);
     shown.add(rule.show);
     checkCondition(file, rule.id, rule.when, qById);
     for (const c of rule.onHide.clear) if (!qById.has(c)) err(file, `${rule.id}: clear "${c}" is not a question`);
@@ -190,9 +199,18 @@ for (const f of questionFiles) {
     const deps = JSON.stringify(rule.when).match(/"q":"([^"]+)"/g)?.map((m) => m.slice(5, -1)) || [];
     for (const d of deps) if (qById.get(d) && qById.get(rule.show) && qById.get(d).order >= qById.get(rule.show).order) err(file, `${rule.id}: depends on later question ${d}`);
   }
-  const expectedRules = ['q07', 'q08', 'q09', 'q10', 'target_weight', 'q16', 'q19', 'q27', 'q31', ...(doc.version >= 2 ? ['q35'] : []), ...(doc.version >= 3 ? ['q38'] : [])];
+  const expectedRules = ['q07', 'q08', 'q09', 'q10', 'target_weight', 'q16', 'q19', 'q27', 'q31', ...(doc.version >= 2 ? ['q35'] : []), ...(doc.version >= 3 ? ['q38'] : []), ...(doc.version >= 4 ? ['q39', 'q40', 'q41'] : [])];
   for (const e of expectedRules) if (!shown.has(e)) err(file, `missing branching rule for ${e}`);
   for (const s of shown) if (!expectedRules.includes(s)) err(file, `unexpected branching rule for ${s}`);
+  for (const [q, n] of Object.entries(rulesAllowed)) if (ruleCount[q] !== n) err(file, `${q} needs ${n} branching rules, found ${ruleCount[q] || 0}`);
+  if (doc.version >= 4) {
+    // The rule that reports an incomplete calculation must not also be the one that hides q10 for the two-part answer.
+    const v3rule = banks[3]?.branching.find((r) => r.id === 'BR-Q10');
+    const q10 = doc.branching.find((r) => r.id === 'BR-Q10');
+    if (v3rule && JSON.stringify(q10?.when) !== JSON.stringify(v3rule.when)) err(file, 'BR-Q10 must keep its v3 condition');
+    const two = doc.branching.find((r) => r.id === 'BR-Q10TWOPART');
+    if (!two || two.show !== 'q10' || two.onHide.effects.length || two.onHide.clear.join() !== 'q10') err(file, 'BR-Q10TWOPART must show q10, clear q10 and carry no effects');
+  }
 
   // Review sections cover every question once
   const sec = doc.reviewSections.flatMap((s) => s.questionIds);
@@ -202,7 +220,7 @@ for (const f of questionFiles) {
   // Behavioural spot checks: evaluate the rules with a reference engine
   const engineErrors = runEngineFixtures(doc, qById);
   engineErrors.forEach((e) => err(file, `engine fixture: ${e}`));
-  if (!engineErrors.length) ok.push(`${file}: ${fixtures().length} branching fixtures match prototype applicable()`);
+  if (!engineErrors.length) ok.push(`${file}: ${fixtures().length + (doc.version >= 4 ? fixturesV4().length : 0)} branching fixtures match prototype applicable()`);
   ok.push(`${file}: ${ids.length} questions, ${doc.branching.length} branching rules, cross-references OK`);
 }
 
@@ -252,9 +270,20 @@ function fixtures() { return [
   { name: 'basic route never shows q31', route: 'basic', a: { q30: ['manual'] }, hidden: ['q31'] },
   { name: 'basic adult chain', route: 'basic', a: { q06: { mode: 'age', age: 40 }, q07: 'female', q08: { cm: 165 }, q09: { kg: 70 } }, shown: ['q07', 'q08', 'q09', 'q10'] }
 ]; }
+// v4 (decision 0017): two-part activity (q39 + q40) and the goal pace (q41).
+function fixturesV4() { const adult = { q06: { mode: 'age', age: 28 }, q07: 'male', q08: { cm: 172 }, q09: { kg: 78 } }; return [
+  { name: 'v4 empty answers hide q39, q40, q41', route: 'detailed', a: {}, hidden: ['q39', 'q40', 'q41'] },
+  { name: 'v4 adult chain shows q39, q40 and still q10', route: 'detailed', a: { ...adult, q01: 'maintain' }, shown: ['q39', 'q40', 'q10'], hidden: ['q41'] },
+  { name: 'v4 usual day alone keeps q10', route: 'detailed', a: { ...adult, q39: 'seated' }, shown: ['q39', 'q40', 'q10', 'q27'] },
+  { name: 'v4 usual day + exercise hide q10', route: 'detailed', a: { ...adult, q39: 'seated', q40: 'none' }, shown: ['q39', 'q40'], hidden: ['q10'] },
+  { name: 'v4 lose shows pace', route: 'detailed', a: { ...adult, q01: 'lose' }, shown: ['target_weight', 'q41'] },
+  { name: 'v4 gain shows pace', route: 'detailed', a: { ...adult, q01: 'gain' }, shown: ['target_weight', 'q41'] },
+  { name: 'v4 pregnant hides pace', route: 'detailed', a: { ...adult, q07: 'female', q38: 'pregnant', q01: 'lose' }, hidden: ['target_weight', 'q41'] },
+  { name: 'v4 under 18 hides q39, q40, q41', route: 'detailed', a: { q01: 'lose', q06: { mode: 'age', age: 16 }, q07: 'female', q08: { cm: 160 }, q09: { kg: 50 } }, hidden: ['q39', 'q40', 'q41'] }
+]; }
 function runEngineFixtures(doc) {
   const out = [];
-  for (const f of fixtures()) {
+  for (const f of [...fixtures(), ...(doc.version >= 4 ? fixturesV4() : [])]) {
     const list = applicable(doc, f.a, f.route);
     for (const s of f.shown || []) if (!list.includes(s)) out.push(`${f.name}: expected ${s} shown`);
     for (const h of f.hidden || []) if (list.includes(h)) out.push(`${f.name}: expected ${h} hidden`);

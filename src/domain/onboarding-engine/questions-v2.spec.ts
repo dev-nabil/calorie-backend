@@ -179,3 +179,106 @@ describe('questions v3', () => {
     expect(volunteerableQuestions(v3, turns, minor, {}, ctx('conversation'), [])).not.toContain('q09');
   });
 });
+
+describe('questions v4 (decision 0017)', () => {
+  const v3 = loadQuestionSet(loadContentJson('questions.v3.json'));
+  const v4 = loadQuestionSet(loadContentJson('questions.v4.json'));
+  const v4bn = loadQuestionSet(loadContentJson('questions.v4.bn.json'));
+  const d = ctx('detailed');
+  const body: AnswerUpdate[] = [a('q06', { mode: 'age', age: 34 }), a('q07', 'male'), a('q08', { cm: 180, unit: 'cm' }), a('q09', { kg: 82, unit: 'kg', isEstimate: false })];
+  const adult = (goal: string, ...more: AnswerUpdate[]) => applyAnswers(v4, {}, [a('q01', goal), ...body, ...more], d).answers;
+  const optionIds = (id: string) => v4.questions.find((q) => q.id === id)!.options.map((o) => o.id);
+
+  it('adds q39, q40 and q41 and changes no earlier question or option', () => {
+    expect(v4.version).toBe(4);
+    expect(v4.questions.map((q) => q.id).filter((id) => !v3.questions.some((q) => q.id === id))).toEqual(['q39', 'q40', 'q41']);
+    for (const q3 of v3.questions) {
+      const q4 = v4.questions.find((q) => q.id === q3.id)!;
+      expect([q4.id, q4.fieldKey, q4.type, q4.options.map((o) => o.id)]).toEqual([q3.id, q3.fieldKey, q3.type, q3.options.map((o) => o.id)]);
+    }
+    expect(v4.questions.filter((q) => ['q39', 'q40', 'q41'].includes(q.id)).map((q) => [q.id, q.fieldKey, q.type, q.required])).toEqual([
+      ['q39', 'day_activity', 'single', false],
+      ['q40', 'exercise_frequency', 'single', false],
+      ['q41', 'goal_pace', 'single', false],
+    ]);
+    expect(optionIds('q39')).toEqual(['seated', 'standing', 'moving', 'physical']);
+    expect(optionIds('q40')).toEqual(['none', 'one_two', 'three_four', 'five_plus']);
+    expect(optionIds('q41')).toEqual(['gentle', 'steady', 'faster']);
+    // No "not sure" on the behaviour questions: everybody can answer them.
+    expect([...optionIds('q39'), ...optionIds('q40')]).not.toContain('unsure');
+    // The Bangla file has the same ids and rules.
+    expect(v4bn.questions.map((q) => [q.id, q.options.map((o) => o.id)])).toEqual(v4.questions.map((q) => [q.id, q.options.map((o) => o.id)]));
+    // The app's old goal route and the voice route are untouched (owner rule).
+    const raw4 = loadContentJson('questions.v4.json') as { routes: Record<string, { questionIds: string[] }> };
+    const raw3 = loadContentJson('questions.v3.json') as { routes: Record<string, { questionIds: string[] }> };
+    expect(raw4.routes.basic).toEqual(raw3.routes.basic);
+    expect(raw4.routes.conversation).toEqual(raw3.routes.conversation);
+  });
+
+  it('asks the usual day and exercise where q10 was asked, then the target weight and the pace', () => {
+    const order = v4.questions.map((q) => q.id);
+    expect(order.slice(order.indexOf('q09'), order.indexOf('q35') + 1)).toEqual(['q09', 'q39', 'q40', 'q10', 'target_weight', 'q41', 'q35']);
+    // Same condition as q10: an adult with a sex input, height and weight.
+    expect(applicableQuestions(v4, adult('maintain'), d)).toEqual(expect.arrayContaining(['q39', 'q40', 'q10']));
+    const noWeight = applyAnswers(v4, {}, [a('q01', 'lose'), a('q06', { mode: 'age', age: 34 }), a('q07', 'male'), a('q08', { cm: 180, unit: 'cm' })], d).answers;
+    for (const id of ['q39', 'q40', 'q10', 'q41']) expect(applicableQuestions(v4, noWeight, d)).not.toContain(id);
+    const minor = applyAnswers(v4, {}, [a('q01', 'lose'), a('q06', { mode: 'age', age: 16 })], d).answers;
+    for (const id of ['q39', 'q40', 'q41']) expect(applicableQuestions(v4, minor, d)).not.toContain(id);
+    expect(nextQuestion(v4, adult('lose', a('q02', ['energy']), a('q03', 'proud'), a('q04', ['logging']), a('q05', 'Sam')), d)).toBe('q39');
+  });
+
+  it('hides and clears q10 once q39 and q40 are both answered: the two-part answer wins', () => {
+    const old = adult('maintain', a('q10', 'intense'));
+    expect(profileFromAnswers(v4, old, today)).toMatchObject({ activityLevel: 'intense', dayActivity: null, exerciseFrequency: null });
+    // One half alone changes nothing.
+    const half = applyAnswers(v4, old, [a('q39', 'seated')], d);
+    expect(half.cleared).not.toContain('q10');
+    expect(applicableQuestions(v4, half.answers, d)).toContain('q10');
+    expect(profileFromAnswers(v4, half.answers, today)).toMatchObject({ activityLevel: 'intense', dayActivity: 'seated', exerciseFrequency: null });
+    // Both: q10 goes, and the level other features read is derived from the factor (1.2 + 0.15 = 1.35 → light).
+    const both = applyAnswers(v4, half.answers, [a('q40', 'three_four')], d);
+    expect(both.cleared).toContain('q10');
+    // Hiding q10 this way is not an incomplete calculation: its own rule (BR-Q10TWOPART) carries no effect.
+    expect(both.effects).not.toContain('calculation_incomplete');
+    expect(v4.rulesByQuestion.q10!.map((r) => [r.id, r.onHide?.effects])).toEqual([['BR-Q10', ['calculation_incomplete']], ['BR-Q10TWOPART', []]]);
+    expect(v4.rulesByQuestion.q10![0]!.when).toEqual(v3.rulesByQuestion.q10![0]!.when);
+    expect(both.answers.q10).toMatchObject({ status: 'not_applicable', value: null });
+    expect(applicableQuestions(v4, both.answers, d)).not.toContain('q10');
+    expect(profileFromAnswers(v4, both.answers, today)).toMatchObject({ activityLevel: 'light', dayActivity: 'seated', exerciseFrequency: 'three_four' });
+    // An app that only knows q10 still gets asked q10 while the pair is open.
+    expect(applicableQuestions(v4, adult('maintain'), ctx('basic'))).toContain('q10');
+    // The v3 rule still reports an incomplete calculation when the weight goes (it hides q10, q39 and q40 alike).
+    const noWeight = applyAnswers(v4, both.answers, [{ questionId: 'q09', status: 'skipped' }], d);
+    expect(noWeight.effects).toContain('calculation_incomplete');
+    expect(noWeight.cleared).toEqual(expect.arrayContaining(['q39', 'q40']));
+    expect(profileFromAnswers(v4, noWeight.answers, today)).toMatchObject({ activityLevel: null, dayActivity: null, exerciseFrequency: null });
+  });
+
+  it('asks the pace only for a lose or gain goal, never while pregnant or breastfeeding', () => {
+    for (const goal of ['lose', 'gain']) expect(applicableQuestions(v4, adult(goal), d)).toEqual(expect.arrayContaining(['target_weight', 'q41']));
+    for (const goal of ['maintain', 'habits', 'patterns', 'decide']) expect(applicableQuestions(v4, adult(goal), d)).not.toContain('q41');
+    const female = (stage: string) => applyAnswers(v4, {}, [a('q01', 'lose'), ...body, a('q07', 'female'), a('q38', stage)], d).answers;
+    expect(applicableQuestions(v4, female('none'), d)).toContain('q41');
+    expect(applicableQuestions(v4, female('pregnant'), d)).not.toContain('q41');
+    expect(applicableQuestions(v4, female('breastfeeding'), d)).not.toContain('q41');
+    // Changing the goal drops the pace (BR-11).
+    const paced = applyAnswers(v4, adult('lose'), [a('q41', 'faster')], d).answers;
+    expect(profileFromAnswers(v4, paced, today).goalPace).toBe('faster');
+    const res = applyAnswers(v4, paced, [a('q01', 'maintain')], d);
+    expect(res.cleared).toContain('q41');
+    expect(profileFromAnswers(v4, res.answers, today).goalPace).toBeNull();
+    // A skipped pace is not a pace.
+    const skipped = applyAnswers(v4, adult('lose'), [{ questionId: 'q41', status: 'skipped' }], d).answers;
+    expect(profileFromAnswers(v4, skipped, today).goalPace).toBeNull();
+  });
+
+  it('the usual day also opens the movement question (q27)', () => {
+    expect(applicableQuestions(v4, adult('maintain'), d)).not.toContain('q27');
+    expect(applicableQuestions(v4, adult('maintain', a('q39', 'moving')), d)).toContain('q27');
+  });
+
+  it('rejects an option the bank does not have', () => {
+    expect(() => applyAnswers(v4, adult('lose'), [a('q39', 'unsure')], d)).toThrow();
+    expect(() => applyAnswers(v4, adult('lose'), [a('q41', 'gradual')], d)).toThrow();
+  });
+});

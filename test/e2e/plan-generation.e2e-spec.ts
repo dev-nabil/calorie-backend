@@ -50,11 +50,16 @@ describe('Plan generation (PLAN-GEN)', () => {
     fake.enqueue(...responses);
   };
 
-  it('serves question set v3 with the conditional life stage question', async () => {
+  it('serves question set v4: the life stage question, the two-part activity and the pace', async () => {
     const res = await t.http().get('/v1/onboarding/questions').expect(200);
-    expect(res.body.version).toBe(3);
-    expect(res.body.questionSet.questions).toHaveLength(39);
+    expect(res.body.version).toBe(4);
+    expect(res.body.questionSet.questions).toHaveLength(42);
     expect(res.body.questionSet.routes.basic.questionIds).toContain('q36');
+    const ids = res.body.questionSet.questions.map((q: { id: string }) => q.id);
+    expect(ids).toEqual(expect.arrayContaining(['q10', 'q38', 'q39', 'q40', 'q41']));
+    const bn = await t.http().get('/v1/onboarding/questions?locale=bn').expect(200);
+    expect(bn.body).toMatchObject({ version: 4, locale: 'bn' });
+    expect(bn.body.questionSet.questions.find((q: { id: string }) => q.id === 'q39').text).toMatch(/[ঀ-৿]/);
   });
 
   describe('readiness', () => {
@@ -64,8 +69,8 @@ describe('Plan generation (PLAN-GEN)', () => {
       await t.http().put('/v1/onboarding/answers').set(h).send({ route: 'basic', answers: [answer('q01', 'lose'), answer('q06', { mode: 'age', age: 30 }), answer('q07', 'female')] }).expect(200);
       const r = await t.http().get('/v1/plan/readiness').set(h).expect(200);
       expect(r.body).toMatchObject({ outcome: 'needs_input', attestationOnFile: false, attestationNeeded: false, canContinueWithoutTargets: true });
-      expect(r.body.missing.map((m: { questionId: string }) => m.questionId)).toEqual(['q38', 'q08', 'q09', 'q10']);
-      expect(r.body.requiredForTargets).toEqual(['q06', 'q07', 'q38', 'q08', 'q09', 'q10']);
+      expect(r.body.missing.map((m: { questionId: string }) => m.questionId)).toEqual(['q38', 'q08', 'q09', 'q39', 'q40']);
+      expect(r.body.requiredForTargets).toEqual(['q06', 'q07', 'q38', 'q08', 'q09', 'q39', 'q40']);
     });
 
     it('is ready for a complete profile, with no health check step', async () => {
@@ -100,7 +105,7 @@ describe('Plan generation (PLAN-GEN)', () => {
       expect(res.body.narrative).toBeNull();
       expect(res.body.ai).toMatchObject({ status: 'not_configured', retryable: false, model: null });
       expect(res.body.ai.message).toMatch(/not switched on/);
-      expect(res.body.preview).toMatchObject({ eligible: true, method: 'mifflin_st_jeor_v1' });
+      expect(res.body.preview).toMatchObject({ eligible: true, method: 'mifflin_st_jeor_v2' });
       expect(res.body.preview.tdeeKcal).toBeGreaterThan(res.body.preview.calculated.energyKcal);
       expect(res.body.basis.join(' ')).toMatch(/Mifflin-St Jeor/);
       expect(fake.calls).toHaveLength(0);
@@ -328,7 +333,7 @@ describe('Plan generation (PLAN-GEN)', () => {
       aiOn(narrative());
       const d = (await generate(h).expect(200)).body;
       expect(d.status).toBe('needs_input');
-      expect(d.assessment.missing.map((m: { questionId: string }) => m.questionId)).toEqual(['q09', 'q10']);
+      expect(d.assessment.missing.map((m: { questionId: string }) => m.questionId)).toEqual(['q09', 'q39', 'q40']);
       expect(fake.calls).toHaveLength(0);
     });
 
@@ -336,7 +341,7 @@ describe('Plan generation (PLAN-GEN)', () => {
       const { h } = await user(LOSE.map((a) => (a.questionId === 'q10' ? answer('q10', 'unsure') : a)));
       const d = (await generate(h).expect(200)).body;
       expect(d.status).toBe('needs_input');
-      expect(d.assessment.missing.map((m: { field: string }) => m.field)).toEqual(['activityLevel']);
+      expect(d.assessment.missing.map((m: { field: string }) => m.field)).toEqual(['dayActivity', 'exerciseFrequency']);
     });
 
     it('implausible height and weight are sent back, not planned for', async () => {
@@ -413,9 +418,9 @@ describe('Plan generation (PLAN-GEN)', () => {
     it('draft and preview responses carry no weight goal for people who are not given a plan', async () => {
       const { h } = await user(LOSE.filter((a) => !['q38', 'target_weight', 'q35'].includes(a.questionId)).concat(answer('q38', 'breastfeeding')));
       const d = (await generate(h).expect(200)).body;
-      expect(d.preview.goal).toEqual({ type: 'lose', startWeightKg: null, targetWeightKg: null, pace: null });
+      expect(d.preview.goal).toEqual({ type: 'lose', startWeightKg: null, targetWeightKg: null, pace: null, paceLimitedBy: null });
       const legacy = await t.http().post('/v1/plan/preview').set(h).send({}).expect(200);
-      expect(legacy.body.goal).toEqual({ type: 'lose', startWeightKg: null, targetWeightKg: null, pace: null });
+      expect(legacy.body.goal).toEqual({ type: 'lose', startWeightKg: null, targetWeightKg: null, pace: null, paceLimitedBy: null });
       const minor = await user([answer('q01', 'lose'), answer('q06', { mode: 'age', age: 15 })]);
       const m = await t.http().post('/v1/plan/preview').set(minor.h).send({}).expect(200);
       expect(m.body).toMatchObject({ eligible: false, goal: { pace: null, targetWeightKg: null } });
@@ -449,7 +454,7 @@ describe('Plan generation (PLAN-GEN)', () => {
       const none3 = await t.http().post('/v1/plan').set(h3).set(idem()).send({ source: 'none', draftId: d3.id, targetWeightKg: 70 }).expect(400);
       expect(none3.body.error.code).toBe('VALIDATION_FAILED');
       const ok3 = await t.http().post('/v1/plan').set(h3).set(idem()).send({ source: 'none', draftId: d3.id }).expect(201);
-      expect(ok3.body.goal).toEqual({ type: 'habits', startWeightKg: null, targetWeightKg: null, pace: null });
+      expect(ok3.body.goal).toEqual({ type: 'habits', startWeightKg: null, targetWeightKg: null, pace: null, paceLimitedBy: null });
     });
 
     it('adjusted targets do not keep a basis line that describes the calculated target', async () => {
@@ -493,6 +498,155 @@ describe('Plan generation (PLAN-GEN)', () => {
       const d = (await generate(h).expect(200)).body;
       expect(d.ai.status).toBe('ok');
       expect(fake.calls).toHaveLength(2);
+    });
+  });
+
+  describe('nutrition assessment v2 (decision 0017)', () => {
+    /** A 30-year-old woman, 165 cm, 70 kg: desk job, trains 3–4 times a week, wants 64 kg at a steady pace. */
+    const TWO_PART = [
+      answer('q01', 'lose'),
+      answer('q06', { mode: 'age', age: 30 }),
+      answer('q07', 'female'),
+      answer('q38', 'none'),
+      answer('q08', { cm: 165, unit: 'cm' }),
+      answer('q09', { kg: 70, unit: 'kg', isEstimate: false }),
+      answer('q39', 'seated'),
+      answer('q40', 'three_four'),
+      answer('target_weight', { kg: 64, unit: 'kg' }),
+      answer('q41', 'steady'),
+      answer('q36', ['none']),
+      answer('q11', 'none'),
+    ];
+    const put = (h: Record<string, string>, id: string, value: unknown) =>
+      t.http().put(`/v1/onboarding/answers/${id}`).set(h).send({ value, status: 'answered', inputMethod: 'form' });
+
+    it('builds the plan from the usual day, the exercise and the pace, and stores the factor with it', async () => {
+      const s = await signIn(t);
+      const h = bearer(s.accessToken);
+      await t.http().put('/v1/onboarding/answers').set(h).send({ route: 'detailed', answers: TWO_PART }).expect(200);
+      const done = await t.http().post('/v1/onboarding/complete').set(h).send({}).expect(200);
+      // The profile carries the answers; the level other features read is derived (1.2 + 0.15 = 1.35 → light).
+      expect(done.body.profile).toMatchObject({ dayActivity: 'seated', exerciseFrequency: 'three_four', goalPace: 'steady', activityLevel: 'light' });
+
+      const ready = await t.http().get('/v1/plan/readiness').set(h).expect(200);
+      expect(ready.body).toMatchObject({ outcome: 'ready', missing: [], requiredForTargets: ['q06', 'q07', 'q38', 'q08', 'q09', 'q39', 'q40'] });
+
+      const d = (await generate(h).expect(200)).body;
+      // BMR 1420.25 × 1.35 = 1917; −15% = 1630; protein 1.8 × 68.06 kg reference = 123 → 30% cap 122.
+      expect(d.preview).toMatchObject({
+        eligible: true,
+        method: 'mifflin_st_jeor_v2',
+        bmrKcal: 1420,
+        activityFactor: 1.35,
+        tdeeKcal: 1917,
+        adjustmentPct: -15,
+        weeklyChangeKg: 0.26,
+        floorKcal: 1420,
+        calculated: { energyKcal: 1630, proteinG: 122, fatG: 49, carbsG: 175 },
+        waterMl: 2000,
+        goal: { type: 'lose', startWeightKg: 70, targetWeightKg: 64, pace: 'steady', paceLimitedBy: null },
+        inputs: { activityLevel: 'light', dayActivity: 'seated', exerciseFrequency: 'three_four', activityFactor: 1.35 },
+      });
+      expect(d.timeframe).toMatchObject({ direction: 'lose', changeKg: 6, paceKgPerWeek: 0.26 });
+      const basis = d.basis.join('\n');
+      expect(basis).toMatch(/Your usual day \(mostly sitting\) and your exercise \(3–4 times a week\) together multiply it by 1\.35/);
+      expect(basis).toMatch(/15% below that \(steady pace\), which works out at about 0\.26 kg a week/);
+      expect(basis).toMatch(/1\.8 g per kg of a reference weight for your height \(68 kg\)/);
+      expect(basis).not.toMatch(/estimat/i);
+
+      const plan = await t.http().post('/v1/plan').set(h).set(idem()).send({ source: 'calculated', draftId: d.id }).expect(201);
+      expect(plan.body).toMatchObject({
+        method: 'mifflin_st_jeor_v2',
+        energyKcal: 1630,
+        proteinG: 122,
+        waterMl: 2000,
+        goal: { type: 'lose', pace: 'steady', paceLimitedBy: null },
+        // The allowance the app keeps out of imported activity: tdee − bmr, from the stored factor.
+        energyBasis: { bmrKcal: 1420, activityFactor: 1.35, tdeeKcal: 1917 },
+      });
+      const day = await t.http().get('/v1/days/2026-11-17').set(h).expect(200);
+      expect(day.body.targets).toMatchObject({ energyKcal: 1630, proteinG: 122, waterMl: 2000 });
+
+      // Adjusting keeps the same protein rule (123 g wanted fits inside 15–30% of 1700 kcal) and the same floor.
+      const adjusted = await t.http().post('/v1/plan').set(h).set(idem()).send({ source: 'adjusted', energyKcal: 1700, draftId: d.id }).expect(201);
+      expect(adjusted.body).toMatchObject({ source: 'adjusted', energyKcal: 1700, proteinG: 123, energyBasis: { tdeeKcal: 1917 } });
+      expect(adjusted.body.basis.join('\n')).toMatch(/You adjusted your daily target to 1700 kcal/);
+      const tooLow = await t.http().post('/v1/plan').set(h).set(idem()).send({ source: 'adjusted', energyKcal: 1419, draftId: d.id }).expect(422);
+      expect(tooLow.body.error).toMatchObject({ code: 'PLAN_OUT_OF_BOUNDS', details: { min: 1420 } });
+    });
+
+    it('a changed pace or exercise answer makes the draft stale and the next one different', async () => {
+      const { h } = await user(TWO_PART);
+      const first = (await generate(h).expect(200)).body;
+      expect(first.preview.adjustmentPct).toBe(-15);
+      await put(h, 'q41', 'gentle').expect(200);
+      expect((await t.http().get('/v1/plan/readiness').set(h).expect(200)).body.latestDraftCurrent).toBe(false);
+      const stale = await t.http().post('/v1/plan').set(h).set(idem()).send({ source: 'calculated', draftId: first.id }).expect(409);
+      expect(stale.body.error.code).toBe('PLAN_DRAFT_STALE');
+      const second = (await generate(h).expect(200)).body;
+      expect(second.id).not.toBe(first.id);
+      expect(second.preview).toMatchObject({ adjustmentPct: -10, calculated: { energyKcal: 1726 }, goal: { pace: 'gentle' } });
+      await put(h, 'q40', 'none').expect(200);
+      const third = (await generate(h).expect(200)).body;
+      // Factor 1.2: 1420.25 × 1.2 = 1704; −10% = 1534; no exercise bonus: 1.6 × 68.06 = 109 g.
+      expect(third.preview).toMatchObject({ activityFactor: 1.2, tdeeKcal: 1704, calculated: { energyKcal: 1534, proteinG: 109 }, inputs: { activityLevel: 'seated' } });
+    });
+
+    it('slows a faster pace for a person of 65 or over and says why, in the language asked for', async () => {
+      const older = TWO_PART.map((a) => (a.questionId === 'q06' ? answer('q06', { mode: 'age', age: 68 }) : a.questionId === 'q41' ? answer('q41', 'faster') : a));
+      const { h } = await user(older);
+      const d = (await generate(h).expect(200)).body;
+      expect(d.preview).toMatchObject({ adjustmentPct: -15, goal: { pace: 'steady', paceLimitedBy: 'age' } });
+      expect(d.basis.join('\n')).toMatch(/From 65 a steady pace protects muscle and bone better/);
+      const bn = (await generate(h).set('Accept-Language', 'bn').expect(200)).body;
+      expect(bn.locale).toBe('bn');
+      expect(bn.preview.goal).toMatchObject({ pace: 'steady', paceLimitedBy: 'age' });
+      expect(bn.basis.join('\n')).toMatch(/মাঝারি গতি/);
+      expect(bn.basis.join('\n')).not.toMatch(/[০-৯]|আনুমানিক|অনুমান|আন্দাজ/);
+    });
+
+    it('an older app that only asks q10 still gets its plan; answering q39 and q40 later replaces q10', async () => {
+      const { h } = await user(); // LOSE: q10 'light', no q39/q40/q41
+      const ready = await t.http().get('/v1/plan/readiness').set(h).expect(200);
+      expect(ready.body).toMatchObject({ outcome: 'ready', requiredForTargets: ['q06', 'q07', 'q38', 'q08', 'q09', 'q10'] });
+      const d = (await generate(h).expect(200)).body;
+      // The v1 factor and the v1 size of the goal; the new protein rule and floor apply to every new calculation.
+      expect(d.preview).toMatchObject({ method: 'mifflin_st_jeor_v2', activityFactor: 1.375, adjustmentPct: -10, goal: { pace: 'gradual', paceLimitedBy: null }, inputs: { activityLevel: 'light', dayActivity: null, exerciseFrequency: null, activityFactor: 1.375 } });
+      expect(d.basis.join('\n')).toMatch(/Because you are lightly active, we multiplied it by 1\.375/);
+
+      await put(h, 'q39', 'moving').expect(200);
+      // One half alone changes nothing in the numbers.
+      expect((await t.http().post('/v1/plan/preview').set(h).send({}).expect(200)).body).toMatchObject({ activityFactor: 1.375 });
+      const res = await put(h, 'q40', 'one_two').expect(200);
+      expect(res.body.cleared).toContain('q10');
+      const state = await t.http().get('/v1/onboarding/state').set(h).expect(200);
+      expect(state.body.answers.find((a: { questionId: string }) => a.questionId === 'q10')).toMatchObject({ status: 'not_applicable', value: null });
+      const next = (await generate(h).expect(200)).body;
+      expect(next.id).not.toBe(d.id);
+      // 1.5 + 0.075 = 1.575 → the derived level is 'active'.
+      expect(next.preview).toMatchObject({ activityFactor: 1.575, inputs: { activityLevel: 'active', dayActivity: 'moving', exerciseFrequency: 'one_two' } });
+      expect(next.assessment.requiredForTargets).toEqual(['q06', 'q07', 'q38', 'q08', 'q09', 'q39', 'q40']);
+    });
+
+    it('missing activity asks for the usual day and the exercise, one at a time', async () => {
+      const noActivity = TWO_PART.filter((a) => a.questionId !== 'q39' && a.questionId !== 'q40');
+      const { h } = await user(noActivity);
+      const d = (await generate(h).expect(200)).body;
+      expect(d.status).toBe('needs_input');
+      expect(d.assessment.missing.map((m: { questionId: string }) => m.questionId)).toEqual(['q39', 'q40']);
+      expect(d.preview).toMatchObject({ eligible: false, calculated: null, weeklyChangeKg: null, waterMl: 2500 });
+      await put(h, 'q39', 'standing').expect(200);
+      expect((await generate(h).expect(200)).body.assessment.missing.map((m: { questionId: string }) => m.questionId)).toEqual(['q40']);
+      await put(h, 'q40', 'none').expect(200);
+      expect((await generate(h).expect(200)).body.status).toBe('ready');
+    });
+
+    it('a calorie plan turned down keeps the default water target', async () => {
+      const { h } = await user(TWO_PART);
+      const d = (await generate(h).expect(200)).body;
+      expect(d.preview.waterMl).toBe(2000);
+      const none = await t.http().post('/v1/plan').set(h).set(idem()).send({ source: 'none', draftId: d.id }).expect(201);
+      expect(none.body).toMatchObject({ source: 'none', energyKcal: null, waterMl: 2500, energyBasis: null, goal: { pace: null, paceLimitedBy: null } });
     });
   });
 

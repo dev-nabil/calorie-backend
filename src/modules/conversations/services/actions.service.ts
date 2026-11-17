@@ -32,6 +32,8 @@ const USABLE_MS = 7 * 86_400_000;
 const KEEP_MS = 30 * 86_400_000;
 /** A parallel run of the same action waits this long for the first one to finish. */
 const WAIT_MS = 5000;
+/** A claim older than this belongs to a request that died (crash, restart): the action can be run again. */
+const STALE_CLAIM_MS = 60_000;
 
 export interface ExecuteOptions {
   /** Where the request came from: a card tap (the app's day/slot) or the person's explicit words in a turn. */
@@ -105,8 +107,16 @@ export class ActionsService {
     if (!row) throw ApiError.notFound(ERROR_CODES.ACTION_NOT_FOUND, 'That button no longer works');
     if (row.status === 'done') return row.result as ActionResult;
     if (clock.now() > row.usableUntil) throw new ApiError(ERROR_CODES.ACTION_EXPIRED, 'That card is too old to use', 410);
-    // Claim it: one run at a time. A parallel request waits for the first one's result.
-    const claimed = await this.actions.findOneAndUpdate({ _id: actionId, userId: uid, status: 'open' }, { $set: { status: 'running', claimedAt: clock.now() } }, { returnDocument: 'after' }).lean<ChatActionDoc>();
+    // Claim it: one run at a time. A parallel request waits for the first one's result; a claim left by a request that died
+    // (crash or restart between claim and result) is taken over once it is stale, so the button does not stay stuck.
+    const stale = new Date(clock.now().getTime() - STALE_CLAIM_MS);
+    const claimed = await this.actions
+      .findOneAndUpdate(
+        { _id: actionId, userId: uid, $or: [{ status: 'open' }, { status: 'running', claimedAt: { $lt: stale } }] },
+        { $set: { status: 'running', claimedAt: clock.now() } },
+        { returnDocument: 'after' },
+      )
+      .lean<ChatActionDoc>();
     if (!claimed) {
       const deadline = Date.now() + WAIT_MS;
       while (Date.now() < deadline) {

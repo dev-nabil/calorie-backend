@@ -164,6 +164,7 @@ export class ConversationsController {
     @ZParam('id', ObjectIdSchema) id: string,
     @ZBody(TurnRequestSchema) body: TurnRequest,
     @Query('stream') stream: string | undefined,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<MiloReply | undefined> {
     if (stream !== 'true') return this.svc.turn(u.id, id, body);
@@ -183,7 +184,8 @@ export class ConversationsController {
       );
       send('done', reply);
     } catch (e) {
-      send('error', this.filter.render(e).body);
+      // Same body as a plain error response: localised for the request language, server errors logged.
+      send('error', this.filter.forRequest(e, req).body);
     }
     res.end();
     return undefined;
@@ -239,7 +241,7 @@ export class ConversationsController {
     const built = draftCards(draft, {
       conversationId: conversationId.toString(),
       date: dayKeyFor(now, user.timezone),
-      category: defaultCategory(Math.floor(localMinutes(now, user.timezone) / 60)),
+      category: draft.category ?? defaultCategory(Math.floor(localMinutes(now, user.timezone) / 60)),
       deletedLogMealIds: await this.actions.deletedLogMeals(userId, draft),
     });
     await this.actions.register(userId, conversationId, built.actions);
